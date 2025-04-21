@@ -15,7 +15,11 @@ io.on('connection', (socket) => {
     // 新規プレイヤーの初期化
     players.set(socket.id, {
         id: socket.id,
-        position: { x: Math.random() * 5000, y: 0, z: Math.random() * 5000 },
+        position: { 
+            x: (Math.random() - 0.5) * 80, 
+            y: 0, 
+            z: (Math.random() - 0.5) * 80 
+        },
         rotation: { y: 0 },
         health: 100
     });

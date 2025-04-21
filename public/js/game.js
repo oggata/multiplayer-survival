@@ -75,6 +75,9 @@ class Game {
         grid.material.transparent = true;
         this.scene.add(grid);
 
+        // フィールドマップの作成
+        this.fieldMap = new FieldMap(this.scene);
+
         // プレイヤーモデルの作成
         this.createPlayerModel();
         
@@ -85,7 +88,10 @@ class Game {
     createPlayerModel() {
         // 新しいキャラクタークラスを使用してプレイヤーモデルを作成
         this.playerModel = new Character(this.scene);
-        this.playerModel.setPosition(0, 0, 0);
+        
+        // 安全なスポーン位置を取得
+        const spawnPosition = this.fieldMap.getSafeSpawnPosition();
+        this.playerModel.setPosition(spawnPosition.x, spawnPosition.y, spawnPosition.z);
     }
 
     setupControls() {
@@ -372,9 +378,21 @@ class Game {
             this.playerModel.setRotation(this.playerModel.getRotation().y + rotateY);
         }
         
+        // 現在の位置を保存
+        const currentPosition = this.playerModel.getPosition().clone();
+        
         // プレイヤーモデルの移動
         this.playerModel.move(moveDirection, isRunning ? this.moveSpeed * 3 : this.moveSpeed, 0.016);
         this.playerModel.setRunning(isRunning);
+        
+        // 移動後の位置を取得
+        const newPosition = this.playerModel.getPosition();
+        
+        // マップオブジェクトとの衝突判定
+        if (this.fieldMap && this.fieldMap.checkCollision(newPosition, 1)) {
+            // 衝突した場合は元の位置に戻す
+            this.playerModel.setPosition(currentPosition.x, currentPosition.y, currentPosition.z);
+        }
         
         // カメラの位置を更新（プレイヤーの背後に配置）
         this.updateCameraPosition();
@@ -466,9 +484,10 @@ class Game {
         this.isGameOver = false;
         this.gameOverElement.style.display = 'none';
         
-        // プレイヤーの位置をリセット
+        // プレイヤーの位置をリセット（安全なスポーン位置を使用）
         if (this.playerModel) {
-            this.playerModel.setPosition(0, 0, 0);
+            const spawnPosition = this.fieldMap.getSafeSpawnPosition();
+            this.playerModel.setPosition(spawnPosition.x, spawnPosition.y, spawnPosition.z);
             this.playerModel.setRotation(0);
             this.updateCameraPosition();
         }
