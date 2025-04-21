@@ -345,7 +345,7 @@ class Game {
                 moveZ = this.leftJoystick.y * this.moveSpeed;
             }
             if (this.rightJoystick.active) {
-                rotateY = this.rightJoystick.x * this.rotationSpeed;
+                rotateY = -this.rightJoystick.x * this.rotationSpeed;
             }
         } else {
             // キーボードコントロール
