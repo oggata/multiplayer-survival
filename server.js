@@ -38,6 +38,12 @@ io.on('connection', (socket) => {
 
     // 弾の発射
     socket.on('shoot', (data) => {
+        console.log('弾が発射されました:', {
+            playerId: socket.id,
+            position: data.position,
+            direction: data.direction
+        });
+        
         socket.broadcast.emit('bulletFired', {
             playerId: socket.id,
             position: data.position,
@@ -47,9 +53,11 @@ io.on('connection', (socket) => {
 
     // プレイヤーがダメージを受けた
     socket.on('playerHit', (data) => {
+        console.log('プレイヤーがダメージを受けました:', data);
         const player = players.get(data.targetId);
         if (player) {
-            player.health -= 25;
+            const damage = data.damage || 25; // クライアントから送信されたダメージ量を使用、なければ25
+            player.health -= damage;
             if (player.health <= 0) {
                 // プレイヤーが死亡
                 players.delete(data.targetId);
@@ -60,6 +68,26 @@ io.on('connection', (socket) => {
                     health: player.health
                 });
             }
+        }
+    });
+
+    // プレイヤーがリスタートした
+    socket.on('playerRestart', () => {
+        const player = players.get(socket.id);
+        if (player) {
+            player.health = 100;
+            player.position = { x: Math.random() * 5000, y: 0, z: Math.random() * 5000 };
+            player.rotation = { y: 0 };
+            
+            // リスタートしたプレイヤーの情報を送信
+            socket.emit('playerRestarted', player);
+            
+            // 他のプレイヤーにリスタートを通知
+            socket.broadcast.emit('playerRestarted', {
+                id: socket.id,
+                position: player.position,
+                rotation: player.rotation
+            });
         }
     });
 
