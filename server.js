@@ -6,99 +6,247 @@ const path = require('path');
 
 app.use(express.static('public'));
 
-// プレイヤーの状態を管理
-const players = new Map();
+// プレイヤーの色リスト
+const playerColors = [
+    0x3366ff, // 青
+    0xff3366, // ピンク
+    0x33ff66, // 緑
+    0xff6633, // オレンジ
+    0x6633ff, // 紫
+    0x33ffff, // シアン
+    0xffff33, // 黄
+    0xff3333  // 赤
+];
 
-io.on('connection', (socket) => {
-    console.log('プレイヤーが接続しました');
+// 使用済みの色を追跡
+const usedColors = new Set();
 
-    // 新規プレイヤーの初期化
-    players.set(socket.id, {
-        id: socket.id,
-        position: { 
-            x: (Math.random() - 0.5) * 80, 
-            y: 0, 
-            z: (Math.random() - 0.5) * 80 
-        },
-        rotation: { y: 0 },
-        health: 100
-    });
+// プレイヤー情報を保存
+const players = {};
 
-    // 既存のプレイヤー情報を送信
-    socket.emit('currentPlayers', Array.from(players.values()));
+// ゾンビ情報を保存
+const zombies = {};
+
+// ゾンビの色
+const zombieColor = 0x33aa33;
+
+// ゾンビの生成間隔（ミリ秒）
+const ZOMBIE_SPAWN_INTERVAL = 10000;
+
+// ゾンビの最大数
+const MAX_ZOMBIES = 20;
+
+// ゾンビの生成
+function spawnZombie() {
+    if (Object.keys(zombies).length >= MAX_ZOMBIES) return;
     
-    // 新規プレイヤーの情報を他のプレイヤーに通知
-    socket.broadcast.emit('newPlayer', players.get(socket.id));
+    const zombieId = 'zombie_' + Date.now();
+    const x = Math.random() * 900 - 450;
+    const z = Math.random() * 900 - 450;
+    
+    zombies[zombieId] = {
+        id: zombieId,
+        position: { x, y: 0, z },
+        rotation: { y: Math.random() * Math.PI * 2 },
+        health: 100,
+        target: null,
+        state: 'wandering', // wandering, chasing
+        lastAttack: 0
+    };
+    
+    io.emit('zombieSpawned', zombies[zombieId]);
+}
 
-    // プレイヤーの移動更新
-    socket.on('playerMove', (data) => {
-        const player = players.get(socket.id);
-        if (player) {
-            player.position = data.position;
-            player.rotation = data.rotation;
-            socket.broadcast.emit('playerMoved', player);
-        }
-    });
+// 定期的にゾンビを生成
+setInterval(spawnZombie, ZOMBIE_SPAWN_INTERVAL);
 
-    // 弾の発射
-    socket.on('shoot', (data) => {
-        console.log('弾が発射されました:', {
-            playerId: socket.id,
-            position: data.position,
-            direction: data.direction
+// ゾンビの更新
+function updateZombies() {
+    const now = Date.now();
+    
+    Object.values(zombies).forEach(zombie => {
+        // プレイヤーとの距離を計算
+        let closestPlayer = null;
+        let minDistance = Infinity;
+        
+        Object.values(players).forEach(player => {
+            const dx = player.position.x - zombie.position.x;
+            const dz = player.position.z - zombie.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPlayer = player;
+            }
         });
         
-        socket.broadcast.emit('bulletFired', {
-            playerId: socket.id,
-            position: data.position,
-            direction: data.direction
+        // プレイヤーが近くにいる場合、追いかける
+        if (closestPlayer && minDistance < 50) {
+            zombie.state = 'chasing';
+            zombie.target = closestPlayer.id;
+            
+            // プレイヤーの方向に向かって移動
+            const dx = closestPlayer.position.x - zombie.position.x;
+            const dz = closestPlayer.position.z - zombie.position.z;
+            const angle = Math.atan2(dx, dz);
+            
+            zombie.rotation.y = angle;
+            
+            // 移動速度
+            const speed = 0.5;
+            zombie.position.x += Math.sin(angle) * speed;
+            zombie.position.z += Math.cos(angle) * speed;
+            
+            // プレイヤーに攻撃
+            if (minDistance < 2 && now - zombie.lastAttack > 1000) {
+                zombie.lastAttack = now;
+                io.to(closestPlayer.id).emit('zombieAttack', { damage: 10 });
+            }
+        } else {
+            // ランダムに徘徊
+            zombie.state = 'wandering';
+            zombie.target = null;
+            
+            if (Math.random() < 0.02) {
+                zombie.rotation.y = Math.random() * Math.PI * 2;
+            }
+            
+            const speed = 0.2;
+            zombie.position.x += Math.sin(zombie.rotation.y) * speed;
+            zombie.position.z += Math.cos(zombie.rotation.y) * speed;
+        }
+        
+        // ゾンビの位置を更新
+        io.emit('zombieMoved', {
+            id: zombie.id,
+            position: zombie.position,
+            rotation: zombie.rotation,
+            state: zombie.state
         });
     });
+}
 
-    // プレイヤーがダメージを受けた
+// ゾンビの更新を定期的に実行
+setInterval(updateZombies, 100);
+
+io.on('connection', (socket) => {
+    console.log('プレイヤーが接続しました:', socket.id);
+    
+    // 使用されていない色を探す
+    let playerColor = null;
+    for (const color of playerColors) {
+        if (!usedColors.has(color)) {
+            playerColor = color;
+            usedColors.add(color);
+            break;
+        }
+    }
+    
+    // すべての色が使用されている場合はランダムに選択
+    if (!playerColor) {
+        playerColor = playerColors[Math.floor(Math.random() * playerColors.length)];
+    }
+    
+    // プレイヤー情報を初期化
+    players[socket.id] = {
+        id: socket.id,
+        position: { x: 0, y: 0, z: 0 },
+        rotation: { y: 0 },
+        health: 100,
+        color: playerColor
+    };
+    
+    // 現在のプレイヤーとゾンビの情報を送信
+    socket.emit('currentPlayers', Object.values(players));
+    socket.emit('currentZombies', Object.values(zombies));
+    
+    // 新しいプレイヤーの情報を他のプレイヤーに送信
+    socket.broadcast.emit('newPlayer', players[socket.id]);
+    
+    // プレイヤーの移動を処理
+    socket.on('playerMove', (data) => {
+        if (players[socket.id]) {
+            players[socket.id].position = data.position;
+            players[socket.id].rotation = data.rotation;
+            socket.broadcast.emit('playerMoved', players[socket.id]);
+        }
+    });
+    
+    // 弾の発射を処理
+    socket.on('shoot', (data) => {
+        socket.broadcast.emit('bulletFired', {
+            position: data.position,
+            direction: data.direction,
+            playerId: socket.id
+        });
+        
+        // ゾンビとの衝突判定
+        Object.values(zombies).forEach(zombie => {
+            const dx = zombie.position.x - data.position.x;
+            const dy = zombie.position.y - data.position.y;
+            const dz = zombie.position.z - data.position.z;
+            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            
+            if (distance < 5) {
+                // ゾンビにダメージを与える
+                zombie.health -= 25;
+                
+                if (zombie.health <= 0) {
+                    // ゾンビを倒した
+                    io.emit('zombieKilled', zombie.id);
+                    delete zombies[zombie.id];
+                } else {
+                    // ゾンビにダメージを与えた
+                    io.emit('zombieHit', {
+                        id: zombie.id,
+                        health: zombie.health
+                    });
+                }
+            }
+        });
+    });
+    
+    // プレイヤーがダメージを受けた時の処理
     socket.on('playerHit', (data) => {
-        console.log('プレイヤーがダメージを受けました:', data);
-        const player = players.get(data.targetId);
-        if (player) {
-            const damage = data.damage || 25; // クライアントから送信されたダメージ量を使用、なければ25
-            player.health -= damage;
-            if (player.health <= 0) {
-                // プレイヤーが死亡
-                players.delete(data.targetId);
-                io.emit('playerDied', data.targetId);
+        if (players[data.targetId]) {
+            players[data.targetId].health -= data.damage;
+            
+            if (players[data.targetId].health <= 0) {
+                players[data.targetId].health = 0;
+                io.to(data.targetId).emit('playerDied');
             } else {
-                io.emit('playerHealthUpdate', {
+                io.to(data.targetId).emit('playerHealthUpdate', {
                     id: data.targetId,
-                    health: player.health
+                    health: players[data.targetId].health
                 });
             }
         }
     });
-
-    // プレイヤーがリスタートした
+    
+    // プレイヤーがリスタートした時の処理
     socket.on('playerRestart', () => {
-        const player = players.get(socket.id);
-        if (player) {
-            player.health = 100;
-            player.position = { x: Math.random() * 5000, y: 0, z: Math.random() * 5000 };
-            player.rotation = { y: 0 };
+        if (players[socket.id]) {
+            players[socket.id].health = 100;
+            players[socket.id].position = { x: 0, y: 0, z: 0 };
+            players[socket.id].rotation = { y: 0 };
             
-            // リスタートしたプレイヤーの情報を送信
-            socket.emit('playerRestarted', player);
-            
-            // 他のプレイヤーにリスタートを通知
-            socket.broadcast.emit('playerRestarted', {
-                id: socket.id,
-                position: player.position,
-                rotation: player.rotation
-            });
+            io.emit('playerRestarted', players[socket.id]);
         }
     });
-
+    
     // 切断時の処理
     socket.on('disconnect', () => {
-        console.log('プレイヤーが切断しました');
-        players.delete(socket.id);
+        console.log('プレイヤーが切断しました:', socket.id);
+        
+        // 使用していた色を解放
+        if (players[socket.id]) {
+            usedColors.delete(players[socket.id].color);
+        }
+        
+        // プレイヤー情報を削除
+        delete players[socket.id];
+        
+        // 他のプレイヤーに通知
         io.emit('playerDisconnected', socket.id);
     });
 });

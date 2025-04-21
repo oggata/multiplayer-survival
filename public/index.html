@@ -8,6 +8,7 @@
         body {
             margin: 0;
             overflow: hidden;
+            font-family: Arial, sans-serif;
         }
         #gameCanvas {
             width: 100%;
@@ -25,34 +26,77 @@
             position: absolute;
             left: 20px;
             bottom: 20px;
-            width: 150px;
-            height: 150px;
+            width: 100px;
+            height: 100px;
             background: rgba(255, 255, 255, 0.3);
-            border-radius: 75px;
+            border-radius: 50px;
         }
         #rightJoystick {
             position: absolute;
             right: 20px;
             bottom: 20px;
-            width: 150px;
-            height: 150px;
+            width: 100px;
+            height: 100px;
             background: rgba(255, 255, 255, 0.3);
-            border-radius: 75px;
+            border-radius: 50px;
         }
         #shootButton {
             position: absolute;
             right: 20px;
-            bottom: 180px;
-            width: 80px;
-            height: 80px;
+            bottom: 130px;
+            width: 60px;
+            height: 60px;
             background: rgba(255, 0, 0, 0.5);
-            border-radius: 40px;
+            border-radius: 30px;
             border: none;
+        }
+        #backpackButton {
+            position: fixed;
+            bottom: 20px;
+            right: 90px;
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 170, 68, 0.8);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #backpackButton:active {
+            background-color: rgba(255, 170, 68, 1);
         }
         #coordinates {
             position: fixed;
             top: 20px;
             left: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 16px;
+            z-index: 100;
+        }
+        #playerCount {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 16px;
+            z-index: 100;
+        }
+        #enemyCount {
+            position: fixed;
+            top: 60px;
+            right: 20px;
             background: rgba(0, 0, 0, 0.5);
             color: white;
             padding: 10px;
@@ -116,11 +160,157 @@
                 display: block;
             }
         }
+        #statusContainer {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            width: 200px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+        }
+        .statusBar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            margin: 5px 0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .statusFill {
+            width: 100%;
+            height: 100%;
+            transition: width 0.3s, background-color 0.3s;
+        }
+        .statusText {
+            font-size: 12px;
+            margin: 2px 0;
+        }
+        #stats {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px;
+            border-radius: 5px;
+        }
+        #status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .status-bar {
+            width: 100px;
+            height: 5px;
+            background: #333;
+            margin: 2px 0;
+            position: relative;
+        }
+        .status-fill {
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            transition: width 0.3s ease;
+        }
+        #health .status-fill { background: #ff4444; }
+        #hunger .status-fill { background: #ffaa44; }
+        #thirst .status-fill { background: #44aaff; }
+        #bleeding .status-fill { background: #ff44ff; }
+        #temperature .status-fill { background: #ffff44; }
+        #hygiene .status-fill { background: #44ff44; }
+        
+        /* バックパックUI */
+        #backpack {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            min-width: 300px;
+            max-width: 80%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        #backpack h2 {
+            margin-top: 0;
+            text-align: center;
+            color: #ffaa44;
+        }
+        
+        #backpackClose {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        #backpackItems {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        #backpackItems th,
+        #backpackItems td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+        
+        #backpackItems th {
+            color: #ffaa44;
+        }
+        
+        .item-button {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 0 4px;
+        }
+        
+        .use-button {
+            background-color: #44ff44;
+            color: black;
+        }
+        
+        .drop-button {
+            background-color: #ff4444;
+            color: white;
+        }
+        
+        #emptyBackpack {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
     <div id="coordinates">座標: X: 0.00 Y: 0.00 Z: 0.00</div>
+    <div id="playerCount">プレイヤー数: 1</div>
+    <div id="enemyCount">敵の数: 0</div>
     <div id="healthBar"><div id="healthFill"></div></div>
     <div id="healthText">HP: 100/100</div>
     <div id="gameOver">
@@ -131,15 +321,61 @@
         <div id="leftJoystick"></div>
         <div id="rightJoystick"></div>
         <button id="shootButton">発射</button>
+        <button id="backpackButton">🎒</button>
     </div>
+    
+    <div id="stats">
+        <div>座標: <span id="position">0, 0, 0</span></div>
+        <div>プレイヤー数: <span id="playerCount">0</span></div>
+        <div>敵の数: <span id="enemyCount">0</span></div>
+        <div>アイテム数: <span id="itemCount">0</span></div>
+        <div>時間: <span id="timeDisplay">00:00</span></div>
+    </div>
+    <div id="status">
+        <div>体力: <span id="healthValue">100</span>%</div>
+        <div class="status-bar" id="health"><div class="status-fill" style="width: 100%"></div></div>
+        <div>空腹: <span id="hungerValue">100</span>%</div>
+        <div class="status-bar" id="hunger"><div class="status-fill" style="width: 100%"></div></div>
+        <div>喉の渇き: <span id="thirstValue">100</span>%</div>
+        <div class="status-bar" id="thirst"><div class="status-fill" style="width: 100%"></div></div>
+        <div>出血: <span id="bleedingValue">0</span>%</div>
+        <div class="status-bar" id="bleeding"><div class="status-fill" style="width: 0%"></div></div>
+        <div>体温: <span id="temperatureValue">37</span>°C</div>
+        <div class="status-bar" id="temperature"><div class="status-fill" style="width: 50%"></div></div>
+        <div>衛生: <span id="hygieneValue">100</span>%</div>
+        <div class="status-bar" id="hygiene"><div class="status-fill" style="width: 100%"></div></div>
+    </div>
+    
+    <!-- バックパックUI -->
+    <div id="backpack">
+        <h2>バックパック</h2>
+        <button id="backpackClose">×</button>
+        <table id="backpackItems">
+            <thead>
+                <tr>
+                    <th>アイテム名</th>
+                    <th>使用</th>
+                    <th>捨てる</th>
+                </tr>
+            </thead>
+            <tbody id="backpackItemsBody">
+            </tbody>
+        </table>
+        <div id="emptyBackpack">バックパックは空です</div>
+    </div>
+    
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/seedrandom@3.0.5/seedrandom.min.js"></script>
     <script src="js/character.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/bullet.js"></script>
     <script src="js/fieldmap.js"></script>
+    <script src="js/playerStatus.js"></script>
+    <script src="js/weather.js"></script>
     <script src="js/game.js"></script>
-
-
+    <script src="js/config.js"></script>
 
 <script>
 
@@ -149,6 +385,7 @@ document.addEventListener('touchstart', event => {
   }
 }, true);
 
+/*
 let lastTouch = 0;
 document.addEventListener('touchend', event => {
   const now = window.performance.now();
@@ -157,7 +394,7 @@ document.addEventListener('touchend', event => {
   }
   lastTouch = now;
 }, true);
-
+*/
 </script>
 
 </body>
