@@ -67,6 +67,7 @@ class Game {
         this.enemyDespawnRadius = GameConfig.ENEMY.DESPAWN_RADIUS;
         
         this.playerStatus = new PlayerStatus();
+        this.playerStatus.health = this.currentHealth; // 初期HPを同期
         
         // アイテム管理
         this.items = [];
@@ -185,9 +186,8 @@ class Game {
 
     setupMobileControls() {
         const leftJoystick = document.getElementById('leftJoystick');
-        const rightJoystick = document.getElementById('rightJoystick');
         
-        // 左ジョイスティック（移動用）
+        // 左ジョイスティック（移動と回転用）
         this.leftJoystick = {
             element: leftJoystick,
             active: false,
@@ -195,38 +195,28 @@ class Game {
             y: 0
         };
 
-        // 右ジョイスティック（視点用）
-        this.rightJoystick = {
-            element: rightJoystick,
-            active: false,
-            x: 0,
-            y: 0
-        };
-
         // タッチイベントの設定
-        [this.leftJoystick, this.rightJoystick].forEach(joystick => {
-            joystick.element.addEventListener('touchstart', (e) => {
-                joystick.active = true;
+        this.leftJoystick.element.addEventListener('touchstart', (e) => {
+            this.leftJoystick.active = true;
+            const touch = e.touches[0];
+            const rect = this.leftJoystick.element.getBoundingClientRect();
+            this.leftJoystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
+            this.leftJoystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
+        });
+
+        this.leftJoystick.element.addEventListener('touchmove', (e) => {
+            if (this.leftJoystick.active) {
                 const touch = e.touches[0];
-                const rect = joystick.element.getBoundingClientRect();
-                joystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
-                joystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
-            });
+                const rect = this.leftJoystick.element.getBoundingClientRect();
+                this.leftJoystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
+                this.leftJoystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
+            }
+        });
 
-            joystick.element.addEventListener('touchmove', (e) => {
-                if (joystick.active) {
-                    const touch = e.touches[0];
-                    const rect = joystick.element.getBoundingClientRect();
-                    joystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
-                    joystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
-                }
-            });
-
-            joystick.element.addEventListener('touchend', () => {
-                joystick.active = false;
-                joystick.x = 0;
-                joystick.y = 0;
-            });
+        this.leftJoystick.element.addEventListener('touchend', () => {
+            this.leftJoystick.active = false;
+            this.leftJoystick.x = 0;
+            this.leftJoystick.y = 0;
         });
     }
 
@@ -260,7 +250,7 @@ class Game {
         });
 
         this.socket.on('bulletFired', (data) => {
-            console.log('弾が発射されました:', data);
+            // console.log('弾が発射されました:', data);
             
             // 方向ベクトルを正しく再構築
             const direction = new THREE.Vector3(
@@ -291,6 +281,7 @@ class Game {
             if (data.id === this.socket.id) {
                 // 自分のリスタート
                 this.currentHealth = data.health;
+                this.playerStatus.health = this.currentHealth;
                 this.updateHealthDisplay();
             } else {
                 // 他のプレイヤーのリスタート
@@ -307,6 +298,7 @@ class Game {
             if (data.id === this.socket.id) {
                 // 自分のHPが更新された
                 this.currentHealth = data.health;
+                this.playerStatus.health = this.currentHealth;
                 this.updateHealthDisplay();
             }
         });
@@ -420,30 +412,36 @@ class Game {
         let moveZ = 0;
         let rotateY = 0;
         let isRunning = false;
+        let isMoving = false;
 
         if (this.isMobile) {
             if (this.leftJoystick.active) {
-                moveX = this.leftJoystick.x * this.moveSpeed;
-                moveZ = this.leftJoystick.y * this.moveSpeed;
-            }
-            if (this.rightJoystick.active) {
-                rotateY = -this.rightJoystick.x * this.rotationSpeed;
+                // 上下で前後移動
+                moveZ = -this.leftJoystick.y * this.moveSpeed;
+                // 左右で回転
+                rotateY = -this.leftJoystick.x * this.rotationSpeed;
+                
+                // 移動中かどうかを判定
+                if (Math.abs(this.leftJoystick.y) > 0.1) {
+                    isMoving = true;
+                }
             }
         } else {
             // キーボードコントロール
             if (this.keys['w']) moveZ = -this.moveSpeed;
             if (this.keys['s']) moveZ = this.moveSpeed;
-            if (this.keys['a']) moveX = -this.moveSpeed;
-            if (this.keys['d']) moveX = this.moveSpeed;
-            if (this.keys['arrowleft']) rotateY = -this.rotationSpeed;
-            if (this.keys['arrowright']) rotateY = this.rotationSpeed;
+            if (this.keys['a']) rotateY = -this.rotationSpeed;
+            if (this.keys['d']) rotateY = this.rotationSpeed;
             if (this.keys['p']) this.shoot();
             if (this.keys['shift']) isRunning = true;
             
-            // デバッグ用：キーの状態をコンソールに出力
-            if (moveX !== 0 || moveZ !== 0 || rotateY !== 0) {
-                console.log('Movement:', { moveX, moveZ, rotateY, keys: this.keys });
+            // 移動中かどうかを判定
+            if (this.keys['w'] || this.keys['s']) {
+                isMoving = true;
             }
+            
+            // デバッグ用：キーの状態をコンソールに出力
+            // console.log('Movement:', { moveX, moveZ, rotateY, keys: this.keys });
         }
         
         // 移動方向ベクトルを作成
@@ -468,6 +466,14 @@ class Game {
         if (this.fieldMap && this.fieldMap.checkCollision(newPosition, 1)) {
             // 衝突した場合は元の位置に戻す
             this.playerModel.setPosition(currentPosition.x, currentPosition.y, currentPosition.z);
+        } else {
+            // 移動した場合、空腹と喉の渇きを減少させる
+            if (isMoving) {
+                // 走っている場合はより早く減少
+                const decreaseRate = isRunning ? 2.0 : 1.0;
+                this.playerStatus.decreaseHunger(0.5 * decreaseRate * deltaTime);
+                this.playerStatus.decreaseThirst(0.8 * decreaseRate * deltaTime);
+            }
         }
         
         // カメラの位置を更新（プレイヤーの背後に配置）
@@ -515,8 +521,14 @@ class Game {
         if (this.isGameOver) return;
         
         this.currentHealth -= damage;
+        this.playerStatus.health = this.currentHealth; // HPを同期
+        
+        // 出血を増加させる
+        this.playerStatus.increaseBleeding(10);
+        
         if (this.currentHealth < 0) {
             this.currentHealth = 0;
+            this.playerStatus.health = 0;
         }
         
         // HPゲージを更新
@@ -531,18 +543,35 @@ class Game {
     // HPゲージを更新する処理
     updateHealthDisplay() {
         const healthPercentage = (this.currentHealth / this.maxHealth) * 100;
-        this.healthFillElement.style.width = `${healthPercentage}%`;
         
-        // HPの値に応じて色を変更
-        if (healthPercentage > 60) {
-            this.healthFillElement.style.backgroundColor = '#00ff00'; // 緑
-        } else if (healthPercentage > 30) {
-            this.healthFillElement.style.backgroundColor = '#ffff00'; // 黄
-        } else {
-            this.healthFillElement.style.backgroundColor = '#ff0000'; // 赤
+        if (this.healthFillElement) {
+            this.healthFillElement.style.width = `${healthPercentage}%`;
+            
+            // HPの値に応じて色を変更
+            if (healthPercentage > 60) {
+                this.healthFillElement.style.backgroundColor = '#00ff00'; // 緑
+            } else if (healthPercentage > 30) {
+                this.healthFillElement.style.backgroundColor = '#ffff00'; // 黄
+            } else {
+                this.healthFillElement.style.backgroundColor = '#ff0000'; // 赤
+            }
         }
         
-        this.healthTextElement.textContent = `HP: ${this.currentHealth}/${this.maxHealth}`;
+        if (this.healthTextElement) {
+            this.healthTextElement.textContent = `HP: ${this.currentHealth}/${this.maxHealth}`;
+        }
+        
+        // ステータス表示も更新
+        const healthValueElement = document.getElementById('healthValue');
+        const healthFillElement = document.querySelector('#health .status-fill');
+        
+        if (healthValueElement) {
+            healthValueElement.textContent = Math.round(this.currentHealth);
+        }
+        
+        if (healthFillElement) {
+            healthFillElement.style.width = `${healthPercentage}%`;
+        }
     }
     
     // ゲームオーバー処理
@@ -596,6 +625,7 @@ class Game {
     // ゲームをリスタートする処理
     restartGame() {
         this.currentHealth = this.maxHealth;
+        this.playerStatus.health = this.maxHealth; // HPを同期
         this.isGameOver = false;
         this.gameOverElement.style.display = 'none';
         
@@ -635,7 +665,7 @@ class Game {
             this.lastEnemySpawnTime = currentTime;
             this.updateEnemyCount();
             
-            console.log('敵をスポーンしました:', spawnPosition);
+            // console.log('敵をスポーンしました:', spawnPosition);
         }
     }
     
@@ -664,7 +694,7 @@ class Game {
                 this.scene.remove(enemy.model);
                 this.enemies.splice(i, 1);
                 this.updateEnemyCount();
-                console.log('敵をデスポーンしました（距離:', distanceToPlayer.toFixed(2), '）');
+                // console.log('敵をデスポーンしました（距離:', distanceToPlayer.toFixed(2), '）');
                 continue;
             }
             
@@ -730,7 +760,11 @@ class Game {
         // アイテムとの衝突判定
         this.checkItemCollisions();
         
+        // 天気の更新
         this.weather.update(deltaTime, this.gameTime);
+        
+        // ステータスによるHP減少の処理
+        this.updateHealthFromStatus(deltaTime);
     }
 
     updateStatusDisplay() {
@@ -824,7 +858,7 @@ class Game {
                 // アイテムを取得
                 this.collectItem(item);
                 this.items.splice(i, 1);
-                console.log('アイテムを取得しました:', item.userData.itemType);
+                // console.log('アイテムを取得しました:', item.userData.itemType);
             }
         }
     }
@@ -1143,6 +1177,41 @@ class Game {
     updateItemCount() {
         if (this.itemCountElement) {
             this.itemCountElement.textContent = this.inventory.length;
+        }
+    }
+
+    // ステータスによるHP減少の処理
+    updateHealthFromStatus(deltaTime) {
+        let damage = 0;
+        
+        // 空腹が低い場合
+        if (this.playerStatus.hunger < 20) {
+            damage += (20 - this.playerStatus.hunger) * 0.05 * deltaTime;
+        }
+        
+        // 喉の渇きが低い場合
+        if (this.playerStatus.thirst < 20) {
+            damage += (20 - this.playerStatus.thirst) * 0.08 * deltaTime;
+        }
+        
+        // 出血が多い場合
+        if (this.playerStatus.bleeding > 50) {
+            damage += (this.playerStatus.bleeding - 50) * 0.1 * deltaTime;
+        }
+        
+        // 体温が低い場合
+        if (this.playerStatus.temperature < 35) {
+            damage += (35 - this.playerStatus.temperature) * 0.5 * deltaTime;
+        }
+        
+        // 衛生が低い場合
+        if (this.playerStatus.hygiene < 20) {
+            damage += (20 - this.playerStatus.hygiene) * 0.03 * deltaTime;
+        }
+        
+        // ダメージを適用
+        if (damage > 0) {
+            this.takeDamage(damage);
         }
     }
 }

@@ -26,10 +26,10 @@
             position: absolute;
             left: 20px;
             bottom: 20px;
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             background: rgba(255, 255, 255, 0.3);
-            border-radius: 50px;
+            border-radius: 60px;
         }
         #rightJoystick {
             position: absolute;
@@ -42,23 +42,26 @@
         }
         #shootButton {
             position: absolute;
-            right: 20px;
-            bottom: 130px;
+            right: 90px;
+            bottom: 20px;
             width: 60px;
             height: 60px;
             background: rgba(255, 0, 0, 0.5);
-            border-radius: 30px;
+            border-radius: 10px;
             border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
         }
         #backpackButton {
-            position: fixed;
+            position: absolute;
+            right: 20px;
             bottom: 20px;
-            right: 90px;
             width: 60px;
             height: 60px;
             background-color: rgba(255, 170, 68, 0.8);
             border: none;
-            border-radius: 50%;
+            border-radius: 10px;
             color: white;
             font-size: 24px;
             cursor: pointer;
@@ -308,18 +311,14 @@
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
-    <div id="coordinates">座標: X: 0.00 Y: 0.00 Z: 0.00</div>
     <div id="playerCount">プレイヤー数: 1</div>
     <div id="enemyCount">敵の数: 0</div>
-    <div id="healthBar"><div id="healthFill"></div></div>
-    <div id="healthText">HP: 100/100</div>
     <div id="gameOver">
         <div>ゲームオーバー</div>
         <button id="restartButton">リスタート</button>
     </div>
     <div id="mobileControls">
         <div id="leftJoystick"></div>
-        <div id="rightJoystick"></div>
         <button id="shootButton">発射</button>
         <button id="backpackButton">🎒</button>
     </div>
@@ -332,7 +331,7 @@
         <div>時間: <span id="timeDisplay">00:00</span></div>
     </div>
     <div id="status">
-        <div>体力: <span id="healthValue">100</span>%</div>
+        <div>HP: <span id="healthValue">100</span>%</div>
         <div class="status-bar" id="health"><div class="status-fill" style="width: 100%"></div></div>
         <div>空腹: <span id="hungerValue">100</span>%</div>
         <div class="status-bar" id="hunger"><div class="status-fill" style="width: 100%"></div></div>

@@ -185,4 +185,19 @@ class PlayerStatus {
     isGameOver() {
         return this.isGameOver;
     }
+
+    increaseBleeding(amount) {
+        this.bleeding = Math.min(this.maxBleeding, this.bleeding + amount);
+        this.updateUI();
+    }
+
+    decreaseHunger(amount) {
+        this.hunger = Math.max(0, this.hunger - amount);
+        this.updateUI();
+    }
+
+    decreaseThirst(amount) {
+        this.thirst = Math.max(0, this.thirst - amount);
+        this.updateUI();
+    }
 } 
