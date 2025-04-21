@@ -150,7 +150,7 @@ class Character {
         const isMoving = this.isMoving;
         
         // アニメーションの進行度を更新
-        this.animationTime += deltaTime * 2; // アニメーション速度を調整
+        this.animationTime += deltaTime * 20; // アニメーション速度を調整
         
         // 腕のアニメーション
         if (isMoving) {
