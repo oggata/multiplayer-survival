@@ -342,7 +342,7 @@ class Game {
         if (this.isMobile) {
             if (this.leftJoystick.active) {
                 moveX = this.leftJoystick.x * this.moveSpeed;
-                moveZ = -this.leftJoystick.y * this.moveSpeed;
+                moveZ = this.leftJoystick.y * this.moveSpeed;
             }
             if (this.rightJoystick.active) {
                 rotateY = this.rightJoystick.x * this.rotationSpeed;
