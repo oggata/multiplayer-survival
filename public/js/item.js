@@ -81,7 +81,7 @@ class Item {
             this.isActive = true;
             
             // アイテムを上下に揺らすアニメーション
-            this.animationOffset = Math.random() * Math.PI * 2;
+            this.animationOffset = Math.random() * Math.PI * 10;
         }
     }
     

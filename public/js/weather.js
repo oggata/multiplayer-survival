@@ -45,16 +45,21 @@ class Weather {
         const rainPositions = [];
         const rainVelocities = [];
         
-        for (let i = 0; i < GameConfig.WEATHER.RAIN.DROP_COUNT; i++) {
-            // ランダムな位置を設定
-            const x = (Math.random() - 0.5) * 100;
-            const y = Math.random() * 50;
-            const z = (Math.random() - 0.5) * 100;
+        // 雨滴の数を増やし、より広い範囲に分布させる
+        for (let i = 0; i < GameConfig.WEATHER.RAIN.DROP_COUNT * 2; i++) {
+            // より広い範囲に雨滴を配置
+            const x = (Math.random() - 0.5) * 200;
+            const y = Math.random() * 100;
+            const z = (Math.random() - 0.5) * 200;
             
             rainPositions.push(x, y, z);
             
-            // 落下速度を設定
-            rainVelocities.push(0, -GameConfig.WEATHER.RAIN.DROP_SPEED, 0);
+            // より自然な落下速度を設定
+            const vx = (Math.random() - 0.5) * 2;
+            const vy = -GameConfig.WEATHER.RAIN.DROP_SPEED * (0.8 + Math.random() * 0.4);
+            const vz = (Math.random() - 0.5) * 2;
+            
+            rainVelocities.push(vx, vy, vz);
         }
         
         rainGeometry.setAttribute('position', new THREE.Float32BufferAttribute(rainPositions, 3));
@@ -62,9 +67,10 @@ class Weather {
         
         const rainMaterial = new THREE.PointsMaterial({
             color: GameConfig.WEATHER.RAIN.DROP_COLOR,
-            size: GameConfig.WEATHER.RAIN.DROP_SIZE,
+            size: GameConfig.WEATHER.RAIN.DROP_SIZE * 1.5,
             transparent: true,
-            opacity: 0.6
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
         });
         
         this.weatherObjects.rain = new THREE.Points(rainGeometry, rainMaterial);
@@ -175,11 +181,12 @@ class Weather {
      * 気象を更新
      * @param {number} deltaTime - 前回の更新からの経過時間（秒）
      * @param {number} currentTime - 現在のゲーム時間（秒）
+     * @param {number} timeOfDay - 時間帯（0-1の値）
      */
-    update(deltaTime, currentTime) {
+    update(deltaTime, currentTime, timeOfDay) {
         // 気象の変更をチェック
         if (currentTime - this.lastWeatherChange > GameConfig.WEATHER.CHANGE_INTERVAL) {
-            this.changeWeather();
+            this.changeWeather(timeOfDay);
             this.lastWeatherChange = currentTime;
         }
         
@@ -205,27 +212,45 @@ class Weather {
     
     /**
      * 気象を変更
+     * @param {number} timeOfDay - 時間帯（0-1の値）
      */
-    changeWeather() {
+    changeWeather(timeOfDay) {
         // 現在の気象を非表示
         this.hideAllWeather();
         
-        // ランダムに新しい気象を選択
-        const weatherTypes = GameConfig.WEATHER.TYPES;
-        const newWeather = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
+        // 時間帯に基づいて天候確率を取得
+        let weatherProbabilities;
         
-        // 同じ気象が選ばれた場合は別の気象を選択
-        if (newWeather === this.currentWeather) {
-            const filteredTypes = weatherTypes.filter(type => type !== this.currentWeather);
-            this.currentWeather = filteredTypes[Math.floor(Math.random() * filteredTypes.length)];
+        if (timeOfDay >= 0.2 && timeOfDay < 0.25) {
+            // 朝
+            weatherProbabilities = GameConfig.WEATHER.TIME_BASED_PROBABILITIES.DAWN;
+        } else if (timeOfDay >= 0.25 && timeOfDay < 0.75) {
+            // 昼
+            weatherProbabilities = GameConfig.WEATHER.TIME_BASED_PROBABILITIES.DAY;
+        } else if (timeOfDay >= 0.75 && timeOfDay < 0.8) {
+            // 夕方
+            weatherProbabilities = GameConfig.WEATHER.TIME_BASED_PROBABILITIES.DUSK;
         } else {
-            this.currentWeather = newWeather;
+            // 夜
+            weatherProbabilities = GameConfig.WEATHER.TIME_BASED_PROBABILITIES.NIGHT;
+        }
+        
+        // 確率に基づいて天候を選択
+        const random = Math.random();
+        let cumulativeProbability = 0;
+        
+        for (const weatherType of GameConfig.WEATHER.TYPES) {
+            cumulativeProbability += weatherProbabilities[weatherType];
+            if (random <= cumulativeProbability) {
+                this.currentWeather = weatherType;
+                break;
+            }
         }
         
         // 新しい気象を表示
         this.showCurrentWeather();
         
-        console.log('気象が変更されました:', this.currentWeather);
+        console.log('気象が変更されました:', this.currentWeather, '時間帯:', timeOfDay);
     }
     
     /**
@@ -337,13 +362,19 @@ class Weather {
             
             // 雨滴が地面に達したら上に戻す
             if (positions[i + 1] < 0) {
-                positions[i + 1] = 50;
-                positions[i] = (Math.random() - 0.5) * 100;
-                positions[i + 2] = (Math.random() - 0.5) * 100;
+                positions[i + 1] = 100;
+                positions[i] = (Math.random() - 0.5) * 200;
+                positions[i + 2] = (Math.random() - 0.5) * 200;
+                
+                // 新しい落下速度を設定
+                velocities[i] = (Math.random() - 0.5) * 2;
+                velocities[i + 1] = -GameConfig.WEATHER.RAIN.DROP_SPEED * (0.8 + Math.random() * 0.4);
+                velocities[i + 2] = (Math.random() - 0.5) * 2;
             }
         }
         
         this.weatherObjects.rain.geometry.attributes.position.needsUpdate = true;
+        this.weatherObjects.rain.geometry.attributes.velocity.needsUpdate = true;
     }
     
     /**

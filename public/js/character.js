@@ -97,6 +97,29 @@ class Character {
         this.character.add(this.rightShoe);
     }
     
+    // キャラクターの色を設定するメソッド
+    setColor(color) {
+        // 服の色（上半身）
+        if (this.body) {
+            this.body.material.color.setHex(color);
+        }
+        if (this.leftArm) {
+            this.leftArm.material.color.setHex(color);
+        }
+        if (this.rightArm) {
+            this.rightArm.material.color.setHex(color);
+        }
+        
+        // ズボンの色（下半身）- 少し暗めの色を使用
+        const darkerColor = color * 0.7;
+        if (this.leftLeg) {
+            this.leftLeg.material.color.setHex(darkerColor);
+        }
+        if (this.rightLeg) {
+            this.rightLeg.material.color.setHex(darkerColor);
+        }
+    }
+    
     updateLimbAnimation(deltaTime) {
         this.animationTime += deltaTime * this.animationSpeed;
         

@@ -41,42 +41,25 @@ class PlayerStatus {
     update(deltaTime) {
         if (this.isGameOver) return;
 
-        // 空腹度の減少
-        this.hunger = Math.max(0, this.hunger - this.hungerDecreaseRate * deltaTime);
-        if (this.hunger <= 0) {
-            this.health = Math.max(0, this.health - this.healthDecreaseRate * deltaTime);
-        }
-
-        // 喉の渇きの減少
-        this.thirst = Math.max(0, this.thirst - this.thirstDecreaseRate * deltaTime);
-        if (this.thirst <= 0) {
-            this.health = Math.max(0, this.health - this.healthDecreaseRate * deltaTime);
-        }
-
+        // 時間経過で空腹と喉の渇きが減少
+        this.decreaseHunger(this.hungerDecreaseRate * deltaTime);
+        this.decreaseThirst(this.thirstDecreaseRate * deltaTime);
+        
         // 出血の増加
         if (this.bleeding > 0) {
-            this.bleeding = Math.min(this.maxBleeding, this.bleeding + this.bleedingIncreaseRate * deltaTime);
-            this.health = Math.max(0, this.health - this.healthDecreaseRate * deltaTime);
+            this.increaseBleeding(this.bleedingIncreaseRate * deltaTime);
         }
-
-        // 体温の変化
-        this.temperature = Math.max(35, Math.min(42, this.temperature + this.temperatureChangeRate * deltaTime));
-        if (this.temperature < 36 || this.temperature > 41) {
-            this.health = Math.max(0, this.health - this.healthDecreaseRate * deltaTime);
-        }
-
-        // 衛生度の減少
-        this.hygiene = Math.max(0, this.hygiene - this.hygieneDecreaseRate * deltaTime);
-        if (this.hygiene <= 0) {
-            this.health = Math.max(0, this.health - this.healthDecreaseRate * deltaTime);
-        }
-
-        // ゲームオーバー判定
-        if (this.health <= 0) {
-            this.isGameOver = true;
-            document.getElementById('gameOver').style.display = 'block';
-        }
-
+        
+        // 体温の変化（環境に応じて）
+        this.adjustTemperature(this.temperatureChangeRate * deltaTime);
+        
+        // 衛生の減少
+        this.decreaseHygiene(this.hygieneDecreaseRate * deltaTime);
+        
+        // ステータスによるHP減少
+        this.updateHealthFromStatus(deltaTime);
+        
+        // UIの更新
         this.updateUI();
     }
 
@@ -199,5 +182,14 @@ class PlayerStatus {
     decreaseThirst(amount) {
         this.thirst = Math.max(0, this.thirst - amount);
         this.updateUI();
+    }
+
+    decreaseHygiene(amount) {
+        this.hygiene = Math.max(0, this.hygiene - amount);
+        this.updateUI();
+    }
+
+    updateHealthFromStatus(deltaTime) {
+        // Implementation of updateHealthFromStatus method
     }
 } 

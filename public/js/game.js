@@ -55,9 +55,9 @@ class Game {
         this.sunLight = null; // 太陽光
         this.ambientLight = null; // 環境光
         
-        // URLパラメータからシード値を取得
-        const urlParams = new URLSearchParams(window.location.search);
-        const seed = urlParams.get('seed') ? parseFloat(urlParams.get('seed')) : Math.random();
+        // シード値とゲーム開始時間の初期化
+        this.seed = null;
+        this.gameStartTime = null;
         
         this.enemies = [];
         this.maxEnemies = GameConfig.ENEMY.MAX_COUNT;
@@ -65,6 +65,7 @@ class Game {
         this.lastEnemySpawnTime = 0;
         this.enemySpawnRadius = GameConfig.ENEMY.SPAWN_RADIUS;
         this.enemyDespawnRadius = GameConfig.ENEMY.DESPAWN_RADIUS;
+        this.killedEnemies = 0; // 倒した敵の数を追加
         
         this.playerStatus = new PlayerStatus();
         this.playerStatus.health = this.currentHealth; // 初期HPを同期
@@ -92,16 +93,18 @@ class Game {
         // ステータス表示の更新
         this.updateStatusDisplay();
         
-        this.setupScene(seed);
         this.setupControls();
         this.setupSocketEvents();
         
-        // アイテム生成の開始
-        this.spawnItems();
-        
+        // シーンとアニメーションの初期化
+        this.setupScene(Math.random()); // 一時的なシード値を使用
         this.animate();
         
-        this.weather = null;
+        // プレイヤーのハッシュ
+        this.playerHash = null;
+        
+        // プレイヤー生成時間を記録
+        this.playerSpawnTime = Date.now();
     }
 
     setupScene(seed) {
@@ -132,6 +135,9 @@ class Game {
         // カメラの初期位置（プレイヤーの背後）
         this.updateCameraPosition();
         
+        // アイテムの生成
+        this.spawnItems();
+        
         this.spawnEnemies();
         
         // 時間の初期化
@@ -143,6 +149,12 @@ class Game {
     createPlayerModel() {
         // 新しいキャラクタークラスを使用してプレイヤーモデルを作成
         this.playerModel = new Character(this.scene);
+        
+        // プレイヤーの色を設定
+        if (this.playerHash) {
+            const color = this.generateColorFromHash(this.playerHash);
+            this.playerModel.setColor(color);
+        }
         
         // 安全なスポーン位置を取得
         const spawnPosition = this.fieldMap.getSafeSpawnPosition();
@@ -221,6 +233,14 @@ class Game {
     }
 
     setupSocketEvents() {
+        // ゲーム設定の受信
+        this.socket.on('gameConfig', (config) => {
+            this.seed = config.seed;
+            this.gameStartTime = config.gameStartTime;
+            this.playerHash = config.playerHash;
+            this.setupScene(this.seed);
+        });
+
         this.socket.on('currentPlayers', (players) => {
             players.forEach(player => this.addPlayer(player));
             this.updatePlayerCount();
@@ -325,6 +345,12 @@ class Game {
         );
         character.setRotation(playerData.rotation.y);
         
+        // プレイヤーの色を設定
+        if (playerData.hash) {
+            const color = this.generateColorFromHash(playerData.hash);
+            character.setColor(color);
+        }
+        
         this.scene.add(character.character);
         this.players.set(playerData.id, character);
     }
@@ -416,8 +442,8 @@ class Game {
 
         if (this.isMobile) {
             if (this.leftJoystick.active) {
-                // 上下で前後移動
-                moveZ = -this.leftJoystick.y * this.moveSpeed;
+                // 上下で前後移動（方向を反転）
+                moveZ = this.leftJoystick.y * this.moveSpeed;
                 // 左右で回転
                 rotateY = -this.leftJoystick.x * this.rotationSpeed;
                 
@@ -427,11 +453,11 @@ class Game {
                 }
             }
         } else {
-            // キーボードコントロール
+            // キーボードコントロール（AとDの方向を反転）
             if (this.keys['w']) moveZ = -this.moveSpeed;
             if (this.keys['s']) moveZ = this.moveSpeed;
-            if (this.keys['a']) rotateY = -this.rotationSpeed;
-            if (this.keys['d']) rotateY = this.rotationSpeed;
+            if (this.keys['a']) rotateY = this.rotationSpeed; // 方向を反転
+            if (this.keys['d']) rotateY = -this.rotationSpeed; // 方向を反転
             if (this.keys['p']) this.shoot();
             if (this.keys['shift']) isRunning = true;
             
@@ -439,9 +465,6 @@ class Game {
             if (this.keys['w'] || this.keys['s']) {
                 isMoving = true;
             }
-            
-            // デバッグ用：キーの状態をコンソールに出力
-            // console.log('Movement:', { moveX, moveZ, rotateY, keys: this.keys });
         }
         
         // 移動方向ベクトルを作成
@@ -577,10 +600,29 @@ class Game {
     // ゲームオーバー処理
     gameOver() {
         this.isGameOver = true;
-        this.gameOverElement.style.display = 'block';
         
-        // 操作を無効化
-        this.keys = {};
+        // 生存時間を計算
+        const survivalTime = Date.now() - this.playerSpawnTime;
+        const gameDayLength = GameConfig.TIME.DAY_LENGTH;
+        
+        // 生存時間をゲーム内の日数、時間、分に変換
+        const survivalDays = Math.floor(survivalTime / (gameDayLength * 1000));
+        const survivalHours = Math.floor((survivalTime % (gameDayLength * 1000)) / (gameDayLength * 1000 / 24));
+        const survivalMinutes = Math.floor((survivalTime % (gameDayLength * 1000 / 24)) / (gameDayLength * 1000 / 24 / 60));
+        
+        // ゲームオーバー画面を表示
+        const gameOverElement = document.getElementById('gameOver');
+        gameOverElement.innerHTML = `
+            <div>Game Over!!</div>
+            <div>[ survival time ${survivalDays} day ${survivalHours} hour ${survivalMinutes} min ]</div>
+            <button id="restartButton">リスタート</button>
+        `;
+        gameOverElement.style.display = 'block';
+        
+        // リスタートボタンのイベントリスナーを設定
+        document.getElementById('restartButton').addEventListener('click', () => {
+            this.restartGame();
+        });
     }
     
     // プレイヤー数を更新するメソッド
@@ -717,7 +759,12 @@ class Game {
     // 敵の数を更新するメソッド
     updateEnemyCount() {
         if (this.enemyCountElement) {
-            //this.enemyCountElement.textContent = `敵の数: ${this.enemies.length}`;
+            this.enemyCountElement.textContent = this.enemies.length;
+        }
+        // 倒した敵の数を表示する要素を更新
+        const killedEnemyCountElement = document.getElementById('killedEnemyCount');
+        if (killedEnemyCountElement) {
+            killedEnemyCountElement.textContent = this.killedEnemies;
         }
     }
 
@@ -730,6 +777,12 @@ class Game {
         this.updateBullets(deltaTime);
         this.updateEnemies(deltaTime);
         this.spawnEnemies();
+        
+        // アイテムとの衝突判定
+        this.checkItemCollisions();
+        
+        // ステータス表示の更新
+        this.updateStatusDisplay();
         
         // 時間の更新
         this.updateTimeOfDay();
@@ -752,6 +805,13 @@ class Game {
     }
 
     update(deltaTime) {
+        if (this.isGameOver) return;
+        
+        // ゲーム時間の更新（サーバーからの開始時間を考慮）
+        if (this.gameStartTime) {
+            this.gameTime = (Date.now() - this.gameStartTime) / 1000;
+        }
+        
         this.playerStatus.update(deltaTime);
         
         // ステータス表示の更新
@@ -761,7 +821,7 @@ class Game {
         this.checkItemCollisions();
         
         // 天気の更新
-        this.weather.update(deltaTime, this.gameTime);
+        this.weather.update(deltaTime, this.gameTime, this.timeOfDay);
         
         // ステータスによるHP減少の処理
         this.updateHealthFromStatus(deltaTime);
@@ -769,12 +829,7 @@ class Game {
 
     updateStatusDisplay() {
         // 座標の更新
-        if (this.playerModel) {
-            const position = this.playerModel.getPosition();
-            this.positionElement.textContent = `${Math.round(position.x)}, ${Math.round(position.y)}, ${Math.round(position.z)}`;
-        } else {
-            this.positionElement.textContent = "0, 0, 0";
-        }
+        this.updateCoordinatesDisplay();
         
         // プレイヤー数の更新
         this.playerCountElement.textContent = Object.keys(this.players).length;
@@ -782,11 +837,11 @@ class Game {
         // 敵の数の更新
         this.enemyCountElement.textContent = this.enemies.length;
         
-        // アイテム数の更新
-        this.itemCountElement.textContent = this.items.length;
+        // ワールドに存在するアイテム数の更新
+        document.getElementById('worldItemCount').textContent = this.items.length;
         
         // インベントリのアイテム数を表示
-        document.getElementById('itemCount').textContent = this.inventory.length;
+        document.getElementById('inventoryItemCount').textContent = this.inventory.length;
         
         // ステータスバーの更新
         document.getElementById('healthValue').textContent = Math.round(this.playerStatus.health);
@@ -1148,14 +1203,32 @@ class Game {
     
     // 時間表示を更新
     updateTimeDisplay() {
-        // 時間を計算（0-24時）
-        const hours = Math.floor(this.timeOfDay * 24);
-        const minutes = Math.floor((this.timeOfDay * 24 * 60) % 60);
+        // プレイヤー生存時間を計算（ミリ秒）
+        const survivalTime = Date.now() - this.playerSpawnTime;
+        
+        // ゲーム内の1日の長さ（秒）
+        const gameDayLength = GameConfig.TIME.DAY_LENGTH;
+        
+        // 生存時間をゲーム内の日数、時間、分に変換
+        const survivalDays = Math.floor(survivalTime / (gameDayLength * 1000));
+        const survivalHours = Math.floor((survivalTime % (gameDayLength * 1000)) / (gameDayLength * 1000 / 24));
+        const survivalMinutes = Math.floor((survivalTime % (gameDayLength * 1000 / 24)) / (gameDayLength * 1000 / 24 / 60));
+        
+        // 世界の時間を計算（24時間表記）
+        // ゲーム内の1日は現実の1時間とする
+        const gameDayLengthMs = 60 * 60 * 1000; // 1時間（ミリ秒）
+        
+        // 世界の経過時間を計算
+        const worldTime = (Date.now() - this.gameStartTime) % gameDayLengthMs;
+        
+        // 世界の時間を24時間表記に変換（0-23時）
+        const worldHours = Math.floor(worldTime / (gameDayLengthMs / 24));
+        const worldMinutes = Math.floor((worldTime % (gameDayLengthMs / 24)) / (gameDayLengthMs / 24 / 60));
         
         // 時間表示を更新
         const timeDisplay = document.getElementById('timeDisplay');
         if (timeDisplay) {
-            timeDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            timeDisplay.innerHTML = `生存時間: ${survivalDays}日 ${survivalHours.toString().padStart(2, '0')}時間 ${survivalMinutes.toString().padStart(2, '0')}分<br>世界時間: ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
         }
     }
 
@@ -1213,6 +1286,19 @@ class Game {
         if (damage > 0) {
             this.takeDamage(damage);
         }
+    }
+
+    // ハッシュから色を生成する関数
+    generateColorFromHash(hash) {
+        // ハッシュの最初の6文字を使用して16進数の色を生成
+        const colorHex = '0x' + hash.substring(0, 6);
+        return parseInt(colorHex, 16);
+    }
+
+    // 敵が倒された時の処理を更新
+    handleEnemyDeath() {
+        this.killedEnemies++; // 倒した敵の数を増やす
+        this.updateEnemyCount(); // 表示を更新
     }
 }
 

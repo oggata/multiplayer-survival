@@ -307,12 +307,16 @@
             padding: 20px;
             color: #888;
         }
+        #timeDisplay {
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
-    <div id="playerCount">プレイヤー数: 1</div>
-    <div id="enemyCount">敵の数: 0</div>
     <div id="gameOver">
         <div>ゲームオーバー</div>
         <button id="restartButton">リスタート</button>
@@ -326,8 +330,10 @@
     <div id="stats">
         <div>座標: <span id="position">0, 0, 0</span></div>
         <div>プレイヤー数: <span id="playerCount">0</span></div>
-        <div>敵の数: <span id="enemyCount">0</span></div>
-        <div>アイテム数: <span id="itemCount">0</span></div>
+        <div>ワールドの敵の数: <span id="enemyCount">0</span></div>
+        <div>倒した敵の数: <span id="killedEnemyCount">0</span></div>
+        <div>ワールドアイテム数: <span id="worldItemCount">0</span></div>
+        <div>インベントリアイテム数: <span id="inventoryItemCount">0</span></div>
         <div>時間: <span id="timeDisplay">00:00</span></div>
     </div>
     <div id="status">

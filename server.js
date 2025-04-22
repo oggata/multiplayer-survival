@@ -3,8 +3,14 @@ const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const path = require('path');
+const crypto = require('crypto');
 
 app.use(express.static('public'));
+
+// サーバー起動時にシード値を生成
+const serverSeed = Math.random();
+// サーバー起動時のゲーム開始時間を記録
+const gameStartTime = Date.now();
 
 // プレイヤーの色リスト
 const playerColors = [
@@ -35,6 +41,18 @@ const ZOMBIE_SPAWN_INTERVAL = 10000;
 
 // ゾンビの最大数
 const MAX_ZOMBIES = 20;
+
+// プレイヤーのハッシュを生成する関数
+function generatePlayerHash() {
+    return crypto.randomBytes(16).toString('hex');
+}
+
+// プレイヤーの色をハッシュから生成する関数
+function generateColorFromHash(hash) {
+    // ハッシュの最初の6文字を使用して16進数の色を生成
+    const colorHex = '0x' + hash.substring(0, 6);
+    return parseInt(colorHex, 16);
+}
 
 // ゾンビの生成
 function spawnZombie() {
@@ -132,6 +150,16 @@ setInterval(updateZombies, 100);
 io.on('connection', (socket) => {
     console.log('プレイヤーが接続しました:', socket.id);
     
+    // プレイヤーのハッシュを生成
+    const playerHash = generatePlayerHash();
+    
+    // シード値とゲーム開始時間をクライアントに送信
+    socket.emit('gameConfig', {
+        seed: serverSeed,
+        gameStartTime: gameStartTime,
+        playerHash: playerHash
+    });
+    
     // 使用されていない色を探す
     let playerColor = null;
     for (const color of playerColors) {
@@ -153,7 +181,8 @@ io.on('connection', (socket) => {
         position: { x: 0, y: 0, z: 0 },
         rotation: { y: 0 },
         health: 100,
-        color: playerColor
+        color: playerColor,
+        hash: playerHash
     };
     
     // 現在のプレイヤーとゾンビの情報を送信
