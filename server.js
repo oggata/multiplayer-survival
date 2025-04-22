@@ -278,6 +278,15 @@ io.on('connection', (socket) => {
         // 他のプレイヤーに通知
         io.emit('playerDisconnected', socket.id);
     });
+    
+    // プレイヤーがメッセージを送信した時の処理
+    socket.on('playerMessage', (data) => {
+        // 全プレイヤーにメッセージを送信
+        io.emit('showMessage', {
+            playerId: socket.id,
+            position: data.position
+        });
+    });
 });
 
 const PORT = process.env.PORT || 3000;

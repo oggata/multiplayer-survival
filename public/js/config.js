@@ -12,13 +12,13 @@ const GameConfig = {
     
     // 敵設定
     ENEMY: {
-        MAX_COUNT:  5,
+        MAX_COUNT:  3,
         SPAWN_INTERVAL: 5000, // ミリ秒
         SPAWN_RADIUS: 50, // プレイヤーからの距離
         DESPAWN_RADIUS: 100, // プレイヤーからの距離
         CHASE_DISTANCE: 10, // プレイヤーを追跡する距離
-        DAMAGE: 10, // プレイヤーに与えるダメージ
-        MOVE_SPEED: 2.0
+        DAMAGE: 5, // プレイヤーに与えるダメージ
+        MOVE_SPEED: 1.0
     },
     
     // アイテム設定

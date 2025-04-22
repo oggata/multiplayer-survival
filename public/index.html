@@ -53,6 +53,19 @@
             font-size: 16px;
             cursor: pointer;
         }
+        #messageButton {
+            position: absolute;
+            right: 160px;
+            bottom: 20px;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 255, 0, 0.5);
+            border-radius: 10px;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
         #backpackButton {
             position: absolute;
             right: 20px;
@@ -313,6 +326,18 @@
             line-height: 1.4;
             white-space: nowrap;
         }
+        .message-popup {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translate(-50%, -100%);
+            margin-top: -10px;
+        }
     </style>
 </head>
 <body>
@@ -324,6 +349,7 @@
     <div id="mobileControls">
         <div id="leftJoystick"></div>
         <button id="shootButton">発射</button>
+        <button id="messageButton">メッセージ</button>
         <button id="backpackButton">🎒</button>
     </div>
     

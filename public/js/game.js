@@ -1,12 +1,7 @@
 class Game {
     constructor() {
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(
-            GameConfig.CAMERA.FOV,
-            window.innerWidth / window.innerHeight,
-            GameConfig.CAMERA.NEAR,
-            GameConfig.CAMERA.FAR
-        );
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
@@ -105,6 +100,129 @@ class Game {
         
         // プレイヤー生成時間を記録
         this.playerSpawnTime = Date.now();
+        
+        // メッセージポップアップを管理するMap
+        this.messagePopups = new Map();
+        
+        this.initMessagePopup();
+        this.setupMessageSocketEvents();
+        
+        // URLパラメータをチェックしてstatsウィンドウの表示/非表示を設定
+        this.checkDevMode();
+    }
+
+    setupMessageSocketEvents() {
+        // メッセージを受信したときの処理
+        this.socket.on('showMessage', (data) => {
+            console.log('メッセージを受信:', data);
+            this.showMessagePopupForPlayer(data.playerId, data.position);
+        });
+    }
+
+    initMessagePopup() {
+        const messageButton = document.getElementById('messageButton');
+        messageButton.addEventListener('click', () => {
+            // サーバーにメッセージを送信
+            this.socket.emit('playerMessage', {
+                position: this.playerModel.getPosition()
+            });
+            // 自分の画面にも表示
+            this.showMessagePopup();
+        });
+    }
+
+    showMessagePopup() {
+        this.showMessagePopupForPlayer(this.socket.id, this.playerModel.getPosition());
+    }
+
+    showMessagePopupForPlayer(playerId, position) {
+        console.log('メッセージを表示:', playerId, position);
+        
+        // messagePopupsが存在しない場合は初期化
+        if (!this.messagePopups) {
+            this.messagePopups = new Map();
+        }
+        
+        // 既存のポップアップがあれば削除
+        if (this.messagePopups.has(playerId)) {
+            this.messagePopups.get(playerId).remove();
+            this.messagePopups.delete(playerId);
+        }
+        
+        // メッセージポップアップの作成
+        const popup = document.createElement('div');
+        popup.className = 'message-popup';
+        popup.textContent = 'hello';
+        document.body.appendChild(popup);
+        
+        // ポップアップをMapに保存
+        this.messagePopups.set(playerId, popup);
+
+        // プレイヤーの位置を取得
+        const screenPosition = this.getScreenPosition(position);
+
+        // ポップアップの位置を設定
+        popup.style.left = `${screenPosition.x}px`;
+        popup.style.top = `${screenPosition.y}px`;
+
+        // 3秒後にポップアップを削除
+        setTimeout(() => {
+            if (this.messagePopups && this.messagePopups.has(playerId)) {
+                this.messagePopups.get(playerId).remove();
+                this.messagePopups.delete(playerId);
+            }
+        }, 3000);
+    }
+    
+    // アニメーションループ内でポップアップの位置を更新
+    updateMessagePopups() {
+        // messagePopupsが存在しない場合は初期化
+        if (!this.messagePopups) {
+            this.messagePopups = new Map();
+            return;
+        }
+        
+        this.messagePopups.forEach((popup, playerId) => {
+            // プレイヤーの位置を取得
+            let position;
+            if (playerId === this.socket.id) {
+                position = this.playerModel.getPosition();
+            } else {
+                const player = this.players.get(playerId);
+                if (player) {
+                    position = player.getPosition();
+                }
+            }
+            
+            if (position) {
+                const screenPosition = this.getScreenPosition(position);
+                popup.style.left = `${screenPosition.x}px`;
+                popup.style.top = `${screenPosition.y}px`;
+            }
+        });
+    }
+
+    getScreenPosition(worldPosition) {
+        // worldPositionがTHREE.Vector3でない場合は変換
+        let vector;
+        if (worldPosition instanceof THREE.Vector3) {
+            vector = worldPosition.clone();
+        } else {
+            // 通常のオブジェクトの場合はTHREE.Vector3に変換
+            vector = new THREE.Vector3(
+                worldPosition.x || 0,
+                worldPosition.y || 0,
+                worldPosition.z || 0
+            );
+        }
+        
+        // 3D座標を2D画面座標に変換
+        vector.project(this.camera);
+
+        return {
+            x: (vector.x * 0.5 + 0.5) * window.innerWidth,
+            y: -(vector.y * 0.5 - 0.5) * window.innerHeight
+        };
     }
 
     setupScene(seed) {
@@ -778,6 +896,9 @@ class Game {
         this.updateEnemies(deltaTime);
         this.spawnEnemies();
         
+        // メッセージポップアップの位置を更新
+        this.updateMessagePopups();
+        
         // アイテムとの衝突判定
         this.checkItemCollisions();
         
@@ -1299,6 +1420,24 @@ class Game {
     handleEnemyDeath() {
         this.killedEnemies++; // 倒した敵の数を増やす
         this.updateEnemyCount(); // 表示を更新
+    }
+
+    // URLパラメータをチェックしてdevモードを設定
+    checkDevMode() {
+        // URLパラメータを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const isDevMode = urlParams.get('dev') === '1';
+        
+        // statsウィンドウを取得
+        const statsElement = document.getElementById('stats');
+        
+        // devモードに応じて表示/非表示を設定
+        if (statsElement) {
+            statsElement.style.display = isDevMode ? 'block' : 'none';
+        }
+        
+        // devモードの状態を保存
+        this.isDevMode = isDevMode;
     }
 }
 
