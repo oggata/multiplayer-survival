@@ -887,7 +887,10 @@ class Game {
     }
 
     animate() {
-        requestAnimationFrame(() => this.animate());
+        // 30FPSに制限するためにsetTimeoutを使用
+        setTimeout(() => {
+            this.animate();
+        }, 1000 / 30); // 約33.33ミリ秒（30FPS）
         
         const deltaTime = Math.min(this.clock.getDelta(), 0.1);
         
