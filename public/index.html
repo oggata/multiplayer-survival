@@ -9,6 +9,11 @@
             margin: 0;
             overflow: hidden;
             font-family: Arial, sans-serif;
+            touch-action: none; /* タッチ操作を無効化 */
+            -webkit-touch-callout: none; /* iOSの長押しメニューを無効化 */
+            -webkit-user-select: none; /* テキスト選択を無効化 */
+            user-select: none; /* テキスト選択を無効化 */
+            -webkit-tap-highlight-color: transparent; /* タップ時のハイライトを無効化 */
         }
         #gameCanvas {
             width: 100%;
@@ -409,7 +414,24 @@
     <script src="js/config.js"></script>
 
 <script>
+// ダブルタップによるズームを防止
+document.addEventListener('dblclick', function(e) {
+    e.preventDefault();
+}, { passive: false });
 
+// ピンチズームを防止
+document.addEventListener('gesturestart', function(e) {
+    e.preventDefault();
+}, { passive: false });
+
+// タッチイベントの処理
+document.addEventListener('touchstart', function(e) {
+    if (e.touches.length > 1) {
+        e.preventDefault(); // マルチタッチを防止
+    }
+}, { passive: false });
+
+// 既存のタッチイベント処理
 document.addEventListener('touchstart', event => {
   if (event.touches.length > 1) {
     event.preventDefault();
