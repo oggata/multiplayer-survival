@@ -2,8 +2,8 @@ class Bullet {
     constructor(scene, position, direction, playerId) {
         this.scene = scene;
         this.playerId = playerId;
-        this.speed =    8.0;
-        this.lifetime = 5.0; // 5秒後に消える
+        this.speed =    20;
+        this.lifetime = 3.0; // 5秒後に消える
         this.damage = 10;
         
         // 弾丸のモデルを作成

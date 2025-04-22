@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>マルチプレイヤーTPSゲーム</title>
+    <title>bivouac</title>
     <style>
         body {
             margin: 0;
@@ -348,14 +348,14 @@
 <body>
     <canvas id="gameCanvas"></canvas>
     <div id="gameOver">
-        <div>ゲームオーバー</div>
-        <button id="restartButton">リスタート</button>
+        <div>GameOver</div>
+        <button id="restartButton">Restart</button>
     </div>
     <div id="mobileControls">
         <div id="leftJoystick"></div>
-        <button id="shootButton">発射</button>
-        <button id="messageButton">メッセージ</button>
-        <button id="backpackButton">🎒</button>
+        <button id="shootButton">GUN</button>
+        <button id="messageButton">HELP</button>
+        <button id="backpackButton">BAG</button>
     </div>
     
     <div id="stats">
@@ -370,15 +370,15 @@
     <div id="status">
         <div>HP: <span id="healthValue">100</span>%</div>
         <div class="status-bar" id="health"><div class="status-fill" style="width: 100%"></div></div>
-        <div>空腹: <span id="hungerValue">100</span>%</div>
+        <div>Hungry: <span id="hungerValue">100</span>%</div>
         <div class="status-bar" id="hunger"><div class="status-fill" style="width: 100%"></div></div>
-        <div>喉の渇き: <span id="thirstValue">100</span>%</div>
+        <div>Thirst: <span id="thirstValue">100</span>%</div>
         <div class="status-bar" id="thirst"><div class="status-fill" style="width: 100%"></div></div>
-        <div>出血: <span id="bleedingValue">0</span>%</div>
+        <div>Bleeding: <span id="bleedingValue">0</span>%</div>
         <div class="status-bar" id="bleeding"><div class="status-fill" style="width: 0%"></div></div>
-        <div>体温: <span id="temperatureValue">37</span>°C</div>
+        <div>Temperature: <span id="temperatureValue">37</span>°C</div>
         <div class="status-bar" id="temperature"><div class="status-fill" style="width: 50%"></div></div>
-        <div>衛生: <span id="hygieneValue">100</span>%</div>
+        <div>Hygiene: <span id="hygieneValue">100</span>%</div>
         <div class="status-bar" id="hygiene"><div class="status-fill" style="width: 100%"></div></div>
     </div>
     
@@ -389,15 +389,16 @@
         <table id="backpackItems">
             <thead>
                 <tr>
-                    <th>アイテム名</th>
-                    <th>使用</th>
-                    <th>捨てる</th>
+                    <th>name</th>
+                    <th>use</th>
+                    <th>discard</th>
                 </tr>
             </thead>
             <tbody id="backpackItemsBody">
             </tbody>
         </table>
-        <div id="emptyBackpack">バックパックは空です</div>
+        <div id="emptyBackpack">The backpack is empty
+        </div>
     </div>
     
     <script src="/socket.io/socket.io.js"></script>

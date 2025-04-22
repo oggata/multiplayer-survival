@@ -152,7 +152,7 @@ class Game {
         // メッセージポップアップの作成
         const popup = document.createElement('div');
         popup.className = 'message-popup';
-        popup.textContent = 'hello';
+        popup.textContent = 'help';
         document.body.appendChild(popup);
         
         // ポップアップをMapに保存
@@ -733,7 +733,7 @@ class Game {
         gameOverElement.innerHTML = `
             <div>Game Over!!</div>
             <div>[ survival time ${survivalDays} day ${survivalHours} hour ${survivalMinutes} min ]</div>
-            <button id="restartButton">リスタート</button>
+            <button id="restartButton">Restart</button>
         `;
         gameOverElement.style.display = 'block';
         
@@ -1067,11 +1067,11 @@ class Game {
     
     getItemName(type) {
         const itemNames = {
-            'health': '回復薬',
-            'food': '食料',
-            'water': '水',
-            'bandage': '包帯',
-            'medicine': '医薬品'
+            'health': 'recovery medicine',
+            'food': 'food',
+            'water': 'water',
+            'bandage': 'bandage',
+            'medicine': 'medicine'
         };
         return itemNames[type] || type;
     }
@@ -1196,7 +1196,7 @@ class Game {
             // 使用ボタン
             const useCell = document.createElement('td');
             const useButton = document.createElement('button');
-            useButton.textContent = '使用';
+            useButton.textContent = 'use';
             useButton.className = 'item-button use-button';
             useButton.addEventListener('click', () => this.useItem(item.id));
             useCell.appendChild(useButton);
@@ -1205,7 +1205,7 @@ class Game {
             // 捨てるボタン
             const dropCell = document.createElement('td');
             const dropButton = document.createElement('button');
-            dropButton.textContent = '捨てる';
+            dropButton.textContent = 'drop';
             dropButton.className = 'item-button drop-button';
             dropButton.addEventListener('click', () => this.dropItem(item.id));
             dropCell.appendChild(dropButton);
@@ -1274,22 +1274,28 @@ class Game {
     
     // 空の色を更新
     updateSkyColor() {
+        // 世界時間を取得
+        const gameDayLengthMs = GameConfig.TIME.DAY_LENGTH * 1000; // 1時間（ミリ秒）
+        const worldTime = (Date.now() - this.gameStartTime) % gameDayLengthMs;
+        const worldHours = Math.floor(worldTime / (gameDayLengthMs / 24));
+        const worldMinutes = Math.floor((worldTime % (gameDayLengthMs / 24)) / (gameDayLengthMs / 24 / 60));
+        
         // 時間帯に応じて空の色を設定
         let skyColor;
         
-        if (this.timeOfDay > 0.25 && this.timeOfDay < 0.75) {
-            // 昼間
+        if (worldHours >= 7 && worldHours < 17) {
+            // 昼間 (7:00-16:59)
             skyColor = new THREE.Color(GameConfig.COLORS.SKY_DAY);
-        } else if (this.timeOfDay > 0.2 && this.timeOfDay <= 0.25) {
-            // 日の出
-            const t = (this.timeOfDay - 0.2) * 20;
+        } else if (worldHours >= 5 && worldHours < 7) {
+            // 日の出 (5:00-6:59)
+            const t = (worldHours - 5 + worldMinutes / 60) / 2; // 0-1の値に変換
             skyColor = new THREE.Color(GameConfig.COLORS.SKY_DAWN).lerp(new THREE.Color(GameConfig.COLORS.SKY_DAY), t);
-        } else if (this.timeOfDay >= 0.75 && this.timeOfDay < 0.8) {
-            // 日没
-            const t = (0.8 - this.timeOfDay) * 20;
+        } else if (worldHours >= 17 && worldHours < 18) {
+            // 日没 (17:00-17:59)
+            const t = (worldHours - 17 + worldMinutes / 60); // 0-1の値に変換
             skyColor = new THREE.Color(GameConfig.COLORS.SKY_DAY).lerp(new THREE.Color(GameConfig.COLORS.SKY_DUSK), t);
         } else {
-            // 夜間
+            // 夜間 (18:00-4:59)
             skyColor = new THREE.Color(GameConfig.COLORS.SKY_NIGHT);
         }
         
@@ -1300,22 +1306,25 @@ class Game {
     updateFogColor() {
         if (!this.scene.fog) return;
         
+        // 世界時間を取得
+        const gameDayLengthMs = GameConfig.TIME.DAY_LENGTH * 1000; // 1時間（ミリ秒）
+        const worldTime = (Date.now() - this.gameStartTime) % gameDayLengthMs;
+        const worldHours = Math.floor(worldTime / (gameDayLengthMs / 24));
+        
         // 時間帯に応じて霧の色を設定
         let fogColor;
         
-        if (this.timeOfDay > 0.25 && this.timeOfDay < 0.75) {
-            // 昼間
+        if (worldHours >= 7 && worldHours < 17) {
+            // 昼間 (7:00-16:59)
             fogColor = GameConfig.COLORS.FOG_DAY;
-        } else if (this.timeOfDay > 0.2 && this.timeOfDay <= 0.25) {
-            // 日の出
-            const t = (this.timeOfDay - 0.2) * 20;
+        } else if (worldHours >= 5 && worldHours < 7) {
+            // 日の出 (5:00-6:59)
             fogColor = GameConfig.COLORS.FOG_DAWN_DUSK;
-        } else if (this.timeOfDay >= 0.75 && this.timeOfDay < 0.8) {
-            // 日没
-            const t = (0.8 - this.timeOfDay) * 20;
+        } else if (worldHours >= 17 && worldHours < 18) {
+            // 日没 (17:00-17:59)
             fogColor = GameConfig.COLORS.FOG_DAWN_DUSK;
         } else {
-            // 夜間
+            // 夜間 (18:00-4:59)
             fogColor = GameConfig.COLORS.FOG_NIGHT;
         }
         
@@ -1337,7 +1346,7 @@ class Game {
         
         // 世界の時間を計算（24時間表記）
         // ゲーム内の1日は現実の1時間とする
-        const gameDayLengthMs = 60 * 60 * 1000; // 1時間（ミリ秒）
+        const gameDayLengthMs = GameConfig.TIME.DAY_LENGTH * 1000; // 1時間（ミリ秒）
         
         // 世界の経過時間を計算
         const worldTime = (Date.now() - this.gameStartTime) % gameDayLengthMs;

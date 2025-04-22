@@ -5,16 +5,16 @@ const GameConfig = {
     // プレイヤー設定
     PLAYER: {
         MOVE_SPEED: 5.0,
-        ROTATION_SPEED: 0.03,
+        ROTATION_SPEED: 0.08,
         MAX_HEALTH: 100,
         COLLISION_RADIUS: 1.0
     },
     
     // 敵設定
     ENEMY: {
-        MAX_COUNT:  3,
+        MAX_COUNT:  12,
         SPAWN_INTERVAL: 5000, // ミリ秒
-        SPAWN_RADIUS: 50, // プレイヤーからの距離
+        SPAWN_RADIUS: 80, // プレイヤーからの距離
         DESPAWN_RADIUS: 100, // プレイヤーからの距離
         CHASE_DISTANCE: 10, // プレイヤーを追跡する距離
         DAMAGE: 5, // プレイヤーに与えるダメージ
@@ -23,7 +23,7 @@ const GameConfig = {
     
     // アイテム設定
     ITEM: {
-        MAX_COUNT:  300,
+        MAX_COUNT:  800,
         COLLECTION_RADIUS: 1.0
     },
     
@@ -37,7 +37,7 @@ const GameConfig = {
     
     // 時間設定
     TIME: {
-        DAY_LENGTH: 1200, // 秒
+        DAY_LENGTH: 600, // 秒
         TIME_SPEED: 0.1 // 1フレームあたりの時間進行
     },
     
