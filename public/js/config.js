@@ -12,7 +12,7 @@ const GameConfig = {
     
     // 敵設定
     ENEMY: {
-        MAX_COUNT:  12,
+        MAX_COUNT:  20,
         SPAWN_INTERVAL: 5000, // ミリ秒
         SPAWN_RADIUS: 80, // プレイヤーからの距離
         DESPAWN_RADIUS: 100, // プレイヤーからの距離
@@ -23,7 +23,7 @@ const GameConfig = {
     
     // アイテム設定
     ITEM: {
-        MAX_COUNT:  800,
+        MAX_COUNT:  400,
         COLLECTION_RADIUS: 1.0
     },
     
@@ -43,7 +43,7 @@ const GameConfig = {
     
     // 霧設定
     FOG: {
-        DENSITY: 0.03
+        DENSITY: 0.01
     },
     
     // カメラ設定
@@ -142,5 +142,28 @@ const GameConfig = {
             LIGHTNING_DURATION: 0.1, // 稲妻の持続時間（秒）
             LIGHTNING_COLOR: 0xffffcc
         }
-    }
+    },
+    
+    // 視覚設定
+    VISION: {
+        FOV: 60,
+        MAX_DISTANCE: 100,  // 最大表示距離を50に増加
+        FADE_START: 80,    // フェード開始距離を40に増加
+        UPDATE_INTERVAL: 500
+    },
+    
+    // ステータス設定
+    STATUS: {
+        // 移動時の消費値
+        MOVEMENT: {
+            HUNGER: 1.2,      // 通常移動時の空腹減少率
+            THIRST: 1.5,      // 通常移動時の喉の渇き減少率
+            RUNNING_MULTIPLIER: 2.0  // 走る時の消費倍率
+        },
+        // 停止時の消費値
+        IDLE: {
+            HUNGER: 0.3,     // 停止時の空腹減少率
+            THIRST: 0.5       // 停止時の喉の渇き減少率
+        }
+    },
 }; 

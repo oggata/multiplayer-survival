@@ -14,8 +14,8 @@ class PlayerStatus {
         this.hygiene = this.maxHygiene;
 
         this.healthDecreaseRate = 0.1;
-        this.hungerDecreaseRate = 0.05;
-        this.thirstDecreaseRate = 0.1;
+        this.hungerDecreaseRate = GameConfig.STATUS.IDLE.HUNGER;
+        this.thirstDecreaseRate = GameConfig.STATUS.IDLE.THIRST;
         this.bleedingIncreaseRate = 0.1;
         this.temperatureChangeRate = 0.1;
         this.hygieneDecreaseRate = 0.05;
@@ -104,12 +104,12 @@ class PlayerStatus {
     }
 
     reset() {
-        this.health = this.maxHealth;
-        this.hunger = this.maxHunger;
-        this.thirst = this.maxThirst;
+        this.health = GameConfig.PLAYER.MAX_HEALTH;
+        this.hunger = 100;
+        this.thirst = 100;
         this.bleeding = 0;
         this.temperature = 37;
-        this.hygiene = this.maxHygiene;
+        this.hygiene = 100;
         this.isGameOver = false;
         document.getElementById('gameOver').style.display = 'none';
         this.updateUI();
@@ -190,6 +190,26 @@ class PlayerStatus {
     }
 
     updateHealthFromStatus(deltaTime) {
-        // Implementation of updateHealthFromStatus method
+        let damage = 0;
+        
+        // 空腹が20%を切った場合
+        if (this.hunger < 20) {
+            damage += (20 - this.hunger) * 0.05 * deltaTime;
+        }
+        
+        // 喉の渇きが20%を切った場合
+        if (this.thirst < 20) {
+            damage += (20 - this.thirst) * 0.08 * deltaTime;
+        }
+        
+        // 出血が70%を超えた場合
+        if (this.bleeding > 70) {
+            damage += (this.bleeding - 70) * 0.1 * deltaTime;
+        }
+        
+        // ダメージを適用
+        if (damage > 0) {
+            this.takeDamage(damage);
+        }
     }
 } 

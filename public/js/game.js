@@ -1,7 +1,12 @@
 class Game {
     constructor() {
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(
+            GameConfig.VISION.FOV, 
+            window.innerWidth / window.innerHeight, 
+            0.1, 
+            1000
+        );
         this.renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
@@ -109,6 +114,10 @@ class Game {
         
         // URLパラメータをチェックしてstatsウィンドウの表示/非表示を設定
         this.checkDevMode();
+        
+        // 視覚更新用の変数
+        this.lastVisionUpdate = 0;
+        this.visibleObjects = new Set();
     }
 
     setupMessageSocketEvents() {
@@ -307,7 +316,7 @@ class Game {
         // 発射ボタン
         const shootButton = document.getElementById('shootButton');
         shootButton.addEventListener('click', () => this.shoot());
-        
+
         // モバイルコントロール
         if (this.isMobile) {
             this.setupMobileControls();
@@ -328,7 +337,7 @@ class Game {
         // タッチイベントの設定
         this.leftJoystick.element.addEventListener('touchstart', (e) => {
             this.leftJoystick.active = true;
-            const touch = e.touches[0];
+                const touch = e.touches[0];
             const rect = this.leftJoystick.element.getBoundingClientRect();
             this.leftJoystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
             this.leftJoystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
@@ -336,7 +345,7 @@ class Game {
 
         this.leftJoystick.element.addEventListener('touchmove', (e) => {
             if (this.leftJoystick.active) {
-                const touch = e.touches[0];
+                    const touch = e.touches[0];
                 const rect = this.leftJoystick.element.getBoundingClientRect();
                 this.leftJoystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
                 this.leftJoystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
@@ -533,7 +542,7 @@ class Game {
                     }
                 }
             });
-            
+
             // 敵との衝突判定
             for (let j = this.enemies.length - 1; j >= 0; j--) {
                 const enemy = this.enemies[j];
@@ -542,7 +551,7 @@ class Game {
                     // 敵にダメージを与える
                     enemy.takeDamage(bullet.damage);
                     bullet.dispose();
-                    this.bullets.splice(i, 1);
+                this.bullets.splice(i, 1);
                     break;
                 }
             }
@@ -611,9 +620,10 @@ class Game {
             // 移動した場合、空腹と喉の渇きを減少させる
             if (isMoving) {
                 // 走っている場合はより早く減少
-                const decreaseRate = isRunning ? 2.0 : 1.0;
-                this.playerStatus.decreaseHunger(0.5 * decreaseRate * deltaTime);
-                this.playerStatus.decreaseThirst(0.8 * decreaseRate * deltaTime);
+                const decreaseRate = isRunning ? GameConfig.STATUS.MOVEMENT.RUNNING_MULTIPLIER : 1.0;
+                // 移動時の減少率を適用（停止時の減少はplayerStatus.jsのupdateメソッドで処理）
+                this.playerStatus.decreaseHunger(GameConfig.STATUS.MOVEMENT.HUNGER * decreaseRate * deltaTime);
+                this.playerStatus.decreaseThirst(GameConfig.STATUS.MOVEMENT.THIRST * decreaseRate * deltaTime);
             }
         }
         
@@ -785,7 +795,7 @@ class Game {
     // ゲームをリスタートする処理
     restartGame() {
         this.currentHealth = this.maxHealth;
-        this.playerStatus.health = this.maxHealth; // HPを同期
+        this.playerStatus.reset(); // プレイヤーステータスを完全にリセット
         this.isGameOver = false;
         this.gameOverElement.style.display = 'none';
         
@@ -810,22 +820,45 @@ class Game {
         
         const currentTime = Date.now();
         if (currentTime - this.lastEnemySpawnTime > this.enemySpawnInterval && this.enemies.length < this.maxEnemies) {
-            // プレイヤーの周囲にランダムな位置を生成
+            // プレイヤーから一定距離以上離れた場所にスポーンさせる
+            const minSpawnDistance = 50; // 最小スポーン距離
+            const maxSpawnDistance = this.enemySpawnRadius; // 最大スポーン距離
+            
+            // ランダムな距離を選択（最小距離以上）
+            const distance = minSpawnDistance + Math.random() * (maxSpawnDistance - minSpawnDistance);
+            
+            // ランダムな角度を選択
             const angle = Math.random() * Math.PI * 2;
-            const distance = Math.random() * this.enemySpawnRadius;
+            
+            // スポーン位置を計算
             const spawnX = playerPosition.x + Math.cos(angle) * distance;
             const spawnZ = playerPosition.z + Math.sin(angle) * distance;
+            
+            // スポーン位置がマップの境界内かチェック
+            if (Math.abs(spawnX) > 450 || Math.abs(spawnZ) > 450) {
+                return; // マップ外ならスポーンしない
+            }
             
             // 安全なスポーン位置を取得
             const spawnPosition = new THREE.Vector3(spawnX, 0, spawnZ);
             
-            // 敵を生成
-            const enemy = new Enemy(this.scene, spawnPosition);
-            this.enemies.push(enemy);
-            this.lastEnemySpawnTime = currentTime;
-            this.updateEnemyCount();
+            // 他の敵との距離をチェック
+            let isSafePosition = true;
+            for (const enemy of this.enemies) {
+                const distanceToEnemy = spawnPosition.distanceTo(enemy.model.position);
+                if (distanceToEnemy < 10) { // 他の敵から10単位以上離れているか
+                    isSafePosition = false;
+                    break;
+                }
+            }
             
-            // console.log('敵をスポーンしました:', spawnPosition);
+            // 安全な位置なら敵をスポーン
+            if (isSafePosition) {
+                const enemy = new Enemy(this.scene, spawnPosition);
+                this.enemies.push(enemy);
+                this.lastEnemySpawnTime = currentTime;
+                this.updateEnemyCount();
+            }
         }
     }
     
@@ -899,6 +932,9 @@ class Game {
         this.updateEnemies(deltaTime);
         this.spawnEnemies();
         
+        // オブジェクトの表示/非表示を更新
+        this.updateObjectVisibility();
+        
         // メッセージポップアップの位置を更新
         this.updateMessagePopups();
         
@@ -923,6 +959,9 @@ class Game {
         this.players.forEach(player => {
             player.updateLimbAnimation(deltaTime);
         });
+        
+        // プレイヤーステータスの更新（空腹と喉の渇きの減少など）
+        this.update(deltaTime);
         
         // レンダリング
         this.renderer.render(this.scene, this.camera);
@@ -1070,11 +1109,11 @@ class Game {
     
     getItemName(type) {
         const itemNames = {
-            'health': 'recovery medicine',
-            'food': 'food',
-            'water': 'water',
-            'bandage': 'bandage',
-            'medicine': 'medicine'
+            'health': 'Recovery Medicine',
+            'food': 'Food',
+            'water': 'Water',
+            'bandage': 'Bandage',
+            'medicine': 'Medicine'
         };
         return itemNames[type] || type;
     }
@@ -1450,6 +1489,178 @@ class Game {
         
         // devモードの状態を保存
         this.isDevMode = isDevMode;
+    }
+
+    // オブジェクトの表示/非表示を更新
+    updateObjectVisibility() {
+        if (!this.playerModel) return;
+        
+        const currentTime = Date.now();
+        if (currentTime - this.lastVisionUpdate < GameConfig.VISION.UPDATE_INTERVAL) {
+            return; // 更新間隔が経過していない場合はスキップ
+        }
+        
+        this.lastVisionUpdate = currentTime;
+        
+        const playerPosition = this.playerModel.getPosition();
+        const maxDistance = GameConfig.VISION.MAX_DISTANCE;
+        const fadeStart = GameConfig.VISION.FADE_START;
+        
+        // 敵の表示/非表示を更新
+        this.enemies.forEach(enemy => {
+            if (!enemy || !enemy.model) return;
+            
+            const distance = enemy.model.position.distanceTo(playerPosition);
+            
+            if (distance > maxDistance) {
+                // 最大距離を超えている場合は非表示
+                enemy.model.visible = false;
+                if (this.visibleObjects && this.visibleObjects.has(enemy.model)) {
+                    this.visibleObjects.delete(enemy.model);
+                }
+            } else if (distance > fadeStart) {
+                // フェード開始距離を超えている場合は透明度を調整
+                const opacity = 1 - ((distance - fadeStart) / (maxDistance - fadeStart));
+                if (enemy.model.material) {
+                    enemy.model.material.opacity = opacity;
+                    enemy.model.material.transparent = true;
+                }
+                enemy.model.visible = true;
+                if (this.visibleObjects) {
+                    this.visibleObjects.add(enemy.model);
+                }
+            } else {
+                // 通常表示
+                enemy.model.visible = true;
+                if (enemy.model.material && enemy.model.material.opacity !== 1) {
+                    enemy.model.material.opacity = 1;
+                    enemy.model.material.transparent = false;
+                }
+                if (this.visibleObjects) {
+                    this.visibleObjects.add(enemy.model);
+                }
+            }
+        });
+        
+        // アイテムの表示/非表示を更新
+        this.items.forEach(item => {
+            if (!item) return;
+            
+            const distance = item.position.distanceTo(playerPosition);
+            
+            if (distance > maxDistance) {
+                // 最大距離を超えている場合は非表示
+                item.visible = false;
+                if (this.visibleObjects && this.visibleObjects.has(item)) {
+                    this.visibleObjects.delete(item);
+                }
+            } else if (distance > fadeStart) {
+                // フェード開始距離を超えている場合は透明度を調整
+                const opacity = 1 - ((distance - fadeStart) / (maxDistance - fadeStart));
+                if (item.material) {
+                    item.material.opacity = opacity;
+                    item.material.transparent = true;
+                }
+                item.visible = true;
+                if (this.visibleObjects) {
+                    this.visibleObjects.add(item);
+                }
+            } else {
+                // 通常表示
+                item.visible = true;
+                if (item.material && item.material.opacity !== 1) {
+                    item.material.opacity = 1;
+                    item.material.transparent = false;
+                }
+                if (this.visibleObjects) {
+                    this.visibleObjects.add(item);
+                }
+            }
+        });
+        
+        // 他のプレイヤーの表示/非表示を更新
+        this.players.forEach((player, id) => {
+            if (!player || !player.character) return;
+            
+            const playerPos = player.getPosition();
+            const distance = playerPos.distanceTo(playerPosition);
+            
+            if (distance > maxDistance) {
+                // 最大距離を超えている場合は非表示
+                player.character.visible = false;
+                if (this.visibleObjects && this.visibleObjects.has(player.character)) {
+                    this.visibleObjects.delete(player.character);
+                }
+            } else if (distance > fadeStart) {
+                // フェード開始距離を超えている場合は透明度を調整
+                const opacity = 1 - ((distance - fadeStart) / (maxDistance - fadeStart));
+                player.character.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        child.material.opacity = opacity;
+                        child.material.transparent = true;
+                    }
+                });
+                player.character.visible = true;
+                if (this.visibleObjects) {
+                    this.visibleObjects.add(player.character);
+                }
+            } else {
+                // 通常表示
+                player.character.visible = true;
+                player.character.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        child.material.opacity = 1;
+                        child.material.transparent = false;
+                    }
+                });
+                if (this.visibleObjects) {
+                    this.visibleObjects.add(player.character);
+                }
+            }
+        });
+        
+        // 建物の表示/非表示を更新
+        if (this.fieldMap && this.fieldMap.objects) {
+            this.fieldMap.objects.forEach(object => {
+                if (!object) return;
+                
+                // フィールドオブジェクトの表示/非表示を更新
+                const distance = object.position.distanceTo(playerPosition);
+                
+                if (distance > maxDistance) {
+                    // 最大距離を超えている場合は非表示
+                    object.visible = false;
+                    if (this.visibleObjects && this.visibleObjects.has(object)) {
+                        this.visibleObjects.delete(object);
+                    }
+                } else if (distance > fadeStart) {
+                    // フェード開始距離を超えている場合は透明度を調整
+                    const opacity = 1 - ((distance - fadeStart) / (maxDistance - fadeStart));
+                    object.traverse(child => {
+                        if (child.isMesh && child.material) {
+                            child.material.opacity = opacity;
+                            child.material.transparent = true;
+                        }
+                    });
+                    object.visible = true;
+                    if (this.visibleObjects) {
+                        this.visibleObjects.add(object);
+                    }
+                } else {
+                    // 通常表示
+                    object.visible = true;
+                    object.traverse(child => {
+                        if (child.isMesh && child.material) {
+                            child.material.opacity = 1;
+                            child.material.transparent = false;
+                        }
+                    });
+                    if (this.visibleObjects) {
+                        this.visibleObjects.add(object);
+                    }
+                }
+            });
+        }
     }
 }
 
