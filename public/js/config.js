@@ -5,9 +5,9 @@ const GameConfig = {
     // プレイヤー設定
     PLAYER: {
         MOVE_SPEED: 5.0,
-        ROTATION_SPEED: 0.08,
+        ROTATION_SPEED: 0.05,
         MAX_HEALTH: 100,
-        COLLISION_RADIUS: 1.0
+        COLLISION_RADIUS: 2.0
     },
     
     // 敵設定
@@ -30,7 +30,7 @@ const GameConfig = {
             FAST: {
                 name: 'fast',
                 color: 0xff0000, // 赤色
-                moveSpeed: 4, // 2倍の速度
+                moveSpeed: 3, // 2倍の速度
                 damage: 1, // 半分のダメージ
                 shootBullets: false
             },
@@ -49,7 +49,7 @@ const GameConfig = {
     
     // アイテム設定
     ITEM: {
-        MAX_COUNT:  400,
+        MAX_COUNT:  300,
         COLLECTION_RADIUS: 1.0
     },
     
@@ -69,7 +69,7 @@ const GameConfig = {
     
     // 霧設定
     FOG: {
-        DENSITY: 0.01
+        DENSITY: 0.018
     },
     
     // カメラ設定
@@ -173,8 +173,8 @@ const GameConfig = {
     // 視覚設定
     VISION: {
         FOV: 60,
-        MAX_DISTANCE: 100,  // 最大表示距離を50に増加
-        FADE_START: 80,    // フェード開始距離を40に増加
+        MAX_DISTANCE: 120,  // 最大表示距離を50に増加
+        FADE_START: 100,    // フェード開始距離を40に増加
         UPDATE_INTERVAL: 500
     },
     

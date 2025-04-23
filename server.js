@@ -197,6 +197,8 @@ io.on('connection', (socket) => {
         if (players[socket.id]) {
             players[socket.id].position = data.position;
             players[socket.id].rotation = data.rotation;
+            players[socket.id].isMoving = data.isMoving || false;
+            players[socket.id].isRunning = data.isRunning || false;
             socket.broadcast.emit('playerMoved', players[socket.id]);
         }
     });

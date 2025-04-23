@@ -124,6 +124,9 @@ class Game {
         document.addEventListener('enemyBulletCreated', (event) => {
             this.enemyBullets.push(event.detail.bullet);
         });
+
+        // 敵が倒された時のイベントリスナーを追加
+        document.addEventListener('enemyDied', this.handleEnemyDeath.bind(this));
     }
 
     setupMessageSocketEvents() {
@@ -394,6 +397,10 @@ class Game {
                     player.position.z
                 );
                 existingPlayer.setRotation(player.rotation.y);
+                
+                // 移動状態を更新
+                existingPlayer.isMoving = player.isMoving || false;
+                existingPlayer.isRunning = player.isRunning || false;
             }
         });
 
@@ -591,7 +598,7 @@ class Game {
             if (this.keys['s']) moveZ = this.moveSpeed;
             if (this.keys['a']) rotateY = this.rotationSpeed; // 方向を反転
             if (this.keys['d']) rotateY = -this.rotationSpeed; // 方向を反転
-            if (this.keys['p']) this.shoot();
+            if (this.keys[' ']) this.shoot(); // スペースキーで発射
             if (this.keys['shift']) isRunning = true;
             
             // 移動中かどうかを判定
@@ -642,7 +649,9 @@ class Game {
         // サーバーに位置情報を送信
         this.socket.emit('playerMove', {
             position: this.playerModel.getPosition(),
-            rotation: { y: this.playerModel.getRotation().y }
+            rotation: { y: this.playerModel.getRotation().y },
+            isMoving: this.playerModel.isMoving,
+            isRunning: this.playerModel.isRunning
         });
     }
     
@@ -1075,39 +1084,38 @@ class Game {
     }
     
     checkItemCollisions() {
-        if (!this.playerModel || !this.playerModel.getPosition) return;
-        
         const playerPosition = this.playerModel.getPosition();
-        if (!playerPosition) return;
-        
-        const playerRadius = 1;
-        
+        const COLLECTION_DISTANCE = 2.0;
+
         for (let i = this.items.length - 1; i >= 0; i--) {
             const item = this.items[i];
-            if (!item || !item.position) continue;
-            
             const distance = playerPosition.distanceTo(item.position);
-            
-            if (distance < playerRadius + (item.geometry ? item.geometry.parameters.radius : 0.5)) {
-                // アイテムを取得
+
+            if (distance < COLLECTION_DISTANCE) {
                 this.collectItem(item);
                 this.items.splice(i, 1);
-                // console.log('アイテムを取得しました:', item.userData.itemType);
             }
         }
     }
     
     collectItem(item) {
-        if (!item || !item.userData || !item.userData.itemType) {
+        // アイテムの検証を改善
+        if (!item || !item.userData) {
             console.error('無効なアイテムです:', item);
+            return;
+        }
+
+        const itemType = item.userData.itemType;
+        if (!itemType) {
+            console.error('アイテムタイプが設定されていません:', item);
             return;
         }
         
         // アイテムをインベントリに追加
         this.inventory.push({
             id: Date.now() + Math.random(), // ユニークID
-            type: item.userData.itemType,
-            name: this.getItemName(item.userData.itemType),
+            type: itemType,
+            name: this.getItemName(itemType),
             position: item.position.clone() // アイテムの位置を保存
         });
         
@@ -1484,9 +1492,40 @@ class Game {
     }
 
     // 敵が倒された時の処理を更新
-    handleEnemyDeath() {
+    handleEnemyDeath(event) {
         this.killedEnemies++; // 倒した敵の数を増やす
         this.updateEnemyCount(); // 表示を更新
+        
+        // 敵の位置にアイテムを生成
+        if (event && event.detail && event.detail.position) {
+            this.spawnItem(event.detail.position);
+        }
+    }
+
+    // アイテムを生成するメソッド
+    spawnItem(position) {
+        // ランダムなアイテムタイプを選択
+        const itemTypes = ['health', 'food', 'water', 'bandage', 'medicine'];
+        const randomType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+        
+        // アイテムのメッシュを作成
+        const geometry = new THREE.SphereGeometry(0.5, 8, 8);
+        const material = new THREE.MeshStandardMaterial({
+            color: this.getItemColor(randomType),
+            emissive: this.getItemColor(randomType),
+            emissiveIntensity: 0.5
+        });
+        
+        const itemMesh = new THREE.Mesh(geometry, material);
+        itemMesh.position.copy(position);
+        itemMesh.userData = { itemType: randomType };
+        
+        // アイテムをシーンに追加
+        this.scene.add(itemMesh);
+        this.items.push(itemMesh);
+        
+        // アイテム数を更新
+        this.updateItemCount();
     }
 
     // URLパラメータをチェックしてdevモードを設定
@@ -1694,8 +1733,16 @@ class Game {
             }
             
             // プレイヤーとの衝突判定
-            const distance = bullet.checkCollision(this.playerModel.getPosition(), GameConfig.PLAYER.COLLISION_RADIUS);
+            const playerPosition = this.playerModel.getPosition();
+            const distance = bullet.checkCollision(playerPosition, GameConfig.PLAYER.COLLISION_RADIUS);
+            
+            // デバッグ用のログ
+            //console.log('弾の位置:', bullet.model.position);
+            //console.log('プレイヤーの位置:', playerPosition);
+            //console.log('距離:', distance);
+            
             if (distance) {
+                //console.log('プレイヤーにダメージ:', bullet.damage);
                 // プレイヤーにダメージを与える
                 this.takeDamage(bullet.damage);
                 bullet.dispose();

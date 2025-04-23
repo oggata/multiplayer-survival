@@ -12,8 +12,8 @@ class Enemy {
         this.currentAnimation.play();
         
         // 敵のステータス
-        this.health = 100;
-        this.maxHealth = 100;
+        this.health = 50;
+        this.maxHealth = 50;
         this.isDead = false;
         
         // 弾丸発射用の変数
@@ -146,6 +146,12 @@ class Enemy {
             }
         });
         
+        // アイテム生成のイベントを発火
+        const event = new CustomEvent('enemyDied', { 
+            detail: { position: this.model.position.clone() }
+        });
+        document.dispatchEvent(event);
+        
         // 3秒後に消える
         setTimeout(() => {
             this.dispose();
@@ -176,7 +182,7 @@ class Enemy {
         
         // 弾丸の位置（敵の頭の位置から発射）
         const bulletPosition = this.model.position.clone();
-        bulletPosition.y += 2.0; // 頭の高さ
+        bulletPosition.y += 1; // 頭の高さ
         
         // 弾丸を作成
         const bullet = new EnemyBullet(this.scene, bulletPosition, direction, this.bulletSpeed, this.bulletDamage);

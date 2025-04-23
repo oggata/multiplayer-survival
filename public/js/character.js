@@ -124,28 +124,35 @@ class Character {
         this.animationTime += deltaTime * this.animationSpeed;
         
         if (this.isMoving) {
-            // 腕のアニメーション
-            const armAngle = Math.sin(this.animationTime * 5) * 0.5;
+            // 腕のアニメーション（速度を3倍に）
+            const armAngle = Math.sin(this.animationTime * 15) * 0.5;
             this.leftArm.rotation.x = armAngle;
             this.rightArm.rotation.x = -armAngle;
             
-            // 足のアニメーション
-            const legAngle = Math.sin(this.animationTime * 5) * 0.5;
+            // 足のアニメーション（速度を3倍に）
+            const legAngle = Math.sin(this.animationTime * 15) * 0.5;
             this.leftLeg.rotation.x = legAngle;
             this.rightLeg.rotation.x = -legAngle;
             
             // 靴のアニメーション
             this.leftShoe.rotation.x = legAngle;
             this.rightShoe.rotation.x = -legAngle;
+            
+            // 上下の動きを追加（振幅を0.15に増加）
+            const verticalOffset = Math.sin(this.animationTime * 15) * 0.15;
+            this.character.position.y = this.position.y + verticalOffset;
         } else {
-            // アイドルアニメーション
-            const idleAngle = Math.sin(this.animationTime * 2) * 0.1;
+            // アイドルアニメーション（速度を調整）
+            const idleAngle = Math.sin(this.animationTime * 3) * 0.1;
             this.leftArm.rotation.x = idleAngle;
             this.rightArm.rotation.x = idleAngle;
             this.leftLeg.rotation.x = idleAngle;
             this.rightLeg.rotation.x = idleAngle;
             this.leftShoe.rotation.x = idleAngle;
             this.rightShoe.rotation.x = idleAngle;
+            
+            // アイドル時は元の位置に戻す
+            this.character.position.y = this.position.y;
         }
     }
     
