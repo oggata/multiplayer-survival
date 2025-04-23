@@ -45,11 +45,12 @@ class PlayerStatus {
         this.decreaseHunger(this.hungerDecreaseRate * deltaTime);
         this.decreaseThirst(this.thirstDecreaseRate * deltaTime);
         
+        /*
         // 出血の増加
         if (this.bleeding > 0) {
             this.increaseBleeding(this.bleedingIncreaseRate * deltaTime);
         }
-        
+        */
         // 体温の変化（環境に応じて）
         this.adjustTemperature(this.temperatureChangeRate * deltaTime);
         

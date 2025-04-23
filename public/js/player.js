@@ -12,7 +12,7 @@ class PlayerStatus {
         // ステータスの減少率（1秒あたり）
         this.hungerDecreaseRate = 0.5;
         this.thirstDecreaseRate = 0.8;
-        this.bleedingIncreaseRate = 0.2;
+        this.bleedingIncreaseRate = 0.01;
         this.temperatureDecreaseRate = 0.1;
         this.hygieneDecreaseRate = 0.3;
         
@@ -55,7 +55,7 @@ class PlayerStatus {
             this.thirst = Math.max(0, this.thirst - this.thirstDecreaseRate);
             
             // 出血を増加
-            this.bleeding = Math.min(100, this.bleeding + this.bleedingIncreaseRate);
+            //this.bleeding = Math.min(100, this.bleeding + this.bleedingIncreaseRate);
             
             // 体温を減少（環境によって変動する可能性がある）
             this.temperature = Math.max(35, this.temperature - this.temperatureDecreaseRate);
@@ -104,7 +104,7 @@ class PlayerStatus {
         this.updateGauges();
         
         // 出血を増加
-        this.bleeding = Math.min(100, this.bleeding + damage * 0.5);
+        //this.bleeding = Math.min(100, this.bleeding + damage * 0.5);
         
         return this.health <= 0;
     }

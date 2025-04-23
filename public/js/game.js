@@ -675,7 +675,7 @@ class Game {
         this.playerStatus.health = this.currentHealth; // HPを同期
         
         // 出血を増加させる
-        this.playerStatus.increaseBleeding(10);
+        //this.playerStatus.increaseBleeding(10);
         
         if (this.currentHealth < 0) {
             this.currentHealth = 0;
