@@ -14,11 +14,37 @@ const GameConfig = {
     ENEMY: {
         MAX_COUNT:  20,
         SPAWN_INTERVAL: 5000, // ミリ秒
-        SPAWN_RADIUS: 80, // プレイヤーからの距離
-        DESPAWN_RADIUS: 100, // プレイヤーからの距離
-        CHASE_DISTANCE: 10, // プレイヤーを追跡する距離
-        DAMAGE: 5, // プレイヤーに与えるダメージ
-        MOVE_SPEED: 1.0
+        SPAWN_RADIUS: 100, // プレイヤーからの距離
+        DESPAWN_RADIUS: 200, // プレイヤーからの距離
+        CHASE_DISTANCE: 50, // プレイヤーを追跡する距離
+        DAMAGE: 10, // プレイヤーに与えるダメージ
+        MOVE_SPEED: 5,
+        TYPES: {
+            NORMAL: {
+                name: 'normal',
+                color: 0x00ff00, // 緑色
+                moveSpeed: 2,
+                damage: 2,
+                shootBullets: false
+            },
+            FAST: {
+                name: 'fast',
+                color: 0xff0000, // 赤色
+                moveSpeed: 4, // 2倍の速度
+                damage: 1, // 半分のダメージ
+                shootBullets: false
+            },
+            SHOOTER: {
+                name: 'shooter',
+                color: 0x800080, // 紫色
+                moveSpeed: 2,
+                damage: 1,
+                shootBullets: true,
+                shootInterval: 3000, // 3秒ごとに弾を発射
+                bulletSpeed: 15,
+                bulletDamage: 15
+            }
+        }
     },
     
     // アイテム設定

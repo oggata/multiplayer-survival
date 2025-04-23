@@ -1,6 +1,8 @@
 class Enemy {
-    constructor(scene, position) {
+    constructor(scene, position, type = 'normal') {
         this.scene = scene;
+        this.type = type;
+        this.enemyType = GameConfig.ENEMY.TYPES[type.toUpperCase()];
         this.model = this.createModel();
         this.model.position.copy(position);
         this.scene.add(this.model);
@@ -13,6 +15,12 @@ class Enemy {
         this.health = 100;
         this.maxHealth = 100;
         this.isDead = false;
+        
+        // 弾丸発射用の変数
+        this.lastShootTime = 0;
+        this.shootInterval = this.enemyType.shootInterval || 3000;
+        this.bulletSpeed = this.enemyType.bulletSpeed || 15;
+        this.bulletDamage = this.enemyType.bulletDamage || 15;
     }
     
     createModel() {
@@ -20,21 +28,21 @@ class Enemy {
         
         // 体の作成
         const bodyGeometry = new THREE.BoxGeometry(1, 1.5, 0.5);
-        const bodyMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+        const bodyMaterial = new THREE.MeshPhongMaterial({ color: this.enemyType.color });
         const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        body.position.y = 0.75;
+     
         group.add(body);
         
         // 頭の作成
         const headGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-        const headMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+        const headMaterial = new THREE.MeshPhongMaterial({ color: this.enemyType.color });
         const head = new THREE.Mesh(headGeometry, headMaterial);
         head.position.y = 2.0;
         group.add(head);
         
         // 腕の作成
         const armGeometry = new THREE.BoxGeometry(0.3, 1.2, 0.3);
-        const armMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+        const armMaterial = new THREE.MeshPhongMaterial({ color: this.enemyType.color });
         
         const leftArm = new THREE.Mesh(armGeometry, armMaterial);
         leftArm.position.set(-0.65, 0.75, 0);
@@ -46,7 +54,7 @@ class Enemy {
         
         // 脚の作成
         const legGeometry = new THREE.BoxGeometry(0.3, 1.2, 0.3);
-        const legMaterial = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+        const legMaterial = new THREE.MeshPhongMaterial({ color: this.enemyType.color });
         
         const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
         leftLeg.position.set(-0.3, -0.6, 0);
@@ -105,7 +113,7 @@ class Enemy {
     // ダメージを受けた時のエフェクト
     flashRed() {
         // 一時的に赤く光らせる
-        const originalColor = 0xff0000;
+        const originalColor = this.enemyType.color;
         const flashColor = 0xffffff;
         
         // すべてのパーツを一時的に白くする
@@ -152,5 +160,111 @@ class Enemy {
                 object.material.dispose();
             }
         });
+    }
+    
+    // 弾丸を発射するメソッド
+    shoot(playerPosition) {
+        if (!this.enemyType.shootBullets) return;
+        
+        const currentTime = Date.now();
+        if (currentTime - this.lastShootTime < this.shootInterval) return;
+        
+        this.lastShootTime = currentTime;
+        
+        // プレイヤーの方向を計算
+        const direction = new THREE.Vector3().subVectors(playerPosition, this.model.position).normalize();
+        
+        // 弾丸の位置（敵の頭の位置から発射）
+        const bulletPosition = this.model.position.clone();
+        bulletPosition.y += 2.0; // 頭の高さ
+        
+        // 弾丸を作成
+        const bullet = new EnemyBullet(this.scene, bulletPosition, direction, this.bulletSpeed, this.bulletDamage);
+        
+        // 弾丸をゲームの弾丸リストに追加するためのイベントを発火
+        const event = new CustomEvent('enemyBulletCreated', { 
+            detail: { bullet: bullet }
+        });
+        document.dispatchEvent(event);
+    }
+    
+    // 移動速度を取得
+    getMoveSpeed() {
+        return this.enemyType.moveSpeed;
+    }
+    
+    // ダメージ量を取得
+    getDamage() {
+        return this.enemyType.damage;
+    }
+}
+
+// 敵の弾丸クラス
+class EnemyBullet {
+    constructor(scene, position, direction, speed, damage) {
+        this.scene = scene;
+        this.speed = speed;
+        this.lifetime = 3.0; // 3秒後に消える
+        this.damage = damage;
+        
+        // 弾丸のモデルを作成
+        this.model = this.createModel();
+        this.model.position.copy(position);
+        
+        // 移動方向を設定
+        this.direction = direction.clone().normalize();
+        this.velocity = this.direction.clone().multiplyScalar(this.speed);
+        
+        // シーンに追加
+        this.scene.add(this.model);
+        
+        // 作成時間を記録
+        this.createdAt = Date.now();
+    }
+    
+    createModel() {
+        // 弾丸のジオメトリとマテリアルを作成
+        const geometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const material = new THREE.MeshPhongMaterial({ 
+            color: 0x800080, // 紫色
+            emissive: 0x800080,
+            emissiveIntensity: 0.5
+        });
+        
+        // メッシュを作成
+        const model = new THREE.Mesh(geometry, material);
+        
+        // 影を設定
+        model.castShadow = true;
+        
+        return model;
+    }
+    
+    update(deltaTime) {
+        // 弾丸を移動
+        this.model.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+        
+        // 寿命をチェック
+        const age = (Date.now() - this.createdAt) / 1000;
+        if (age > this.lifetime) {
+            this.dispose();
+            return false;
+        }
+        
+        return true;
+    }
+    
+    dispose() {
+        // シーンから削除
+        this.scene.remove(this.model);
+        
+        // ジオメトリとマテリアルを解放
+        this.model.geometry.dispose();
+        this.model.material.dispose();
+    }
+    
+    // 衝突判定
+    checkCollision(position, radius) {
+        return this.model.position.distanceTo(position) < radius;
     }
 } 

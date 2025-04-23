@@ -60,6 +60,7 @@ class Game {
         this.gameStartTime = null;
         
         this.enemies = [];
+        this.enemyBullets = []; // 敵の弾丸を格納する配列
         this.maxEnemies = GameConfig.ENEMY.MAX_COUNT;
         this.enemySpawnInterval = GameConfig.ENEMY.SPAWN_INTERVAL;
         this.lastEnemySpawnTime = 0;
@@ -118,6 +119,11 @@ class Game {
         // 視覚更新用の変数
         this.lastVisionUpdate = 0;
         this.visibleObjects = new Set();
+        
+        // 敵の弾丸イベントリスナーを追加
+        document.addEventListener('enemyBulletCreated', (event) => {
+            this.enemyBullets.push(event.detail.bullet);
+        });
     }
 
     setupMessageSocketEvents() {
@@ -854,7 +860,12 @@ class Game {
             
             // 安全な位置なら敵をスポーン
             if (isSafePosition) {
-                const enemy = new Enemy(this.scene, spawnPosition);
+                // ランダムに敵の種類を選択
+                const enemyTypes = ['NORMAL', 'FAST', 'SHOOTER'];
+                //const enemyTypes = ['SHOOTER'];
+                const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+                
+                const enemy = new Enemy(this.scene, spawnPosition, randomType);
                 this.enemies.push(enemy);
                 this.lastEnemySpawnTime = currentTime;
                 this.updateEnemyCount();
@@ -887,7 +898,6 @@ class Game {
                 this.scene.remove(enemy.model);
                 this.enemies.splice(i, 1);
                 this.updateEnemyCount();
-                // console.log('敵をデスポーンしました（距離:', distanceToPlayer.toFixed(2), '）');
                 continue;
             }
             
@@ -896,13 +906,18 @@ class Game {
             // プレイヤーが近くにいる場合、追跡する
             if (distanceToPlayer < GameConfig.ENEMY.CHASE_DISTANCE) {
                 const direction = new THREE.Vector3().subVectors(playerPosition, enemy.model.position).normalize();
-                enemy.model.position.add(direction.multiplyScalar(GameConfig.ENEMY.MOVE_SPEED * deltaTime));
+                enemy.model.position.add(direction.multiplyScalar(enemy.getMoveSpeed() * deltaTime));
                 enemy.model.lookAt(playerPosition);
+                
+                // 弾丸を発射する敵の場合、一定距離を保ちながら弾丸を発射
+                if (enemy.enemyType.shootBullets && distanceToPlayer > 10) {
+                    enemy.shoot(playerPosition);
+                }
             }
             
             // プレイヤーとの衝突判定
             if (distanceToPlayer < GameConfig.PLAYER.COLLISION_RADIUS) {
-                this.takeDamage(GameConfig.ENEMY.DAMAGE);
+                this.takeDamage(enemy.getDamage());
             }
         }
     }
@@ -929,6 +944,7 @@ class Game {
         
         this.updatePlayer(deltaTime);
         this.updateBullets(deltaTime);
+        this.updateEnemyBullets(deltaTime); // 敵の弾丸を更新
         this.updateEnemies(deltaTime);
         this.spawnEnemies();
         
@@ -1660,6 +1676,31 @@ class Game {
                     }
                 }
             });
+        }
+    }
+
+    // 敵の弾丸を更新するメソッド
+    updateEnemyBullets(deltaTime) {
+        for (let i = this.enemyBullets.length - 1; i >= 0; i--) {
+            const bullet = this.enemyBullets[i];
+            
+            // 弾丸を更新
+            const isAlive = bullet.update(deltaTime);
+            
+            // 弾丸が寿命を迎えた場合は削除
+            if (!isAlive) {
+                this.enemyBullets.splice(i, 1);
+                continue;
+            }
+            
+            // プレイヤーとの衝突判定
+            const distance = bullet.checkCollision(this.playerModel.getPosition(), GameConfig.PLAYER.COLLISION_RADIUS);
+            if (distance) {
+                // プレイヤーにダメージを与える
+                this.takeDamage(bullet.damage);
+                bullet.dispose();
+                this.enemyBullets.splice(i, 1);
+            }
         }
     }
 }
