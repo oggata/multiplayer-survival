@@ -1457,11 +1457,24 @@ class Game {
         const worldHours = Math.floor(worldTime / (gameDayLengthMs / 24));
         const worldMinutes = Math.floor((worldTime % (gameDayLengthMs / 24)) / (gameDayLengthMs / 24 / 60));
         
+        /*
         // 時間表示を更新
         const timeDisplay = document.getElementById('timeDisplay');
         if (timeDisplay) {
             timeDisplay.innerHTML = `生存時間: ${survivalDays}日 ${survivalHours.toString().padStart(2, '0')}時間 ${survivalMinutes.toString().padStart(2, '0')}分<br>世界時間: ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
+        }*/
+        //世界時間を更新
+        const worldTimeDisplay = document.getElementById('worldTimeDisplay');
+        if (worldTimeDisplay) {
+            worldTimeDisplay.innerHTML = ` ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
         }
+        //生存時間を更新
+        const survivalTimeDeisplay = document.getElementById('survivalTimeDeisplay');
+        if (survivalTimeDeisplay) {
+            survivalTimeDeisplay.innerHTML = ` ${survivalDays}日 ${survivalHours.toString().padStart(2, '0')}時間 ${survivalMinutes.toString().padStart(2, '0')}分`;
+        }
+
+
     }
 
     // 霧の設定を更新するメソッド
