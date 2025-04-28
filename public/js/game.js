@@ -835,33 +835,48 @@ class Game {
         
         const currentTime = Date.now();
         if (currentTime - this.lastEnemySpawnTime > this.enemySpawnInterval && this.enemies.length < this.maxEnemies) {
-            // プレイヤーから一定距離以上離れた場所にスポーンさせる
-            const minSpawnDistance = 50; // 最小スポーン距離
-            const maxSpawnDistance = this.enemySpawnRadius; // 最大スポーン距離
+            // 建物の位置を取得
+            const buildings = this.fieldMap.objects.filter(obj => obj.userData && obj.userData.type === 'building');
             
-            // ランダムな距離を選択（最小距離以上）
-            const distance = minSpawnDistance + Math.random() * (maxSpawnDistance - minSpawnDistance);
+            // スポーン位置を決定
+            let spawnPosition;
+            const random = Math.random();
             
-            // ランダムな角度を選択
-            const angle = Math.random() * Math.PI * 2;
-            
-            // スポーン位置を計算
-            const spawnX = playerPosition.x + Math.cos(angle) * distance;
-            const spawnZ = playerPosition.z + Math.sin(angle) * distance;
-            
-            // スポーン位置がマップの境界内かチェック
-            if (Math.abs(spawnX) > 450 || Math.abs(spawnZ) > 450) {
-                return; // マップ外ならスポーンしない
+            if (random < GameConfig.ENEMY.SPAWN.BUILDING_CHANCE && buildings.length > 0) {
+                // 建物の近くにスポーン
+                const randomBuilding = buildings[Math.floor(Math.random() * buildings.length)];
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * GameConfig.ENEMY.SPAWN.BUILDING_RADIUS;
+                
+                spawnPosition = new THREE.Vector3(
+                    randomBuilding.position.x + Math.cos(angle) * distance,
+                    0,
+                    randomBuilding.position.z + Math.sin(angle) * distance
+                );
+            } else {
+                // 空き地にスポーン
+                const minSpawnDistance = 50;
+                const maxSpawnDistance = this.enemySpawnRadius;
+                const distance = minSpawnDistance + Math.random() * (maxSpawnDistance - minSpawnDistance);
+                const angle = Math.random() * Math.PI * 2;
+                
+                spawnPosition = new THREE.Vector3(
+                    playerPosition.x + Math.cos(angle) * distance,
+                    0,
+                    playerPosition.z + Math.sin(angle) * distance
+                );
             }
             
-            // 安全なスポーン位置を取得
-            const spawnPosition = new THREE.Vector3(spawnX, 0, spawnZ);
+            // スポーン位置がマップの境界内かチェック
+            if (Math.abs(spawnPosition.x) > 450 || Math.abs(spawnPosition.z) > 450) {
+                return;
+            }
             
             // 他の敵との距離をチェック
             let isSafePosition = true;
             for (const enemy of this.enemies) {
                 const distanceToEnemy = spawnPosition.distanceTo(enemy.model.position);
-                if (distanceToEnemy < 10) { // 他の敵から10単位以上離れているか
+                if (distanceToEnemy < 10) {
                     isSafePosition = false;
                     break;
                 }
@@ -869,9 +884,7 @@ class Game {
             
             // 安全な位置なら敵をスポーン
             if (isSafePosition) {
-                // ランダムに敵の種類を選択
                 const enemyTypes = ['NORMAL', 'FAST', 'SHOOTER'];
-                //const enemyTypes = ['SHOOTER'];
                 const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
                 
                 const enemy = new Enemy(this.scene, spawnPosition, randomType);
@@ -888,6 +901,10 @@ class Game {
         
         const playerPosition = this.playerModel.getPosition();
         if (!playerPosition) return;
+        
+        // 時間帯に応じた視界設定を取得
+        const isNight = this.timeOfDay < 0.25 || this.timeOfDay > 0.75;
+        const visionConfig = isNight ? GameConfig.ENEMY.VISION.NIGHT : GameConfig.ENEMY.VISION.DAY;
         
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const enemy = this.enemies[i];
@@ -912,10 +929,11 @@ class Game {
             
             enemy.updateAnimation(deltaTime);
             
-            // プレイヤーが近くにいる場合、追跡する
-            if (distanceToPlayer < GameConfig.ENEMY.CHASE_DISTANCE) {
+            // プレイヤーが視界内にいる場合、追跡する
+            if (distanceToPlayer < visionConfig.CHASE_DISTANCE) {
                 const direction = new THREE.Vector3().subVectors(playerPosition, enemy.model.position).normalize();
-                enemy.model.position.add(direction.multiplyScalar(enemy.getMoveSpeed() * deltaTime));
+                const moveSpeed = enemy.getMoveSpeed() * visionConfig.MOVE_SPEED_MULTIPLIER;
+                enemy.model.position.add(direction.multiplyScalar(moveSpeed * deltaTime));
                 enemy.model.lookAt(playerPosition);
                 
                 // 弾丸を発射する敵の場合、一定距離を保ちながら弾丸を発射
@@ -1061,11 +1079,29 @@ class Game {
             { name: 'medicine', color: 0x44ff44, size: 0.5 }
         ];
         
+        // 建物の位置を取得
+        const buildings = this.fieldMap.objects.filter(obj => obj.userData && obj.userData.type === 'building');
+        
         // アイテムを生成
         for (let i = 0; i < this.maxItems; i++) {
             const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
-            const x = (Math.random() - 0.5) * this.fieldMap.mapSize;
-            const z = (Math.random() - 0.5) * this.fieldMap.mapSize;
+            let x, z;
+            
+            const random = Math.random();
+            if (random < GameConfig.ITEM.SPAWN.BUILDING_CHANCE && buildings.length > 0) {
+                // 建物の近くにスポーン
+                const randomBuilding = buildings[Math.floor(Math.random() * buildings.length)];
+                const angle = Math.random() * Math.PI * 2;
+                const distance = GameConfig.ITEM.SPAWN.MIN_DISTANCE + 
+                    Math.random() * (GameConfig.ITEM.SPAWN.MAX_DISTANCE - GameConfig.ITEM.SPAWN.MIN_DISTANCE);
+                
+                x = randomBuilding.position.x + Math.cos(angle) * distance;
+                z = randomBuilding.position.z + Math.sin(angle) * distance;
+            } else {
+                // 空き地にスポーン
+                x = (Math.random() - 0.5) * this.fieldMap.mapSize;
+                z = (Math.random() - 0.5) * this.fieldMap.mapSize;
+            }
             
             const geometry = new THREE.SphereGeometry(itemType.size, 8, 8);
             const material = new THREE.MeshStandardMaterial({

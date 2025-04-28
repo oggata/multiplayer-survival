@@ -19,6 +19,23 @@ const GameConfig = {
         CHASE_DISTANCE: 50, // プレイヤーを追跡する距離
         DAMAGE: 10, // プレイヤーに与えるダメージ
         MOVE_SPEED: 5,
+        VISION: {
+            DAY: {
+                CHASE_DISTANCE: 30, // 昼間の追跡距離
+                DETECTION_RADIUS: 40, // 昼間の検知範囲
+                MOVE_SPEED_MULTIPLIER: 0.8 // 昼間の移動速度倍率
+            },
+            NIGHT: {
+                CHASE_DISTANCE: 70, // 夜間の追跡距離
+                DETECTION_RADIUS: 80, // 夜間の検知範囲
+                MOVE_SPEED_MULTIPLIER: 1.2 // 夜間の移動速度倍率
+            }
+        },
+        SPAWN: {
+            BUILDING_RADIUS: 20, // 建物からのスポーン半径
+            BUILDING_CHANCE: 0.7, // 建物近くでのスポーン確率
+            EMPTY_CHANCE: 0.3 // 空き地でのスポーン確率
+        },
         TYPES: {
             NORMAL: {
                 name: 'normal',
@@ -50,7 +67,14 @@ const GameConfig = {
     // アイテム設定
     ITEM: {
         MAX_COUNT:  300,
-        COLLECTION_RADIUS: 1.0
+        COLLECTION_RADIUS: 1.0,
+        SPAWN: {
+            BUILDING_RADIUS: 15, // 建物からのスポーン半径
+            BUILDING_CHANCE: 0.8, // 建物近くでのスポーン確率
+            EMPTY_CHANCE: 0.2, // 空き地でのスポーン確率
+            MIN_DISTANCE: 5, // 建物からの最小距離
+            MAX_DISTANCE: 30 // 建物からの最大距離
+        }
     },
     
     // ライティング設定
@@ -69,7 +93,7 @@ const GameConfig = {
     
     // 霧設定
     FOG: {
-        DENSITY: 0.018
+        DENSITY: 0.02
     },
     
     // カメラ設定
@@ -172,7 +196,7 @@ const GameConfig = {
     
     // 視覚設定
     VISION: {
-        FOV: 60,
+        FOV: 70,
         MAX_DISTANCE: 120,  // 最大表示距離を50に増加
         FADE_START: 100,    // フェード開始距離を40に増加
         UPDATE_INTERVAL: 500
