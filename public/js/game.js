@@ -1310,7 +1310,7 @@ class Game {
             itemInfo.innerHTML = `
                 <span style="font-weight: bold; margin-right: 8px;">${itemConfig.name}</span>
                 <span style="color: #aaa; font-size: 11px;">${itemConfig.description}</span>
-                <span style="color: #8ff; font-size: 11px; margin-left: 8px;">効果: ${this.formatItemEffects(itemConfig.effects)}</span>
+                <span style="color: #8ff; font-size: 11px; margin-left: 8px;">Effect: ${this.formatItemEffects(itemConfig.effects)}</span>
             `;
             
             const actionDiv = document.createElement('div');

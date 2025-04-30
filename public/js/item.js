@@ -26,8 +26,8 @@ class Item {
         
         // 回転アニメーション用の変数
         this.rotationSpeed = 0.01;
-        this.floatSpeed = 0.002;
-        this.floatHeight = 0.2;
+        this.floatSpeed = 0.04;
+        this.floatHeight = 0.5;
         this.initialY = this.mesh.position.y;
         this.time = 0;
     }

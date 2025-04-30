@@ -12,7 +12,7 @@ const GameConfig = {
     
     // 敵設定
     ENEMY: {
-        MAX_COUNT:  20,
+        MAX_COUNT:  10,
         SPAWN_INTERVAL: 5000, // ミリ秒
         SPAWN_RADIUS: 100, // プレイヤーからの距離
         DESPAWN_RADIUS: 200, // プレイヤーからの距離
@@ -21,20 +21,20 @@ const GameConfig = {
         MOVE_SPEED: 5,
         VISION: {
             DAY: {
-                CHASE_DISTANCE: 30, // 昼間の追跡距離
-                DETECTION_RADIUS: 40, // 昼間の検知範囲
-                MOVE_SPEED_MULTIPLIER: 0.8 // 昼間の移動速度倍率
+                CHASE_DISTANCE: 5, // 昼間の追跡距離
+                DETECTION_RADIUS: 5, // 昼間の検知範囲
+                MOVE_SPEED_MULTIPLIER: 0.2 // 昼間の移動速度倍率
             },
             NIGHT: {
-                CHASE_DISTANCE: 70, // 夜間の追跡距離
-                DETECTION_RADIUS: 80, // 夜間の検知範囲
-                MOVE_SPEED_MULTIPLIER: 1.2 // 夜間の移動速度倍率
+                CHASE_DISTANCE: 50, // 夜間の追跡距離
+                DETECTION_RADIUS: 50, // 夜間の検知範囲
+                MOVE_SPEED_MULTIPLIER: 1.1 // 夜間の移動速度倍率
             }
         },
         SPAWN: {
             BUILDING_RADIUS: 20, // 建物からのスポーン半径
             BUILDING_CHANCE: 0.7, // 建物近くでのスポーン確率
-            EMPTY_CHANCE: 0.3 // 空き地でのスポーン確率
+            EMPTY_CHANCE: 0.2 // 空き地でのスポーン確率
         },
         TYPES: {
             NORMAL: {
@@ -66,7 +66,7 @@ const GameConfig = {
     
     // アイテム設定
     ITEM: {
-        MAX_COUNT:      100,
+        MAX_COUNT:      50,
         COLLECTION_RADIUS: 1.0,
         SPAWN: {
             BUILDING_RADIUS: 15, // 建物からのスポーン半径
@@ -93,7 +93,7 @@ const GameConfig = {
     
     // 霧設定
     FOG: {
-        DENSITY: 0.02
+        DENSITY: 0.016
     },
     
     // カメラ設定
@@ -107,12 +107,12 @@ const GameConfig = {
     
     // マップ設定
     MAP: {
-        SIZE: 2000,
-        BOUNDARY_WALL_HEIGHT:  10,
+        SIZE: 500,
+        BOUNDARY_WALL_HEIGHT:  0,
         FLOOR: {
             THICKNESS: 1,
             COLOR: 0x808080,
-            GRID_SIZE: 180,
+            GRID_SIZE: 1,
             GRID_COLOR: 0x000000,
             GRID_SECONDARY_COLOR: 0x444444
         }
@@ -199,8 +199,8 @@ const GameConfig = {
     // 視覚設定
     VISION: {
         FOV: 70,
-        MAX_DISTANCE: 120,  // 最大表示距離を50に増加
-        FADE_START: 100,    // フェード開始距離を40に増加
+        MAX_DISTANCE: 150,  // 最大表示距離を50に増加
+        FADE_START: 140,    // フェード開始距離を40に増加
         UPDATE_INTERVAL: 500
     },
     

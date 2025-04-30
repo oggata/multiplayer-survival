@@ -13,14 +13,50 @@ class FieldMap {
             { name: 'skyscraper', minHeight: 30, maxHeight: 100, color: 0x555555 },
             { name: 'office', minHeight: 15, maxHeight: 40, color: 0x666666 },
             { name: 'residential', minHeight: 5, maxHeight: 15, color: 0x777777 },
-            { name: 'industrial', minHeight: 8, maxHeight: 20, color: 0x444444 }
+            { name: 'industrial', minHeight: 8, maxHeight: 20, color: 0x444444 },
+            { name: 'mall', minHeight: 10, maxHeight: 25, color: 0x888888 },
+            { name: 'hospital', minHeight: 12, maxHeight: 35, color: 0xFFFFFF },
+            { name: 'school', minHeight: 8, maxHeight: 20, color: 0xCCCCCC },
+            { name: 'apartment', minHeight: 15, maxHeight: 45, color: 0x999999 },
+            { name: 'hotel', minHeight: 20, maxHeight: 60, color: 0xAAAAAA }
         ];
         
         // がれきタイプの定義
         this.debrisTypes = [
             { name: 'concrete', size: 3, color: 0x888888 },
             { name: 'metal', size: 2, color: 0x777777 },
-            { name: 'glass', size: 1, color: 0xCCFFFF }
+            { name: 'glass', size: 1, color: 0xCCFFFF },
+            { name: 'wood', size: 2, color: 0x8B4513 },
+            { name: 'brick', size: 1.5, color: 0xB22222 },
+            { name: 'plastic', size: 1, color: 0xE6E6FA },
+            { name: 'rubber', size: 1.5, color: 0x2F4F4F },
+            { name: 'ceramic', size: 1, color: 0xF5F5F5 }
+        ];
+        
+        // 木の種類の定義
+        this.treeTypes = [
+            { name: 'pine', trunkColor: 0x8B4513, leavesColor: 0x228B22, trunkWidth: 0.2, trunkHeight: 1.0, leavesSize: 1.2 },
+            { name: 'oak', trunkColor: 0x654321, leavesColor: 0x2E8B57, trunkWidth: 0.3, trunkHeight: 0.8, leavesSize: 1.5 },
+            { name: 'birch', trunkColor: 0xF5F5DC, leavesColor: 0x90EE90, trunkWidth: 0.15, trunkHeight: 0.9, leavesSize: 1.0 },
+            { name: 'maple', trunkColor: 0x8B4513, leavesColor: 0xFF4500, trunkWidth: 0.25, trunkHeight: 0.7, leavesSize: 1.3 },
+            { name: 'willow', trunkColor: 0x8B4513, leavesColor: 0x32CD32, trunkWidth: 0.2, trunkHeight: 0.6, leavesSize: 1.8 },
+            { name: 'palm', trunkColor: 0x8B4513, leavesColor: 0x228B22, trunkWidth: 0.3, trunkHeight: 1.2, leavesSize: 2.0 },
+            { name: 'cherry', trunkColor: 0x8B4513, leavesColor: 0xFFB6C1, trunkWidth: 0.2, trunkHeight: 0.8, leavesSize: 1.4 },
+            { name: 'cypress', trunkColor: 0x8B4513, leavesColor: 0x006400, trunkWidth: 0.15, trunkHeight: 1.1, leavesSize: 0.8 },
+            { name: 'redwood', trunkColor: 0x8B4513, leavesColor: 0x228B22, trunkWidth: 0.4, trunkHeight: 1.5, leavesSize: 1.6 }
+        ];
+
+        // 岩の種類の定義
+        this.rockTypes = [
+            { name: 'granite', color: 0x808080, size: 1.0, roughness: 0.9 },
+            { name: 'limestone', color: 0xD3D3D3, size: 0.8, roughness: 0.8 },
+            { name: 'basalt', color: 0x2F4F4F, size: 1.2, roughness: 0.95 },
+            { name: 'sandstone', color: 0xD2B48C, size: 0.9, roughness: 0.7 },
+            { name: 'marble', color: 0xFFFFFF, size: 0.7, roughness: 0.6 },
+            { name: 'obsidian', color: 0x000000, size: 1.1, roughness: 0.85 },
+            { name: 'quartz', color: 0xE6E6FA, size: 0.6, roughness: 0.5 },
+            { name: 'slate', color: 0x708090, size: 0.8, roughness: 0.75 },
+            { name: 'shale', color: 0x556B2F, size: 0.7, roughness: 0.8 }
         ];
         
         this.createMap();
@@ -126,8 +162,17 @@ class FieldMap {
     }
     
     generateObjects() {
-        // バイオームごとにオブジェクトを生成
-        this.biomes.forEach(biome => {
+        for (const biome of this.biomes) {
+            // がれきの生成確率を増加
+            const debrisChance = 0.3; // 30%の確率でがれきを生成
+            
+            // がれきを生成
+            if (this.rng() < debrisChance) {
+                const x = biome.x + (this.rng() - 0.5) * biome.size;
+                const z = biome.z + (this.rng() - 0.5) * biome.size;
+                this.createDebris(x, z);
+            }
+            
             switch (biome.type) {
                 case 'urban':
                     this.generateUrbanObjects(biome);
@@ -142,24 +187,26 @@ class FieldMap {
                     this.generateIndustrialObjects(biome);
                     break;
             }
-        });
+        }
     }
     
     generateUrbanObjects(biome) {
-        // ビルの生成
-        const buildingCount = Math.floor(this.rng() * 5) + 3;
-        for (let i = 0; i < buildingCount; i++) {
+        // ビルの生成確率を増加
+        const buildingChance = 0.7; // 70%の確率でビルを生成
+        
+        // ビルを生成
+        if (this.rng() < buildingChance) {
             const x = biome.x + (this.rng() - 0.5) * biome.size;
             const z = biome.z + (this.rng() - 0.5) * biome.size;
-            const height = Math.floor(this.rng() * 20) + 10;
-            const width = Math.floor(this.rng() * 10) + 5;
-            
+            const buildingType = this.buildingTypes[Math.floor(this.rng() * this.buildingTypes.length)];
+            const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
+            const width = 5 + this.rng() * 15;
             this.createBuilding(x, z, width, height);
         }
         
         // 車の生成
-        const carCount = Math.floor(this.rng() * 3) + 1;
-        for (let i = 0; i < carCount; i++) {
+        const carChance = 0.3; // 30%の確率で車を生成
+        if (this.rng() < carChance) {
             const x = biome.x + (this.rng() - 0.5) * biome.size;
             const z = biome.z + (this.rng() - 0.5) * biome.size;
             this.createCar(x, z);
@@ -194,14 +241,6 @@ class FieldMap {
             const z = biome.z + (this.rng() - 0.5) * biome.size;
             const height = Math.floor(this.rng() * 5) + 2;
             this.createRuins(x, z, height);
-        }
-        
-        // がれきの生成
-        const debrisCount = Math.floor(this.rng() * 8) + 4;
-        for (let i = 0; i < debrisCount; i++) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
-            this.createDebris(x, z);
         }
     }
     
@@ -403,25 +442,66 @@ class FieldMap {
     }
     
     createTree(x, z, height) {
-        const trunkGeometry = new THREE.CylinderGeometry(0.2, 0.3, height, 8);
+        const treeType = this.treeTypes[Math.floor(this.rng() * this.treeTypes.length)];
+        const trunkHeight = height * treeType.trunkHeight;
+        const leavesHeight = height * (1 - treeType.trunkHeight);
+        
+        // 幹の作成
+        const trunkGeometry = new THREE.CylinderGeometry(
+            treeType.trunkWidth * 0.3, 
+            treeType.trunkWidth, 
+            trunkHeight, 
+            8
+        );
         const trunkMaterial = new THREE.MeshStandardMaterial({
-            color: 0x8B4513,
+            color: treeType.trunkColor,
             roughness: 0.9,
             metalness: 0.1
         });
         const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-        trunk.position.set(x, height/2, z);
+        trunk.position.set(x, trunkHeight/2, z);
         trunk.castShadow = true;
         trunk.receiveShadow = true;
         
-        const leavesGeometry = new THREE.ConeGeometry(height/2, height, 8);
+        // 葉の作成（木の種類に応じて異なる形状）
+        let leavesGeometry;
+        switch(treeType.name) {
+            case 'pine':
+                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
+                break;
+            case 'oak':
+                leavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
+                break;
+            case 'birch':
+                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
+                break;
+            case 'maple':
+                leavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
+                break;
+            case 'willow':
+                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
+                break;
+            case 'palm':
+                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
+                break;
+            case 'cherry':
+                leavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
+                break;
+            case 'cypress':
+                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
+                break;
+            case 'redwood':
+                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
+                break;
+        }
+        
         const leavesMaterial = new THREE.MeshStandardMaterial({
-            color: 0x228B22,
+            color: treeType.leavesColor,
             roughness: 0.8,
             metalness: 0.1
         });
         const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
-        leaves.position.set(x, height, z);
+        leaves.position.set(x, trunkHeight + leavesHeight/2, z);
         leaves.castShadow = true;
         leaves.receiveShadow = true;
         
@@ -431,14 +511,39 @@ class FieldMap {
     }
     
     createRock(x, z, size) {
-        const geometry = new THREE.DodecahedronGeometry(size, 0);
-        const material = new THREE.MeshStandardMaterial({
-            color: 0x808080,
-            roughness: 0.9,
+        const rockType = this.rockTypes[Math.floor(this.rng() * this.rockTypes.length)];
+        const rockSize = size * rockType.size;
+        
+        // 岩の形状をランダムに選択
+        let rockGeometry;
+        const geometryType = Math.floor(this.rng() * 3);
+        switch(geometryType) {
+            case 0:
+                rockGeometry = new THREE.DodecahedronGeometry(rockSize, 0);
+                break;
+            case 1:
+                rockGeometry = new THREE.IcosahedronGeometry(rockSize, 0);
+                break;
+            case 2:
+                rockGeometry = new THREE.OctahedronGeometry(rockSize, 0);
+                break;
+        }
+        
+        // 頂点を変形させて自然な形状を作成
+        const vertices = rockGeometry.attributes.position.array;
+        for (let i = 0; i < vertices.length; i += 3) {
+            vertices[i] += (this.rng() - 0.5) * 0.2;
+            vertices[i + 1] += (this.rng() - 0.5) * 0.2;
+            vertices[i + 2] += (this.rng() - 0.5) * 0.2;
+        }
+        
+        const rockMaterial = new THREE.MeshStandardMaterial({
+            color: rockType.color,
+            roughness: rockType.roughness,
             metalness: 0.1
         });
-        const rock = new THREE.Mesh(geometry, material);
-        rock.position.set(x, size/2, z);
+        const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+        rock.position.set(x, rockSize/2, z);
         rock.rotation.set(this.rng() * Math.PI, this.rng() * Math.PI, this.rng() * Math.PI);
         rock.castShadow = true;
         rock.receiveShadow = true;
@@ -556,8 +661,8 @@ class FieldMap {
     }
     
     createBoundaryWalls() {
-        const wallHeight = 10;
-        const wallThickness = 2;
+        const wallHeight = 1;
+        const wallThickness = 1;
         
         // 北の壁
         this.createWall(0, wallHeight/2, -this.mapSize/2, this.mapSize, wallThickness, wallHeight);
@@ -567,6 +672,9 @@ class FieldMap {
         this.createWall(this.mapSize/2, wallHeight/2, 0, wallThickness, this.mapSize, wallHeight);
         // 西の壁
         this.createWall(-this.mapSize/2, wallHeight/2, 0, wallThickness, this.mapSize, wallHeight);
+
+        // 海の作成
+        this.createOcean();
     }
     
     createWall(x, y, z, width, depth, height) {
@@ -582,6 +690,56 @@ class FieldMap {
         wall.receiveShadow = true;
         this.scene.add(wall);
         this.objects.push(wall);
+    }
+    
+    createOcean() {
+        // 海の平面を作成
+        const oceanSize = this.mapSize * 2; // マップの2倍の大きさ
+        const oceanGeometry = new THREE.PlaneGeometry(oceanSize, oceanSize, 100, 100);
+        
+        // 海のマテリアルを作成
+        const oceanMaterial = new THREE.MeshStandardMaterial({
+            color: 0x0077be, // 海の色
+            roughness: 0.1,
+            metalness: 0.3,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        // 海のメッシュを作成
+        const ocean = new THREE.Mesh(oceanGeometry, oceanMaterial);
+        ocean.rotation.x = -Math.PI / 2; // 平面を水平に
+        ocean.position.y = -1; // 地面より少し下に配置
+        
+        // 波のアニメーション用の頂点を取得
+        const vertices = oceanGeometry.attributes.position.array;
+        
+        // アニメーション関数を定義
+        const animateOcean = () => {
+            const time = Date.now() * 0.001; // 秒単位の時間
+            
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i];
+                const z = vertices[i + 2];
+                
+                // 波の高さを計算（複数の波を重ね合わせる）
+                const wave1 = Math.sin(x * 0.1 + time) * 0.2;
+                const wave2 = Math.sin(z * 0.1 + time * 0.7) * 0.2;
+                const wave3 = Math.sin((x + z) * 0.05 + time * 0.5) * 0.1;
+                
+                vertices[i + 1] = wave1 + wave2 + wave3;
+            }
+            
+            oceanGeometry.attributes.position.needsUpdate = true;
+            requestAnimationFrame(animateOcean);
+        };
+        
+        // アニメーションを開始
+        animateOcean();
+        
+        // 海をシーンに追加
+        this.scene.add(ocean);
+        this.objects.push(ocean);
     }
     
     getBiomeAt(x, z) {
