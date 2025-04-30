@@ -12,6 +12,11 @@ class PlayerStatus {
         this.temperature = 50;
         this.maxHygiene = 100;
         this.hygiene = this.maxHygiene;
+        this.infection = 0;
+        this.pain = 0;
+        this.staminaRegenMultiplier = 1.0;
+        this.moveSpeedMultiplier = 1.0;
+        this.effects = new Map(); // アクティブなエフェクトを管理
 
         this.healthDecreaseRate = 0.1;
         this.hungerDecreaseRate = GameConfig.STATUS.IDLE.HUNGER;
@@ -59,6 +64,9 @@ class PlayerStatus {
         
         // ステータスによるHP減少
         this.updateHealthFromStatus(deltaTime);
+        
+        // エフェクトの更新
+        this.updateEffects(deltaTime);
         
         // UIの更新
         this.updateUI();
@@ -117,23 +125,41 @@ class PlayerStatus {
     }
 
     updateUI() {
-        if (this.healthBar) this.healthBar.style.width = `${(this.health / this.maxHealth) * 100}%`;
-        if (this.healthText) this.healthText.textContent = Math.round(this.health);
+        // 体力
+        const healthBar = document.querySelector('#health .status-fill');
+        if (healthBar) healthBar.style.width = `${(this.health / this.maxHealth) * 100}%`;
+        const healthText = document.getElementById('healthValue');
+        if (healthText) healthText.textContent = Math.round(this.health);
         
-        if (this.hungerBar) this.hungerBar.style.width = `${(this.hunger / this.maxHunger) * 100}%`;
-        if (this.hungerText) this.hungerText.textContent = Math.round(this.hunger);
+        // 空腹度
+        const hungerBar = document.querySelector('#hunger .status-fill');
+        if (hungerBar) hungerBar.style.width = `${(this.hunger / this.maxHunger) * 100}%`;
+        const hungerText = document.getElementById('hungerValue');
+        if (hungerText) hungerText.textContent = Math.round(this.hunger);
         
-        if (this.thirstBar) this.thirstBar.style.width = `${(this.thirst / this.maxThirst) * 100}%`;
-        if (this.thirstText) this.thirstText.textContent = Math.round(this.thirst);
+        // 喉の渇き
+        const thirstBar = document.querySelector('#thirst .status-fill');
+        if (thirstBar) thirstBar.style.width = `${(this.thirst / this.maxThirst) * 100}%`;
+        const thirstText = document.getElementById('thirstValue');
+        if (thirstText) thirstText.textContent = Math.round(this.thirst);
         
-        if (this.bleedingBar) this.bleedingBar.style.width = `${(this.bleeding / this.maxBleeding) * 100}%`;
-        if (this.bleedingText) this.bleedingText.textContent = Math.round(this.bleeding);
+        // 出血
+        const bleedingBar = document.querySelector('#bleeding .status-fill');
+        if (bleedingBar) bleedingBar.style.width = `${(this.bleeding / this.maxBleeding) * 100}%`;
+        const bleedingText = document.getElementById('bleedingValue');
+        if (bleedingText) bleedingText.textContent = Math.round(this.bleeding);
         
-        if (this.temperatureBar) this.temperatureBar.style.width = `${((this.temperature - 35) / 7) * 100}%`;
-        if (this.temperatureText) this.temperatureText.textContent = Math.round(this.temperature * 10) / 10;
+        // 体温
+        const temperatureBar = document.querySelector('#temperature .status-fill');
+        if (temperatureBar) temperatureBar.style.width = `${((this.temperature - 35) / 7) * 100}%`;
+        const temperatureText = document.getElementById('temperatureValue');
+        if (temperatureText) temperatureText.textContent = Math.round(this.temperature * 10) / 10;
         
-        if (this.hygieneBar) this.hygieneBar.style.width = `${(this.hygiene / this.maxHygiene) * 100}%`;
-        if (this.hygieneText) this.hygieneText.textContent = Math.round(this.hygiene);
+        // 衛生
+        const hygieneBar = document.querySelector('#hygiene .status-fill');
+        if (hygieneBar) hygieneBar.style.width = `${(this.hygiene / this.maxHygiene) * 100}%`;
+        const hygieneText = document.getElementById('hygieneValue');
+        if (hygieneText) hygieneText.textContent = Math.round(this.hygiene);
     }
 
     getHealthColor() {
@@ -212,5 +238,133 @@ class PlayerStatus {
         if (damage > 0) {
             this.takeDamage(damage);
         }
+    }
+
+    addHealth(amount) {
+        this.health = Math.min(this.maxHealth, this.health + amount);
+        this.updateStatusDisplay();
+    }
+
+    addHunger(amount) {
+        this.hunger = Math.min(100, this.hunger + amount);
+        this.updateStatusDisplay();
+    }
+
+    addThirst(amount) {
+        this.thirst = Math.min(100, this.thirst + amount);
+        this.updateStatusDisplay();
+    }
+
+    addEffect(itemType, effect) {
+        // 既存のエフェクトを更新または新規追加
+        this.effects.set(itemType, {
+            ...effect,
+            startTime: Date.now()
+        });
+
+        // エフェクトの適用
+        if (effect.staminaRegen) {
+            this.staminaRegenMultiplier = effect.staminaRegen;
+        }
+        if (effect.moveSpeed) {
+            this.moveSpeedMultiplier = effect.moveSpeed;
+        }
+        if (effect.maxHealthBonus) {
+            this.maxHealth += effect.maxHealthBonus;
+        }
+
+        // エフェクトの表示を更新
+        this.updateEffectsDisplay();
+    }
+
+    updateEffects(deltaTime) {
+        const currentTime = Date.now();
+        
+        // 期限切れの効果を削除し、アクティブな効果を適用
+        for (const [id, effect] of this.effects.entries()) {
+            // 効果が期限切れかチェック
+            if (currentTime >= effect.endTime) {
+                console.log(`効果が期限切れ: ${effect.type}`);
+                this.effects.delete(id);
+                continue;
+            }
+            
+            // 効果を適用
+            this.applyEffect(effect, deltaTime);
+        }
+    }
+
+    applyEffect(effect, deltaTime) {
+        switch (effect.type) {
+            case 'bandage':
+                // 出血を減少
+                this.stopBleeding(effect.value * deltaTime);
+                break;
+            case 'regeneration':
+                // HPを回復
+                this.heal(effect.value * deltaTime);
+                break;
+            case 'painkiller':
+                // 痛みを減少
+                this.pain = Math.max(0, this.pain - effect.value * deltaTime);
+                break;
+            case 'antibiotic':
+                // 感染を減少
+                this.infection = Math.max(0, this.infection - effect.value * deltaTime);
+                break;
+            case 'energyDrink':
+                // スタミナ回復速度を上昇
+                this.staminaRegenMultiplier = effect.value;
+                break;
+            case 'adrenaline':
+                // 移動速度を上昇
+                this.moveSpeedMultiplier = effect.value;
+                break;
+            default:
+                console.warn(`未知の効果タイプ: ${effect.type}`);
+        }
+    }
+
+    updateEffectsDisplay() {
+        const effectsDiv = document.getElementById('activeEffects');
+        if (!effectsDiv) return; // effectsDivが存在しない場合は処理をスキップ
+        
+        effectsDiv.innerHTML = '';
+
+        for (const [itemType, effect] of this.effects) {
+            const itemConfig = GameConfig.ITEMS[itemType];
+            if (!itemConfig) continue;
+
+            const remainingTime = Math.ceil((effect.duration * 1000 - (Date.now() - effect.startTime)) / 1000);
+            const effectDiv = document.createElement('div');
+            effectDiv.className = 'effect-item';
+            effectDiv.innerHTML = `
+                <span class="effect-name">${itemConfig.name}</span>
+                <span class="effect-time">${remainingTime}秒</span>
+            `;
+            effectsDiv.appendChild(effectDiv);
+        }
+    }
+
+    updateStatusDisplay() {
+        // このメソッドは既存のものを使用
+        this.updateUI();
+    }
+
+    addDurationEffect(effect) {
+        // 効果のIDを生成
+        const effectId = Date.now() + Math.random();
+        
+        // 効果の開始時間を記録
+        const startTime = Date.now();
+        
+        // 効果をMapに追加
+        this.effects.set(effectId, {
+            ...effect,
+            startTime,
+            endTime: startTime + (effect.duration * 1000) // 秒をミリ秒に変換
+        });
+        
+        console.log(`持続効果を追加: ${effect.type}, 持続時間: ${effect.duration}秒`);
     }
 } 

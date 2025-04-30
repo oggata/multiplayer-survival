@@ -11,6 +11,38 @@ class Game {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = true;
         
+        // モノクロ効果用のシェーダーを追加
+        this.monochromeShader = {
+            uniforms: {
+                tDiffuse: { value: null },
+                intensity: { value: 0.0 }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D tDiffuse;
+                uniform float intensity;
+                varying vec2 vUv;
+                void main() {
+                    vec4 color = texture2D(tDiffuse, vUv);
+                    float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+                    gl_FragColor = vec4(mix(color.rgb, vec3(gray), intensity), color.a);
+                }
+            `
+        };
+        
+        this.composer = new THREE.EffectComposer(this.renderer);
+        this.renderPass = new THREE.RenderPass(this.scene, this.camera);
+        this.composer.addPass(this.renderPass);
+        
+        this.monochromePass = new THREE.ShaderPass(this.monochromeShader);
+        this.composer.addPass(this.monochromePass);
+        
         this.socket = io();
         this.players = new Map();
         this.bullets = [];
@@ -1007,7 +1039,13 @@ class Game {
         this.update(deltaTime);
         
         // レンダリング
-        this.renderer.render(this.scene, this.camera);
+        if (this.currentHealth <= this.maxHealth * 0.2) {
+            this.monochromePass.uniforms.intensity.value = 1.0;
+            this.composer.render();
+        } else {
+            this.monochromePass.uniforms.intensity.value = 0.0;
+            this.renderer.render(this.scene, this.camera);
+        }
     }
 
     update(deltaTime) {
@@ -1070,25 +1108,24 @@ class Game {
     }
     
     spawnItems() {
-        // アイテムの種類を定義
-        const itemTypes = [
-            { name: 'health', color: 0xff4444, size: 0.5 },
-            { name: 'food', color: 0xffaa44, size: 0.5 },
-            { name: 'water', color: 0x44aaff, size: 0.5 },
-            { name: 'bandage', color: 0xff44ff, size: 0.5 },
-            { name: 'medicine', color: 0x44ff44, size: 0.5 }
-        ];
-        
         // 建物の位置を取得
         const buildings = this.fieldMap.objects.filter(obj => obj.userData && obj.userData.type === 'building');
         
         // アイテムを生成
         for (let i = 0; i < this.maxItems; i++) {
-            const itemType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
-            let x, z;
+            // GameConfig.ITEMSからランダムにアイテムタイプを選択
+            const itemTypes = Object.entries(GameConfig.ITEMS)
+                .filter(([_, item]) => item.dropChance !== undefined)
+                .map(([type]) => type);
             
-            const random = Math.random();
-            if (random < GameConfig.ITEM.SPAWN.BUILDING_CHANCE && buildings.length > 0) {
+            if (itemTypes.length === 0) continue;
+            
+            const selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+            if (!selectedType || !GameConfig.ITEMS[selectedType]) continue;
+
+            let x, z;
+            const spawnRandom = Math.random();
+            if (spawnRandom < GameConfig.ITEM.SPAWN.BUILDING_CHANCE && buildings.length > 0) {
                 // 建物の近くにスポーン
                 const randomBuilding = buildings[Math.floor(Math.random() * buildings.length)];
                 const angle = Math.random() * Math.PI * 2;
@@ -1102,114 +1139,87 @@ class Game {
                 x = (Math.random() - 0.5) * this.fieldMap.mapSize;
                 z = (Math.random() - 0.5) * this.fieldMap.mapSize;
             }
-            
-            const geometry = new THREE.SphereGeometry(itemType.size, 8, 8);
-            const material = new THREE.MeshStandardMaterial({
-                color: itemType.color,
-                emissive: itemType.color,
-                emissiveIntensity: 0.5
-            });
-            
-            const item = new THREE.Mesh(geometry, material);
-            item.position.set(x, itemType.size, z);
-            item.userData = { type: 'item', itemType: itemType.name };
-            
-            this.scene.add(item);
-            this.items.push(item);
+
+            // アイテムを生成
+            const position = new THREE.Vector3(x, 0.5, z);
+            this.spawnItem(selectedType, position);
         }
     }
     
     checkItemCollisions() {
+        //console.log("aa");
+        if (!this.playerModel) return;
+        
         const playerPosition = this.playerModel.getPosition();
         const COLLECTION_DISTANCE = 2.0;
 
         for (let i = this.items.length - 1; i >= 0; i--) {
             const item = this.items[i];
-            const distance = playerPosition.distanceTo(item.position);
-
+            if (!item || !item.mesh) continue;
+            
+            const distance = playerPosition.distanceTo(item.mesh.position);
             if (distance < COLLECTION_DISTANCE) {
-                this.collectItem(item);
-                this.items.splice(i, 1);
+                // アイテムを収集
+                const itemData = item.collect();
+                if (itemData) {
+                    this.collectItem(itemData);
+                    this.scene.remove(item.mesh);
+                    this.items.splice(i, 1);
+                }
             }
         }
     }
     
     collectItem(item) {
-        // アイテムの検証を改善
-        if (!item || !item.userData) {
+        //console.log(item)
+        if (!item || !item.type) {
             console.error('無効なアイテムです:', item);
             return;
         }
 
-        const itemType = item.userData.itemType;
-        if (!itemType) {
-            console.error('アイテムタイプが設定されていません:', item);
-            return;
-        }
-        
         // アイテムをインベントリに追加
         this.inventory.push({
             id: Date.now() + Math.random(), // ユニークID
-            type: itemType,
-            name: this.getItemName(itemType),
-            position: item.position.clone() // アイテムの位置を保存
+            type: item.type
         });
         
-        // アイテムをシーンから削除
-        this.scene.remove(item);
-        
-        // バックパックが開いている場合は更新
-        if (this.backpackElement.style.display === 'block') {
-            this.updateBackpackUI();
-        }
+        // バックパックUIを更新
+        this.updateBackpackUI();
         
         // アイテム数を更新
         this.updateItemCount();
     }
     
-    getItemName(type) {
-        const itemNames = {
-            'health': 'Recovery Medicine',
-            'food': 'Food',
-            'water': 'Water',
-            'bandage': 'Bandage',
-            'medicine': 'Medicine'
-        };
-        return itemNames[type] || type;
-    }
-    
-    useItem(itemId) {
-        // インベントリからアイテムを探す
-        const itemIndex = this.inventory.findIndex(item => item.id === itemId);
-        if (itemIndex === -1) return;
-        
-        const item = this.inventory[itemIndex];
-        
-        // アイテムの効果を適用
-        switch (item.type) {
-            case 'health':
-                this.playerStatus.heal(20);
-                break;
-            case 'food':
-                this.playerStatus.eat(30);
-                break;
-            case 'water':
-                this.playerStatus.drink(30);
-                break;
-            case 'bandage':
-                this.playerStatus.stopBleeding(50);
-                break;
-            case 'medicine':
-                this.playerStatus.heal(10);
-                this.playerStatus.stopBleeding(30);
-                break;
+    useItem(itemType) {
+        const itemConfig = GameConfig.ITEMS[itemType];
+        if (!itemConfig) return;
+
+        // 即時効果の適用
+        if (itemConfig.effects?.immediate) {
+            const effects = itemConfig.effects.immediate;
+            if (effects.health) {
+                this.playerStatus.addHealth(effects.health);
+            }
+            if (effects.hunger) {
+                this.playerStatus.addHunger(effects.hunger);
+            }
+            if (effects.thirst) {
+                this.playerStatus.addThirst(effects.thirst);
+            }
         }
-        
-        // アイテムをインベントリから削除
-        this.inventory.splice(itemIndex, 1);
-        
-        // バックパックUIを更新
-        this.updateBackpackUI();
+
+        // 持続効果の適用
+        if (itemConfig.effects?.duration) {
+            const durationEffect = itemConfig.effects.duration;
+            this.playerStatus.addDurationEffect(durationEffect);
+        }
+
+        // インベントリからアイテムを削除
+        const index = this.inventory.findIndex(item => item.type === itemType);
+        if (index !== -1) {
+            this.inventory.splice(index, 1);
+            this.updateBackpackUI();
+        }
     }
     
     dropItem(itemId) {
@@ -1254,14 +1264,7 @@ class Game {
     }
     
     getItemColor(type) {
-        const itemColors = {
-            'health': 0xff4444,
-            'food': 0xffaa44,
-            'water': 0x44aaff,
-            'bandage': 0xff44ff,
-            'medicine': 0x44ff44
-        };
-        return itemColors[type] || 0xffffff;
+        return GameConfig.ITEMS[type]?.color || 0xffffff;
     }
     
     toggleBackpack() {
@@ -1274,47 +1277,117 @@ class Game {
     }
     
     updateBackpackUI() {
-        // バックパックの内容をクリア
-        this.backpackItemsBody.innerHTML = '';
-        
-        // アイテムがない場合はメッセージを表示
+        // バックパックが空の場合のメッセージ表示
         if (this.inventory.length === 0) {
             this.emptyBackpackMessage.style.display = 'block';
+            this.backpackItemsBody.innerHTML = '';
             return;
         }
-        
-        // アイテムがある場合はメッセージを非表示
+
+        // バックパックにアイテムがある場合
         this.emptyBackpackMessage.style.display = 'none';
-        
-        // アイテムを追加
+        this.backpackItemsBody.innerHTML = '';
+
         this.inventory.forEach(item => {
-            const row = document.createElement('tr');
+            const itemConfig = GameConfig.ITEMS[item.type];
+            if (!itemConfig) return;
+
+            const itemElement = document.createElement('div');
+            itemElement.className = 'backpack-item';
+            itemElement.style.cssText = `
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 5px 10px;
+                margin: 2px 0;
+                background: rgba(0, 0, 0, 0.5);
+                border-radius: 4px;
+                font-size: 12px;
+            `;
             
-            // アイテム名
-            const nameCell = document.createElement('td');
-            nameCell.textContent = item.name;
-            row.appendChild(nameCell);
-            
-            // 使用ボタン
-            const useCell = document.createElement('td');
             const useButton = document.createElement('button');
-            useButton.textContent = 'use';
-            useButton.className = 'item-button use-button';
-            useButton.addEventListener('click', () => this.useItem(item.id));
-            useCell.appendChild(useButton);
-            row.appendChild(useCell);
+            useButton.textContent = '使用';
+            useButton.style.cssText = `
+                padding: 2px 8px;
+                margin: 0 4px;
+                font-size: 11px;
+                background: #4CAF50;
+                border: none;
+                border-radius: 3px;
+                color: white;
+                cursor: pointer;
+            `;
+            useButton.addEventListener('click', () => this.useItem(item.type));
             
-            // 捨てるボタン
-            const dropCell = document.createElement('td');
             const dropButton = document.createElement('button');
-            dropButton.textContent = 'drop';
-            dropButton.className = 'item-button drop-button';
+            dropButton.textContent = '捨てる';
+            dropButton.style.cssText = `
+                padding: 2px 8px;
+                margin: 0 4px;
+                font-size: 11px;
+                background: #f44336;
+                border: none;
+                border-radius: 3px;
+                color: white;
+                cursor: pointer;
+            `;
             dropButton.addEventListener('click', () => this.dropItem(item.id));
-            dropCell.appendChild(dropButton);
-            row.appendChild(dropCell);
             
-            this.backpackItemsBody.appendChild(row);
+            const itemInfo = document.createElement('div');
+            itemInfo.style.cssText = `
+                flex: 1;
+                margin-right: 10px;
+            `;
+            itemInfo.innerHTML = `
+                <span style="font-weight: bold; margin-right: 8px;">${itemConfig.name}</span>
+                <span style="color: #aaa; font-size: 11px;">${itemConfig.description}</span>
+                <span style="color: #8ff; font-size: 11px; margin-left: 8px;">効果: ${this.formatItemEffects(itemConfig.effects)}</span>
+            `;
+            
+            const actionDiv = document.createElement('div');
+            actionDiv.style.cssText = `
+                display: flex;
+                align-items: center;
+            `;
+            actionDiv.appendChild(useButton);
+            actionDiv.appendChild(dropButton);
+            
+            itemElement.appendChild(itemInfo);
+            itemElement.appendChild(actionDiv);
+            
+            this.backpackItemsBody.appendChild(itemElement);
         });
+    }
+
+    // アイテム効果を整形するヘルパーメソッド
+    formatItemEffects(effects) {
+        const formattedEffects = [];
+        
+        if (effects.immediate) {
+            if (effects.immediate.health) {
+                formattedEffects.push(`HP ${effects.immediate.health > 0 ? '+' : ''}${effects.immediate.health}`);
+            }
+            if (effects.immediate.hunger) {
+                formattedEffects.push(`Hunger ${effects.immediate.hunger > 0 ? '+' : ''}${effects.immediate.hunger}`);
+            }
+            if (effects.immediate.thirst) {
+                formattedEffects.push(`Thirst ${effects.immediate.thirst > 0 ? '+' : ''}${effects.immediate.thirst}`);
+            }
+        }
+        
+        if (effects.duration) {
+            if (effects.duration.health) {
+                formattedEffects.push(`HP ${effects.duration.health > 0 ? '+' : ''}${effects.duration.health}/秒 (${effects.duration.duration}秒)`);
+            }
+            if (effects.duration.hunger) {
+                formattedEffects.push(`Hunger ${effects.duration.hunger > 0 ? '+' : ''}${effects.duration.hunger}/秒 (${effects.duration.duration}秒)`);
+            }
+            if (effects.duration.thirst) {
+                formattedEffects.push(`Thirst ${effects.duration.thirst > 0 ? '+' : ''}${effects.duration.thirst}/秒 (${effects.duration.duration}秒)`);
+            }
+        }
+        
+        return formattedEffects.join(', ');
     }
 
     // 時間の更新
@@ -1471,7 +1544,7 @@ class Game {
         //生存時間を更新
         const survivalTimeDeisplay = document.getElementById('survivalTimeDeisplay');
         if (survivalTimeDeisplay) {
-            survivalTimeDeisplay.innerHTML = ` ${survivalDays}日 ${survivalHours.toString().padStart(2, '0')}時間 ${survivalMinutes.toString().padStart(2, '0')}分`;
+            survivalTimeDeisplay.innerHTML = ` ${survivalDays}Day ${survivalHours.toString().padStart(2, '0')}Hour ${survivalMinutes.toString().padStart(2, '0')}min`;
         }
 
 
@@ -1541,40 +1614,66 @@ class Game {
     }
 
     // 敵が倒された時の処理を更新
-    handleEnemyDeath(event) {
-        this.killedEnemies++; // 倒した敵の数を増やす
-        this.updateEnemyCount(); // 表示を更新
+    handleEnemyDeath(position) {
+        // アイテムの種類を確率に基づいて選択
+        const items = Object.entries(GameConfig.ITEMS);
+        const totalWeight = items.reduce((sum, [_, item]) => sum + item.dropChance, 0);
+        let random = Math.random() * totalWeight;
         
-        // 敵の位置にアイテムを生成
-        if (event && event.detail && event.detail.position) {
-            this.spawnItem(event.detail.position);
+        let selectedItem = null;
+        for (const [type, item] of items) {
+            random -= item.dropChance;
+            if (random <= 0) {
+                selectedItem = type;
+                break;
+            }
+        }
+
+        if (selectedItem) {
+            this.spawnItem(selectedItem, position);
         }
     }
 
-    // アイテムを生成するメソッド
-    spawnItem(position) {
-        // ランダムなアイテムタイプを選択
-        const itemTypes = ['health', 'food', 'water', 'bandage', 'medicine'];
-        const randomType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+    spawnItem(itemType, position) {
+        if (!itemType || !GameConfig.ITEMS[itemType]) {
+            console.error('無効なアイテムタイプです:', itemType);
+            return;
+        }
+
+        const item = new Item(itemType, position);
+        this.scene.add(item.mesh);
+        this.items.push(item);
+    }
+
+    getItemName(type) {
+        return GameConfig.ITEMS[type]?.name || type;
+    }
+
+    getItemDescription(type) {
+        return GameConfig.ITEMS[type]?.description || '';
+    }
+
+    updateInventoryDisplay() {
+        const inventoryDiv = document.getElementById('inventory');
+        inventoryDiv.innerHTML = '';
         
-        // アイテムのメッシュを作成
-        const geometry = new THREE.SphereGeometry(0.5, 8, 8);
-        const material = new THREE.MeshStandardMaterial({
-            color: this.getItemColor(randomType),
-            emissive: this.getItemColor(randomType),
-            emissiveIntensity: 0.5
+        this.inventory.forEach((item, index) => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'inventory-item';
+            
+            const itemName = this.getItemName(item.type);
+            const itemDesc = this.getItemDescription(item.type);
+            
+            itemDiv.innerHTML = `
+                <div class="item-info">
+                    <span class="item-name">${itemName}</span>
+                    <span class="item-description">${itemDesc}</span>
+                </div>
+                <button onclick="game.useItem('${item.type}')">使用</button>
+            `;
+            
+            inventoryDiv.appendChild(itemDiv);
         });
-        
-        const itemMesh = new THREE.Mesh(geometry, material);
-        itemMesh.position.copy(position);
-        itemMesh.userData = { itemType: randomType };
-        
-        // アイテムをシーンに追加
-        this.scene.add(itemMesh);
-        this.items.push(itemMesh);
-        
-        // アイテム数を更新
-        this.updateItemCount();
     }
 
     // URLパラメータをチェックしてdevモードを設定
@@ -1648,36 +1747,36 @@ class Game {
         
         // アイテムの表示/非表示を更新
         this.items.forEach(item => {
-            if (!item) return;
+            if (!item || !item.mesh) return;
             
-            const distance = item.position.distanceTo(playerPosition);
+            const distance = playerPosition.distanceTo(item.mesh.position);
             
             if (distance > maxDistance) {
                 // 最大距離を超えている場合は非表示
-                item.visible = false;
-                if (this.visibleObjects && this.visibleObjects.has(item)) {
-                    this.visibleObjects.delete(item);
+                item.mesh.visible = false;
+                if (this.visibleObjects && this.visibleObjects.has(item.mesh)) {
+                    this.visibleObjects.delete(item.mesh);
                 }
             } else if (distance > fadeStart) {
                 // フェード開始距離を超えている場合は透明度を調整
                 const opacity = 1 - ((distance - fadeStart) / (maxDistance - fadeStart));
-                if (item.material) {
-                    item.material.opacity = opacity;
-                    item.material.transparent = true;
+                if (item.mesh.material) {
+                    item.mesh.material.opacity = opacity;
+                    item.mesh.material.transparent = true;
                 }
-                item.visible = true;
+                item.mesh.visible = true;
                 if (this.visibleObjects) {
-                    this.visibleObjects.add(item);
+                    this.visibleObjects.add(item.mesh);
                 }
             } else {
                 // 通常表示
-                item.visible = true;
-                if (item.material && item.material.opacity !== 1) {
-                    item.material.opacity = 1;
-                    item.material.transparent = false;
+                item.mesh.visible = true;
+                if (item.mesh.material && item.mesh.material.opacity !== 1) {
+                    item.mesh.material.opacity = 1;
+                    item.mesh.material.transparent = false;
                 }
                 if (this.visibleObjects) {
-                    this.visibleObjects.add(item);
+                    this.visibleObjects.add(item.mesh);
                 }
             }
         });
@@ -1799,9 +1898,28 @@ class Game {
             }
         }
     }
+
+    collectItem(itemType) {
+        if (!itemType) {
+            console.error('無効なアイテムタイプです:', itemType);
+            return;
+        }
+
+        // アイテムをインベントリに追加
+        this.inventory.push({
+            id: Date.now() + Math.random(), // ユニークID
+            type: itemType
+        });
+        
+        // バックパックUIを更新
+        this.updateBackpackUI();
+        
+        // アイテム数を更新
+        this.updateItemCount();
+    }
 }
 
 // ゲームの開始
 window.addEventListener('load', () => {
-    new Game();
+    window.game = new Game();
 }); 

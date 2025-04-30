@@ -2,7 +2,8 @@ class FieldMap {
     constructor(scene, seed) {
         this.scene = scene;
         this.seed = seed || Math.random();
-        this.rng = new Math.seedrandom(this.seed.toString());
+        Math.seedrandom(this.seed.toString());
+        this.rng = Math.random;
         this.mapSize = GameConfig.MAP.SIZE;
         this.biomes = [];
         this.objects = [];

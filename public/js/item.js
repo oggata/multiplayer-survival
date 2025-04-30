@@ -1,20 +1,25 @@
 class Item {
-    constructor(type, position) {
-        this.type = type;
-        this.position = position;
-        
-        // アイテムの見た目を設定
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const material = new THREE.MeshPhongMaterial({
-            color: this.getItemColor(type),
-            transparent: true,
-            opacity: 0.8
+    constructor(itemType, position) {
+        this.type = itemType;
+        this.itemConfig = GameConfig.ITEMS[itemType];
+        if (!this.itemConfig) {
+            console.error('無効なアイテムタイプです:', itemType);
+            return;
+        }
+
+        // アイテムのメッシュを作成
+        const geometry = new THREE.SphereGeometry(0.5, 8, 8);
+        const material = new THREE.MeshStandardMaterial({
+            color: this.itemConfig.color,
+            emissive: this.itemConfig.color,
+            emissiveIntensity: 0.5
         });
         
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
-        this.mesh.castShadow = true;
-        this.mesh.receiveShadow = true;
+        this.mesh.userData = { 
+            itemType: this.type
+        };
         
         // アイテムを少し浮かせる
         this.mesh.position.y += 0.5;
@@ -25,24 +30,6 @@ class Item {
         this.floatHeight = 0.2;
         this.initialY = this.mesh.position.y;
         this.time = 0;
-    }
-    
-    // アイテムの種類に応じた色を返す
-    getItemColor(type) {
-        switch(type) {
-            case 'health':
-                return 0xff0000; // 赤
-            case 'food':
-                return 0x00ff00; // 緑
-            case 'water':
-                return 0x0000ff; // 青
-            case 'bandage':
-                return 0xffffff; // 白
-            case 'medicine':
-                return 0xffff00; // 黄
-            default:
-                return 0x808080; // グレー
-        }
     }
     
     // アイテムのアニメーションを更新
@@ -59,7 +46,9 @@ class Item {
     // アイテムを取得した時の処理
     collect() {
         // シーンから削除
-        this.mesh.parent.remove(this.mesh);
+        if (this.mesh && this.mesh.parent) {
+            this.mesh.parent.remove(this.mesh);
+        }
         return this.type;
     }
 } 

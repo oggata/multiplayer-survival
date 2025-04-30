@@ -46,11 +46,11 @@ class Weather {
         const rainVelocities = [];
         
         // 雨滴の数を増やし、より広い範囲に分布させる
-        for (let i = 0; i < GameConfig.WEATHER.RAIN.DROP_COUNT * 2; i++) {
+        for (let i = 0; i < GameConfig.WEATHER.RAIN.DROP_COUNT; i++) {
             // より広い範囲に雨滴を配置
-            const x = (Math.random() - 0.5) * 200;
+            const x = (Math.random() - 0.5) * GameConfig.WEATHER.RAIN.COVERAGE_RADIUS;
             const y = Math.random() * 100;
-            const z = (Math.random() - 0.5) * 200;
+            const z = (Math.random() - 0.5) * GameConfig.WEATHER.RAIN.COVERAGE_RADIUS;
             
             rainPositions.push(x, y, z);
             
@@ -88,9 +88,9 @@ class Weather {
         
         for (let i = 0; i < GameConfig.WEATHER.SNOW.FLAKE_COUNT; i++) {
             // ランダムな位置を設定
-            const x = (Math.random() - 0.5) * 100;
+            const x = (Math.random() - 0.5) * GameConfig.WEATHER.SNOW.COVERAGE_RADIUS;
             const y = Math.random() * 50;
-            const z = (Math.random() - 0.5) * 100;
+            const z = (Math.random() - 0.5) * GameConfig.WEATHER.SNOW.COVERAGE_RADIUS;
             
             snowPositions.push(x, y, z);
             

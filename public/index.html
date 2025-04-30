@@ -343,6 +343,20 @@
             transform: translate(-50%, -100%);
             margin-top: -10px;
         }
+        .active-effects {
+            margin-top: 10px;
+            padding: 5px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+        }
+        .active-effect {
+            color: #fff;
+            margin: 2px 0;
+            padding: 2px 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -368,20 +382,58 @@
 
     </div>
     <div id="status">
-        <div>世界の時間: <span id="worldTimeDisplay">00:00</span></div>
-        <div>生存: <span id="survivalTimeDeisplay">00:00</span></div>
-        <div>HP: <span id="healthValue">100</span>%</div>
-        <div class="status-bar" id="health"><div class="status-fill" style="width: 100%"></div></div>
-        <div>Hungry: <span id="hungerValue">100</span>%</div>
-        <div class="status-bar" id="hunger"><div class="status-fill" style="width: 100%"></div></div>
-        <div>Thirst: <span id="thirstValue">100</span>%</div>
-        <div class="status-bar" id="thirst"><div class="status-fill" style="width: 100%"></div></div>
-        <div>Bleeding: <span id="bleedingValue">0</span>%</div>
-        <div class="status-bar" id="bleeding"><div class="status-fill" style="width: 0%"></div></div>
-        <div>Temperature: <span id="temperatureValue">37</span>°C</div>
-        <div class="status-bar" id="temperature"><div class="status-fill" style="width: 50%"></div></div>
-        <div>Hygiene: <span id="hygieneValue">100</span>%</div>
-        <div class="status-bar" id="hygiene"><div class="status-fill" style="width: 100%"></div></div>
+        <div>Time(World): <span id="worldTimeDisplay">00:00</span></div>
+        <div>Survival Time: <span id="survivalTimeDeisplay">00:00</span></div>
+        
+        <div class="status-item">
+            <span>HP: </span>
+            <div id="health" class="status-bar">
+                <div class="status-fill" style="width: 100%"></div>
+            </div>
+            <span id="healthValue">100</span>%
+        </div>
+        
+        <div class="status-item">
+            <span>Hunger: </span>
+            <div id="hunger" class="status-bar">
+                <div class="status-fill" style="width: 100%"></div>
+            </div>
+            <span id="hungerValue">100</span>%
+        </div>
+        
+        <div class="status-item">
+            <span>Thirst: </span>
+            <div id="thirst" class="status-bar">
+                <div class="status-fill" style="width: 100%"></div>
+            </div>
+            <span id="thirstValue">100</span>%
+        </div>
+        
+        <div class="status-item">
+            <span>Bleeding: </span>
+            <div id="bleeding" class="status-bar">
+                <div class="status-fill" style="width: 0%"></div>
+            </div>
+            <span id="bleedingValue">0</span>%
+        </div>
+        
+        <div class="status-item">
+            <span>Temperature: </span>
+            <div id="temperature" class="status-bar">
+                <div class="status-fill" style="width: 50%"></div>
+            </div>
+            <span id="temperatureValue">37</span>°C
+        </div>
+        
+        <div class="status-item">
+            <span>Hygiene: </span>
+            <div id="hygiene" class="status-bar">
+                <div class="status-fill" style="width: 100%"></div>
+            </div>
+            <span id="hygieneValue">100</span>%
+        </div>
+        
+        <div id="activeEffects" class="active-effects"></div>
     </div>
     
     <!-- バックパックUI -->
@@ -404,6 +456,10 @@
     
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/seedrandom@3.0.5/seedrandom.min.js"></script>
     <script src="js/config.js"></script>
