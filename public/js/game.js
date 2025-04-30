@@ -1044,7 +1044,7 @@ class Game {
             this.composer.render();
         } else {
             this.monochromePass.uniforms.intensity.value = 0.0;
-            this.renderer.render(this.scene, this.camera);
+        this.renderer.render(this.scene, this.camera);
         }
     }
 
@@ -1072,39 +1072,8 @@ class Game {
     }
 
     updateStatusDisplay() {
-        // 座標の更新
-        this.updateCoordinatesDisplay();
-        
-        // プレイヤー数の更新
-        this.playerCountElement.textContent = Object.keys(this.players).length;
-        
-        // 敵の数の更新
-        this.enemyCountElement.textContent = this.enemies.length;
-        
-        // ワールドに存在するアイテム数の更新
-        document.getElementById('worldItemCount').textContent = this.items.length;
-        
-        // インベントリのアイテム数を表示
-        document.getElementById('inventoryItemCount').textContent = this.inventory.length;
-        
-        // ステータスバーの更新
-        document.getElementById('healthValue').textContent = Math.round(this.playerStatus.health);
-        document.getElementById('health').querySelector('.status-fill').style.width = `${this.playerStatus.health}%`;
-        
-        document.getElementById('hungerValue').textContent = Math.round(this.playerStatus.hunger);
-        document.getElementById('hunger').querySelector('.status-fill').style.width = `${this.playerStatus.hunger}%`;
-        
-        document.getElementById('thirstValue').textContent = Math.round(this.playerStatus.thirst);
-        document.getElementById('thirst').querySelector('.status-fill').style.width = `${this.playerStatus.thirst}%`;
-        
-        document.getElementById('bleedingValue').textContent = Math.round(this.playerStatus.bleeding);
-        document.getElementById('bleeding').querySelector('.status-fill').style.width = `${this.playerStatus.bleeding}%`;
-        
-        document.getElementById('temperatureValue').textContent = Math.round(this.playerStatus.temperature * 10) / 10;
-        document.getElementById('temperature').querySelector('.status-fill').style.width = `${(this.playerStatus.temperature - 35) * 20}%`;
-        
-        document.getElementById('hygieneValue').textContent = Math.round(this.playerStatus.hygiene);
-        document.getElementById('hygiene').querySelector('.status-fill').style.width = `${this.playerStatus.hygiene}%`;
+        // プレイヤーステータスのUIを更新
+        this.playerStatus.updateUI();
     }
     
     spawnItems() {

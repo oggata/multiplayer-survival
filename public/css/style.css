@@ -92,4 +92,62 @@
     font-style: italic;
     grid-column: 1 / -1;
     padding: 20px;
-} 
+}
+
+.status-container {
+    position: fixed;
+    top: 0px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    z-index: 100;
+}
+
+.status-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px;
+    padding: 0 10px;
+    max-width: 1000px;
+    width: 90%;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 5px 10px;
+    border-radius: 5px;
+    min-width: 50px;
+}
+
+.status-item i {
+    margin-right: 4px;
+    font-size: 11px;
+}
+
+.status-bar {
+    width: 100px;
+    height: 5px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-left: 8px;
+}
+
+.status-bar .status-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.health .status-fill { background-color: #ff4444; }
+.hunger .status-fill { background-color: #ffbb33; }
+.thirst .status-fill { background-color: #33b5e5; }
+.hygiene .status-fill { background-color: #00C851; }
+.temperature .status-fill { background-color: #ff4444; }
+.stamina .status-fill { background-color: #aa66cc; }
+.sleep .status-fill { background-color: #2BBBAD; }
+.sanity .status-fill { background-color: #ff8800; } 

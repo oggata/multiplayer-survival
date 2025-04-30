@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>bivouac</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         body {
             margin: 0;
@@ -36,6 +38,16 @@
             background: rgba(255, 255, 255, 0.3);
             border-radius: 60px;
         }
+        #joystickKnob {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 30px;
+            top: 30px;
+            left: 30px;
+            transition: transform 0.1s ease;
+        }
         #rightJoystick {
             position: absolute;
             right: 20px;
@@ -55,8 +67,11 @@
             border-radius: 10px;
             border: none;
             color: white;
-            font-size: 16px;
+            font-size: 24px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         #messageButton {
             position: absolute;
@@ -68,8 +83,11 @@
             border-radius: 10px;
             border: none;
             color: white;
-            font-size: 16px;
+            font-size: 24px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         #backpackButton {
             position: absolute;
@@ -366,74 +384,51 @@
         <button id="restartButton">Restart</button>
     </div>
     <div id="mobileControls">
-        <div id="leftJoystick"></div>
-        <button id="shootButton">GUN</button>
-        <button id="messageButton">HELP</button>
-        <button id="backpackButton">BAG</button>
+        <div id="leftJoystick">
+            <div id="joystickKnob"></div>
+        </div>
+        <button id="shootButton"><i class="fas fa-crosshairs"></i></button>
+        <button id="messageButton"><i class="fas fa-comment"></i></button>
+        <button id="backpackButton"><i class="fas fa-briefcase"></i></button>
     </div>
     
-    <div id="stats">
-        <div>座標: <span id="position">0, 0, 0</span></div>
-        <div>プレイヤー数: <span id="playerCount">0</span></div>
-        <div>ワールドの敵の数: <span id="enemyCount">0</span></div>
-        <div>倒した敵の数: <span id="killedEnemyCount">0</span></div>
-        <div>ワールドアイテム数: <span id="worldItemCount">0</span></div>
-        <div>インベントリアイテム数: <span id="inventoryItemCount">0</span></div>
-
-    </div>
-    <div id="status">
-        <div>Time(World): <span id="worldTimeDisplay">00:00</span></div>
-        <div>Survival Time: <span id="survivalTimeDeisplay">00:00</span></div>
-        
-        <div class="status-item">
-            <span>HP: </span>
-            <div id="health" class="status-bar">
-                <div class="status-fill" style="width: 100%"></div>
+    <div id="status" class="status-container">
+            <div class="status-item">
+                <i class="fas fa-heartbeat"></i>
+                <div class="status-bar health">
+                    <div class="status-fill"></div>
+                </div>
             </div>
-            <span id="healthValue">100</span>%
-        </div>
-        
-        <div class="status-item">
-            <span>Hunger: </span>
-            <div id="hunger" class="status-bar">
-                <div class="status-fill" style="width: 100%"></div>
+            <div class="status-item">
+                <i class="fas fa-hamburger"></i>
+                <div class="status-bar hunger">
+                    <div class="status-fill"></div>
+                </div>
             </div>
-            <span id="hungerValue">100</span>%
-        </div>
-        
-        <div class="status-item">
-            <span>Thirst: </span>
-            <div id="thirst" class="status-bar">
-                <div class="status-fill" style="width: 100%"></div>
+            <div class="status-item">
+                <i class="fas fa-tint"></i>
+                <div class="status-bar thirst">
+                    <div class="status-fill"></div>
+                </div>
             </div>
-            <span id="thirstValue">100</span>%
-        </div>
-        
-        <div class="status-item">
-            <span>Bleeding: </span>
-            <div id="bleeding" class="status-bar">
-                <div class="status-fill" style="width: 0%"></div>
+            <div class="status-item">
+                <i class="fas fa-temperature-high"></i>
+                <div class="status-bar temperature">
+                    <div class="status-fill"></div>
+                </div>
             </div>
-            <span id="bleedingValue">0</span>%
-        </div>
-        
-        <div class="status-item">
-            <span>Temperature: </span>
-            <div id="temperature" class="status-bar">
-                <div class="status-fill" style="width: 50%"></div>
+            <div class="status-item">
+                <i class="fas fa-tint-slash"></i>
+                <div class="status-bar bleeding">
+                    <div class="status-fill"></div>
+                </div>
             </div>
-            <span id="temperatureValue">37</span>°C
-        </div>
-        
-        <div class="status-item">
-            <span>Hygiene: </span>
-            <div id="hygiene" class="status-bar">
-                <div class="status-fill" style="width: 100%"></div>
+            <div class="status-item">
+                <i class="fas fa-shower"></i>
+                <div class="status-bar hygiene">
+                    <div class="status-fill"></div>
+                </div>
             </div>
-            <span id="hygieneValue">100</span>%
-        </div>
-        
-        <div id="activeEffects" class="active-effects"></div>
     </div>
     
     <!-- バックパックUI -->
@@ -473,6 +468,70 @@
     <script src="js/game.js"></script>
 
 <script>
+// ジョイスティックの制御
+const joystick = document.getElementById('leftJoystick');
+const joystickKnob = document.getElementById('joystickKnob');
+let isJoystickActive = false;
+let joystickCenter = { x: 0, y: 0 };
+let joystickRadius = 60; // ジョイスティックの半径
+
+// ジョイスティックの初期位置を設定
+function initJoystick() {
+    const rect = joystick.getBoundingClientRect();
+    joystickCenter = {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+    };
+}
+
+// タッチ開始時の処理
+joystick.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    isJoystickActive = true;
+    initJoystick();
+    updateJoystickPosition(e.touches[0]);
+});
+
+// タッチ移動時の処理
+document.addEventListener('touchmove', (e) => {
+    if (!isJoystickActive) return;
+    e.preventDefault();
+    updateJoystickPosition(e.touches[0]);
+});
+
+// タッチ終了時の処理
+document.addEventListener('touchend', () => {
+    if (!isJoystickActive) return;
+    isJoystickActive = false;
+    joystickKnob.style.transform = 'translate(0, 0)';
+});
+
+// ジョイスティックの位置を更新
+function updateJoystickPosition(touch) {
+    const dx = touch.clientX - joystickCenter.x;
+    const dy = touch.clientY - joystickCenter.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // ジョイスティックの移動範囲を制限
+    const angle = Math.atan2(dy, dx);
+    const limitedDistance = Math.min(distance, joystickRadius);
+    const limitedX = Math.cos(angle) * limitedDistance;
+    const limitedY = Math.sin(angle) * limitedDistance;
+    
+    // ジョイスティックのノブを移動
+    joystickKnob.style.transform = `translate(${limitedX}px, ${limitedY}px)`;
+    
+    // 移動方向を計算（-1 から 1 の範囲）
+    const normalizedX = limitedX / joystickRadius;
+    const normalizedY = limitedY / joystickRadius;
+    
+    // ここでキャラクターの移動を制御
+    // game.jsのmovePlayerメソッドを呼び出すなど
+    if (window.game && window.game.movePlayer) {
+        window.game.movePlayer(normalizedX, normalizedY);
+    }
+}
+
 // ダブルタップによるズームを防止
 document.addEventListener('dblclick', function(e) {
     e.preventDefault();
@@ -482,31 +541,6 @@ document.addEventListener('dblclick', function(e) {
 document.addEventListener('gesturestart', function(e) {
     e.preventDefault();
 }, { passive: false });
-
-// タッチイベントの処理
-document.addEventListener('touchstart', function(e) {
-    if (e.touches.length > 1) {
-        e.preventDefault(); // マルチタッチを防止
-    }
-}, { passive: false });
-
-// 既存のタッチイベント処理
-document.addEventListener('touchstart', event => {
-  if (event.touches.length > 1) {
-    event.preventDefault();
-  }
-}, true);
-
-/*
-let lastTouch = 0;
-document.addEventListener('touchend', event => {
-  const now = window.performance.now();
-  if (now - lastTouch <= 500) {
-    event.preventDefault();
-  }
-  lastTouch = now;
-}, true);
-*/
 </script>
 
 </body>

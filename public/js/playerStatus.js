@@ -27,17 +27,17 @@ class PlayerStatus {
 
         this.isGameOver = false;
 
-        this.healthBar = document.querySelector('#health .status-fill');
+        this.healthBar = document.querySelector('.status-bar.health .status-fill');
         this.healthText = document.getElementById('healthValue');
-        this.hungerBar = document.querySelector('#hunger .status-fill');
+        this.hungerBar = document.querySelector('.status-bar.hunger .status-fill');
         this.hungerText = document.getElementById('hungerValue');
-        this.thirstBar = document.querySelector('#thirst .status-fill');
+        this.thirstBar = document.querySelector('.status-bar.thirst .status-fill');
         this.thirstText = document.getElementById('thirstValue');
-        this.bleedingBar = document.querySelector('#bleeding .status-fill');
+        this.bleedingBar = document.querySelector('.status-bar.bleeding .status-fill');
         this.bleedingText = document.getElementById('bleedingValue');
-        this.temperatureBar = document.querySelector('#temperature .status-fill');
+        this.temperatureBar = document.querySelector('.status-bar.temperature .status-fill');
         this.temperatureText = document.getElementById('temperatureValue');
-        this.hygieneBar = document.querySelector('#hygiene .status-fill');
+        this.hygieneBar = document.querySelector('.status-bar.hygiene .status-fill');
         this.hygieneText = document.getElementById('hygieneValue');
 
         this.updateUI();
@@ -125,41 +125,12 @@ class PlayerStatus {
     }
 
     updateUI() {
-        // 体力
-        const healthBar = document.querySelector('#health .status-fill');
-        if (healthBar) healthBar.style.width = `${(this.health / this.maxHealth) * 100}%`;
-        const healthText = document.getElementById('healthValue');
-        if (healthText) healthText.textContent = Math.round(this.health);
-        
-        // 空腹度
-        const hungerBar = document.querySelector('#hunger .status-fill');
-        if (hungerBar) hungerBar.style.width = `${(this.hunger / this.maxHunger) * 100}%`;
-        const hungerText = document.getElementById('hungerValue');
-        if (hungerText) hungerText.textContent = Math.round(this.hunger);
-        
-        // 喉の渇き
-        const thirstBar = document.querySelector('#thirst .status-fill');
-        if (thirstBar) thirstBar.style.width = `${(this.thirst / this.maxThirst) * 100}%`;
-        const thirstText = document.getElementById('thirstValue');
-        if (thirstText) thirstText.textContent = Math.round(this.thirst);
-        
-        // 出血
-        const bleedingBar = document.querySelector('#bleeding .status-fill');
-        if (bleedingBar) bleedingBar.style.width = `${(this.bleeding / this.maxBleeding) * 100}%`;
-        const bleedingText = document.getElementById('bleedingValue');
-        if (bleedingText) bleedingText.textContent = Math.round(this.bleeding);
-        
-        // 体温
-        const temperatureBar = document.querySelector('#temperature .status-fill');
-        if (temperatureBar) temperatureBar.style.width = `${((this.temperature - 35) / 7) * 100}%`;
-        const temperatureText = document.getElementById('temperatureValue');
-        if (temperatureText) temperatureText.textContent = Math.round(this.temperature * 10) / 10;
-        
-        // 衛生
-        const hygieneBar = document.querySelector('#hygiene .status-fill');
-        if (hygieneBar) hygieneBar.style.width = `${(this.hygiene / this.maxHygiene) * 100}%`;
-        const hygieneText = document.getElementById('hygieneValue');
-        if (hygieneText) hygieneText.textContent = Math.round(this.hygiene);
+        if (this.healthBar) this.healthBar.style.width = `${this.health}%`;
+        if (this.hungerBar) this.hungerBar.style.width = `${this.hunger}%`;
+        if (this.thirstBar) this.thirstBar.style.width = `${this.thirst}%`;
+        if (this.bleedingBar) this.bleedingBar.style.width = `${this.bleeding}%`;
+        if (this.temperatureBar) this.temperatureBar.style.width = `${Math.min(100, Math.max(0, ((this.temperature - 35) / 3) * 100))}%`;
+        if (this.hygieneBar) this.hygieneBar.style.width = `${this.hygiene}%`;
     }
 
     getHealthColor() {

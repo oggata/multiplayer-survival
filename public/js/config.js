@@ -87,7 +87,7 @@ const GameConfig = {
     
     // 時間設定
     TIME: {
-        DAY_LENGTH: 600, // 秒
+        DAY_LENGTH: 300, // 秒
         TIME_SPEED: 0.1 // 1フレームあたりの時間進行
     },
     
