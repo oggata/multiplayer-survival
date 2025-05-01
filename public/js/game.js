@@ -1182,15 +1182,16 @@ class Game {
             const shootButton = document.getElementById('shootButton');
             
             if (gauge && shootButton) {
-                const progress = (this.shootTimer / this.shootCooldown) * 100;
-                gauge.style.height = `${progress}%`;
-                
+                //const progress = (this.shootTimer / this.shootCooldown) * 100;
+                //gauge.style.height = `${progress}%`;
+                /*
                 // ゲージの進行に応じてボタンの色を変更
                 if (progress >= 100) {
                     shootButton.style.backgroundColor = '#00ff00'; // 射撃可能時は緑
                 } else {
                     shootButton.style.backgroundColor = '#ff0000'; // クールダウン中は赤
                 }
+                    */
             }
             
             if (this.shootTimer >= this.shootCooldown) {
