@@ -45,6 +45,7 @@ class Game {
         
         this.socket = io();
         this.players = new Map();
+        this.zombies = new Map();  // ゾンビを管理するMapを追加
         this.bullets = [];
         this.moveSpeed = GameConfig.PLAYER.MOVE_SPEED;
         this.rotationSpeed = GameConfig.PLAYER.ROTATION_SPEED;
@@ -639,6 +640,25 @@ class Game {
         this.socket.on('zombieAttack', (data) => {
             this.takeDamage(data.damage);
         });
+
+
+        // ゾンビの削除イベントを処理
+this.socket.on('zombiesKilled', (zombieIds) => {
+    zombieIds.forEach(zombieId => {
+        const zombie = this.zombies.get(zombieId);
+        if (zombie) {
+            // ゾンビのモデルをシーンから削除
+            if (zombie.model) {
+                zombie.model.dispose();
+            }
+            
+            // ゾンビを削除
+            this.zombies.delete(zombieId);
+            this.enemies.delete(zombieId);  // enemiesからも削除
+            this.updateEnemyCount();
+        }
+    });
+}); 
     }
 
     addPlayer(playerData) {
@@ -2126,6 +2146,7 @@ class Game {
     spawnEnemy(enemyData) {
         const enemy = new Enemy(this.scene, enemyData);
         this.enemies.set(enemyData.id, enemy);
+        this.zombies.set(enemyData.id, enemy);  // zombiesにも追加
         this.updateEnemyCount();
     }
 

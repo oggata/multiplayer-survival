@@ -37,18 +37,24 @@ const zombies = {};
 const zombieColor = 0x33aa33;
 
 // ゾンビの生成間隔（ミリ秒）
-const ZOMBIE_SPAWN_INTERVAL = 500;
+const ZOMBIE_SPAWN_INTERVAL = 100;
 
 // 時間帯ごとのゾンビの最大数
 const MAX_ZOMBIES = {
-    MORNING: 10,   // 朝（6:00-12:00）
-    DAY: 10,      // 昼（12:00-18:00）
-    EVENING: 30,  // 夕方（18:00-24:00）
-    NIGHT: 50     // 夜（0:00-6:00）
+    MORNING: 50,   // 朝（6:00-12:00）
+    DAY: 60,      // 昼（12:00-18:00）
+    EVENING: 200,  // 夕方（18:00-24:00）
+    NIGHT: 300     // 夜（0:00-6:00）
 };
 
 // マップサイズ
-const MAP_SIZE = 300;
+const MAP_SIZE = 400;
+
+// 時間設定
+const TIME = {
+    DAY_LENGTH: 180, // 秒
+    TIME_SPEED: 0.1 // 1フレームあたりの時間進行
+};
 
 // プレイヤーのハッシュを生成する関数
 function generatePlayerHash() {
@@ -64,12 +70,13 @@ function generateColorFromHash(hash) {
 
 // 現在の時間帯を取得する関数
 function getCurrentTimeOfDay() {
-    const now = new Date();
-    const hours = now.getHours();
+    const gameDayLengthMs = TIME.DAY_LENGTH * 1000; // 1時間（ミリ秒）
+    const worldTime = (Date.now() - gameStartTime) % gameDayLengthMs;
+    const worldHours = Math.floor(worldTime / (gameDayLengthMs / 24));
     
-    if (hours >= 6 && hours < 12) return 'MORNING';
-    if (hours >= 12 && hours < 18) return 'DAY';
-    if (hours >= 18 && hours < 24) return 'EVENING';
+    if (worldHours >= 6 && worldHours < 12) return 'MORNING';
+    if (worldHours >= 12 && worldHours < 18) return 'DAY';
+    if (worldHours >= 18 && worldHours < 24) return 'EVENING';
     return 'NIGHT';
 }
 
@@ -86,25 +93,32 @@ function adjustZombieCount() {
     if (currentZombieCount > currentMaxZombies) {
         const zombiesToRemove = currentZombieCount - currentMaxZombies;
         const zombieIds = Object.keys(zombies);
+        const removedZombieIds = [];
         
         // ランダムに敵を選択して削除
         for (let i = 0; i < zombiesToRemove; i++) {
             const randomIndex = Math.floor(Math.random() * zombieIds.length);
             const zombieId = zombieIds[randomIndex];
             
+            // 削除する敵のIDを記録
+            removedZombieIds.push(zombieId);
+            
             // 敵を削除
             delete zombies[zombieId];
-            // クライアントに通知
-            io.emit('zombieKilled', zombieId);
             
             // 削除したIDを配列から削除
             zombieIds.splice(randomIndex, 1);
+        }
+        
+        // 削除した敵のIDを一度にクライアントに通知
+        if (removedZombieIds.length > 0) {
+            io.emit('zombiesKilled', removedZombieIds);
         }
     }
 }
 
 // 時間帯チェックの間隔（1分）
-const TIME_CHECK_INTERVAL = 60000;
+const TIME_CHECK_INTERVAL = 1000;
 let lastTimeOfDay = getCurrentTimeOfDay();
 
 // 定期的に時間帯をチェック
@@ -182,7 +196,7 @@ function updateZombies() {
             zombie.rotation.y = angle;
             
             // 移動速度を遅くする（0.5 → 0.2）
-            const speed = 0.07;
+            const speed = 0.15;
             zombie.position.x += Math.sin(angle) * speed;
             zombie.position.z += Math.cos(angle) * speed;
             
