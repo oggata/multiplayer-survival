@@ -106,13 +106,7 @@ class Enemy {
         
         // HPが0以下になったら死亡
         if (this.health <= 0) {
-            this.isDead = true;
-            // 敵が死んだ場所にアイテムを落とす
-            if (window.game && window.game.spawnItem) {
-                const items = ['dirtyWater', 'dirtyFood'];
-                const randomItem = items[Math.floor(Math.random() * items.length)];
-                window.game.spawnItem(randomItem, this.model.position.x, this.model.position.y);
-            }
+            this.die();
         }
     }
     
@@ -143,25 +137,24 @@ class Enemy {
     // 死亡処理
     die() {
         this.isDead = true;
-        
-        // 死亡アニメーション
-        this.model.traverse((object) => {
-            if (object instanceof THREE.Mesh) {
-                // 下に倒れる
-                object.rotation.x = Math.PI / 2;
+        // 敵が死んだ場所にアイテムを落とす
+        if (window.game && window.game.spawnItem) {
+            const items = ['food'];
+            const randomItem = items[Math.floor(Math.random() * items.length)];
+            window.game.spawnItem(randomItem, this.model.position.x, this.model.position.y);
+            console.log(randomItem)
+        }
+        // 敵を削除
+        if (this.model && this.model.parent) {
+            this.model.parent.remove(this.model);
+        }
+        // 敵の配列から削除
+        if (window.game && window.game.enemies) {
+            const index = window.game.enemies.indexOf(this);
+            if (index !== -1) {
+                window.game.enemies.splice(index, 1);
             }
-        });
-        
-        // アイテム生成のイベントを発火
-        const event = new CustomEvent('enemyDied', { 
-            detail: { position: this.model.position.clone() }
-        });
-        document.dispatchEvent(event);
-        
-        // 3秒後に消える
-        setTimeout(() => {
-            this.dispose();
-        }, 3000);
+        }
     }
     
     dispose() {

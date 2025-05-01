@@ -8,18 +8,18 @@ const GameConfig = {
         ROTATION_SPEED: 0.05,
         MAX_HEALTH: 100,
         COLLISION_RADIUS: 2.0,
-        hungerDecreaseRate:0.02,
-        thirstDecreaseRate:0.03,
+        hungerDecreaseRate:0.003,
+        thirstDecreaseRate:0.005,
         hygieneDecreaseRate:0.1,
-        healthDecreaseRate:0.004
+        healthDecreaseRate:0.001
     },
     
     // 敵設定
     ENEMY: {
         MAX_COUNT:  30,
         SPAWN_INTERVAL: 500, // ミリ秒
-        SPAWN_RADIUS: 500, // プレイヤーからの距離
-        DESPAWN_RADIUS: 700, // プレイヤーからの距離
+        SPAWN_RADIUS: 100, // プレイヤーからの距離
+        DESPAWN_RADIUS: 300, // プレイヤーからの距離
         CHASE_DISTANCE: 50, // プレイヤーを追跡する距離
         DAMAGE: 10, // プレイヤーに与えるダメージ
         MOVE_SPEED: 5,
@@ -70,7 +70,7 @@ const GameConfig = {
     
     // アイテム設定
     ITEM: {
-        MAX_COUNT:      300,
+        MAX_COUNT:      150,
         COLLECTION_RADIUS: 1.0,
         SPAWN: {
             BUILDING_RADIUS: 15, // 建物からのスポーン半径

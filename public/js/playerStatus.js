@@ -57,7 +57,7 @@ class PlayerStatus {
 
     update(deltaTime) {
         if (this.isGameOver) return;
-        console.log(this.health);
+        //console.log(this.health);
         
         // 時間経過で空腹と喉の渇きが減少
         this.decreaseHunger(this.hungerDecreaseRate * deltaTime);
