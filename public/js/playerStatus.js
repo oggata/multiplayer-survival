@@ -387,13 +387,13 @@ class PlayerStatus {
         const feltTemperature = this.baseTemperature + this.clothingBonus;
         
         // 気温を0-40度の範囲に制限
-        //this.temperature = Math.max(this.minTemperature, Math.min(this.maxTemperature, feltTemperature));
+        this.temperature = Math.max(this.minTemperature, Math.min(this.maxTemperature, feltTemperature));
         
         // UIを更新
-        //this.updateUI();
+        this.updateUI();
         
         // 低温ダメージをチェック
-        //this.checkTemperatureDamage();
+        this.checkTemperatureDamage();
     }
 
     // 服による気温補正を設定

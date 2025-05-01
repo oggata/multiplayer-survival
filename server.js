@@ -37,10 +37,13 @@ const zombies = {};
 const zombieColor = 0x33aa33;
 
 // ゾンビの生成間隔（ミリ秒）
-const ZOMBIE_SPAWN_INTERVAL = 10000;
+const ZOMBIE_SPAWN_INTERVAL = 500;
 
 // ゾンビの最大数
-const MAX_ZOMBIES = 20;
+const MAX_ZOMBIES = 50;
+
+//
+const MAP_SIZE = 500;
 
 // プレイヤーのハッシュを生成する関数
 function generatePlayerHash() {
@@ -56,11 +59,16 @@ function generateColorFromHash(hash) {
 
 // ゾンビの生成
 function spawnZombie() {
+
+    //console.log("z=" + Object.keys(zombies).length);
+
     if (Object.keys(zombies).length >= MAX_ZOMBIES) return;
     
     const zombieId = 'zombie_' + Date.now();
-    const x = Math.random() * 900 - 450;
-    const z = Math.random() * 900 - 450;
+
+    //Math.random() * (max - min + 1) + min
+    const x = Math.random() * (MAP_SIZE - 10 + 1) + 10;
+    const z = Math.random() * (MAP_SIZE - 10 + 1) + 10;
     
     zombies[zombieId] = {
         id: zombieId,
@@ -218,7 +226,7 @@ io.on('connection', (socket) => {
             const dz = zombie.position.z - data.position.z;
             const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
             
-            if (distance < 5) {
+            if (distance < 8) {
                 // ゾンビにダメージを与える
                 zombie.health -= 50;
                 

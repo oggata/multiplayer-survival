@@ -12,8 +12,8 @@ class Enemy {
         this.currentAnimation.play();
         
         // 敵のステータス
-        this.health = 50;
-        this.maxHealth = 50;
+        this.health = 18;
+        this.maxHealth = 18;
         this.isDead = false;
         
         // 弾丸発射用の変数
@@ -106,7 +106,13 @@ class Enemy {
         
         // HPが0以下になったら死亡
         if (this.health <= 0) {
-            this.die();
+            this.isDead = true;
+            // 敵が死んだ場所にアイテムを落とす
+            if (window.game && window.game.spawnItem) {
+                const items = ['dirtyWater', 'dirtyFood'];
+                const randomItem = items[Math.floor(Math.random() * items.length)];
+                window.game.spawnItem(randomItem, this.model.position.x, this.model.position.y);
+            }
         }
     }
     

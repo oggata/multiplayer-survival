@@ -10,14 +10,12 @@ class PlayerStatus {
         this.hygiene = 100;
         
         // ステータスの減少率（1秒あたり）
-        this.hungerDecreaseRate = 0.5;
-        this.thirstDecreaseRate = 0.8;
-        this.bleedingIncreaseRate = 0.01;
-        this.temperatureDecreaseRate = 0.1;
-        this.hygieneDecreaseRate = 0.3;
+        this.hungerDecreaseRate = GameConfig.PLAYER.hungerDecreaseRate;
+        this.thirstDecreaseRate = GameConfig.PLAYER.thirstDecreaseRate;
+        this.hygieneDecreaseRate = GameConfig.PLAYER.hygieneDecreaseRate;
         
         // ステータスが低い場合の体力減少率
-        this.healthDecreaseRate = 0.1;
+        this.healthDecreaseRate = GameConfig.PLAYER.healthDecreaseRate;
         
         // ステータスの更新間隔（ミリ秒）
         this.updateInterval = 1000;
@@ -54,21 +52,14 @@ class PlayerStatus {
             this.hunger = Math.max(0, this.hunger - this.hungerDecreaseRate);
             this.thirst = Math.max(0, this.thirst - this.thirstDecreaseRate);
             
-            // 出血を増加
-            //this.bleeding = Math.min(100, this.bleeding + this.bleedingIncreaseRate);
-            
-            // 体温を減少（環境によって変動する可能性がある）
-            this.temperature = Math.max(35, this.temperature - this.temperatureDecreaseRate);
-            
             // 衛生状態を減少
             this.hygiene = Math.max(0, this.hygiene - this.hygieneDecreaseRate);
             
             // ステータスが低い場合、体力を減少
-            if (this.hunger < 20 || this.thirst < 20 || this.bleeding > 80 || 
-                this.temperature < 36 || this.hygiene < 20) {
+            if (this.hunger < 20 || this.thirst < 20 || this.bleeding > 80 || this.hygiene < 20) {
                 this.health = Math.max(0, this.health - this.healthDecreaseRate);
             }
-console.log(this.health);
+
             // ゲージを更新
             this.updateGauges();
             
@@ -141,67 +132,8 @@ console.log(this.health);
         this.hygieneFill.style.width = `${hygienePercentage}%`;
         this.hygieneText.textContent = `衛生: ${Math.floor(this.hygiene)}%`;
         
-        // ステータスに応じてゲージの色を変更
-        //this.updateGaugeColors();
     }
-    /*
-    // ゲージの色を更新する
-    updateGaugeColors() {
-        // 体力ゲージ
-        if (this.health > 60) {
-            this.healthFill.style.backgroundColor = '#00ff00'; // 緑
-        } else if (this.health > 30) {
-            this.healthFill.style.backgroundColor = '#ffff00'; // 黄
-        } else {
-            this.healthFill.style.backgroundColor = '#ff0000'; // 赤
-        }
-        
-        // 飢えゲージ
-        if (this.hunger > 60) {
-            this.hungerFill.style.backgroundColor = '#00ff00'; // 緑
-        } else if (this.hunger > 30) {
-            this.hungerFill.style.backgroundColor = '#ffff00'; // 黄
-        } else {
-            this.hungerFill.style.backgroundColor = '#ff0000'; // 赤
-        }
-        
-        // 喉の渇きゲージ
-        if (this.thirst > 60) {
-            this.thirstFill.style.backgroundColor = '#00ff00'; // 緑
-        } else if (this.thirst > 30) {
-            this.thirstFill.style.backgroundColor = '#ffff00'; // 黄
-        } else {
-            this.thirstFill.style.backgroundColor = '#ff0000'; // 赤
-        }
-        
-        // 出血ゲージ
-        if (this.bleeding < 30) {
-            this.bleedingFill.style.backgroundColor = '#00ff00'; // 緑
-        } else if (this.bleeding < 70) {
-            this.bleedingFill.style.backgroundColor = '#ffff00'; // 黄
-        } else {
-            this.bleedingFill.style.backgroundColor = '#ff0000'; // 赤
-        }
-        
-        // 体温ゲージ
-        if (this.temperature > 36.5) {
-            this.temperatureFill.style.backgroundColor = '#00ff00'; // 緑
-        } else if (this.temperature > 36) {
-            this.temperatureFill.style.backgroundColor = '#ffff00'; // 黄
-        } else {
-            this.temperatureFill.style.backgroundColor = '#ff0000'; // 赤
-        }
-        
-        // 衛生状態ゲージ
-        if (this.hygiene > 60) {
-            this.hygieneFill.style.backgroundColor = '#00ff00'; // 緑
-        } else if (this.hygiene > 30) {
-            this.hygieneFill.style.backgroundColor = '#ffff00'; // 黄
-        } else {
-            this.hygieneFill.style.backgroundColor = '#ff0000'; // 赤
-        }
-    }
-        */
+
     
     // ゲームオーバーかどうかを返す
     isGameOver() {

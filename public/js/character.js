@@ -19,7 +19,7 @@ class Character {
         this.animationTime = 0;
         this.isMoving = false;
         this.isRunning = false;
-        this.animationSpeed = 1.0;
+        this.animationSpeed = 2.0;
         
         // 移動関連の変数
         this.position = new THREE.Vector3();
