@@ -17,7 +17,7 @@ class PlayerStatus {
         this.hygieneDecreaseRate = 0.3;
         
         // ステータスが低い場合の体力減少率
-        this.healthDecreaseRate = 0.2;
+        this.healthDecreaseRate = 0.1;
         
         // ステータスの更新間隔（ミリ秒）
         this.updateInterval = 1000;
@@ -68,7 +68,7 @@ class PlayerStatus {
                 this.temperature < 36 || this.hygiene < 20) {
                 this.health = Math.max(0, this.health - this.healthDecreaseRate);
             }
-            
+console.log(this.health);
             // ゲージを更新
             this.updateGauges();
             
@@ -142,9 +142,9 @@ class PlayerStatus {
         this.hygieneText.textContent = `衛生: ${Math.floor(this.hygiene)}%`;
         
         // ステータスに応じてゲージの色を変更
-        this.updateGaugeColors();
+        //this.updateGaugeColors();
     }
-    
+    /*
     // ゲージの色を更新する
     updateGaugeColors() {
         // 体力ゲージ
@@ -201,6 +201,7 @@ class PlayerStatus {
             this.hygieneFill.style.backgroundColor = '#ff0000'; // 赤
         }
     }
+        */
     
     // ゲームオーバーかどうかを返す
     isGameOver() {

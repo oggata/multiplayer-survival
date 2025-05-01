@@ -57,17 +57,12 @@ class PlayerStatus {
 
     update(deltaTime) {
         if (this.isGameOver) return;
-
+        console.log(this.health);
+        
         // 時間経過で空腹と喉の渇きが減少
         this.decreaseHunger(this.hungerDecreaseRate * deltaTime);
         this.decreaseThirst(this.thirstDecreaseRate * deltaTime);
         
-        /*
-        // 出血の増加
-        if (this.bleeding > 0) {
-            this.increaseBleeding(this.bleedingIncreaseRate * deltaTime);
-        }
-        */
         // 体温の変化（環境に応じて）
         this.adjustTemperature(this.temperatureChangeRate * deltaTime);
         
@@ -88,12 +83,14 @@ class PlayerStatus {
     }
 
     takeDamage(damage) {
-        if (this.isGameOver) return;
-        this.health = Math.max(0, this.health - damage);
-        if (this.health <= 0) {
-            this.isGameOver = true;
-            document.getElementById('gameOver').style.display = 'block';
-        }
+        // 敵との接触で出血状態が悪化
+        this.bleeding = Math.min(100, this.bleeding + damage);
+        this.updateUI();
+    }
+
+    takeBulletDamage(damage) {
+        // 弾に当たった場合、衛生状態が悪化
+        this.hygiene = Math.max(0, this.hygiene - damage);
         this.updateUI();
     }
 
@@ -390,13 +387,13 @@ class PlayerStatus {
         const feltTemperature = this.baseTemperature + this.clothingBonus;
         
         // 気温を0-40度の範囲に制限
-        this.temperature = Math.max(this.minTemperature, Math.min(this.maxTemperature, feltTemperature));
+        //this.temperature = Math.max(this.minTemperature, Math.min(this.maxTemperature, feltTemperature));
         
         // UIを更新
-        this.updateUI();
+        //this.updateUI();
         
         // 低温ダメージをチェック
-        this.checkTemperatureDamage();
+        //this.checkTemperatureDamage();
     }
 
     // 服による気温補正を設定
@@ -413,5 +410,27 @@ class PlayerStatus {
             this.health = Math.max(0, this.health - damage);
             this.updateUI();
         }
+    }
+
+    updateStatus() {
+        // 空腹度と水分量の減少
+        this.hunger = Math.min(100, Math.max(0, this.hunger + 0.1));
+        this.thirst = Math.min(100, Math.max(0, this.thirst + 0.1));
+
+        // 空腹度と水分量が80以上の場合、健康状態を回復
+        if (this.hunger >= 80 && this.thirst >= 80) {
+            this.health = Math.min(100, this.health + 0.05);
+        }
+
+        // 出血状態の自然回復
+        this.bleeding = Math.max(0, this.bleeding - 0.05);
+
+        // 衛生状態の自然回復
+        this.hygiene = Math.min(100, this.hygiene + 0.02);
+
+        // 温度の自然調整
+        this.temperature = Math.min(100, Math.max(0, this.temperature + (this.temperature > 50 ? -0.1 : 0.1)));
+
+        this.updateUI();
     }
 } 

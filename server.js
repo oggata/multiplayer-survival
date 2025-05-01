@@ -220,7 +220,7 @@ io.on('connection', (socket) => {
             
             if (distance < 5) {
                 // ゾンビにダメージを与える
-                zombie.health -= 25;
+                zombie.health -= 50;
                 
                 if (zombie.health <= 0) {
                     // ゾンビを倒した

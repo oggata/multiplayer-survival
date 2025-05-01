@@ -107,7 +107,7 @@ const GameConfig = {
     
     // マップ設定
     MAP: {
-        SIZE:   600,
+        SIZE:   500,
         BOUNDARY_WALL_HEIGHT:  0,
         FLOOR: {
             THICKNESS: 1,
@@ -208,14 +208,14 @@ const GameConfig = {
     STATUS: {
         // 移動時の消費値
         MOVEMENT: {
-            HUNGER: 1.2,      // 通常移動時の空腹減少率
-            THIRST: 1.5,      // 通常移動時の喉の渇き減少率
+            HUNGER: 0.5,      // 通常移動時の空腹減少率
+            THIRST: 0.8,      // 通常移動時の喉の渇き減少率
             RUNNING_MULTIPLIER: 2.0  // 走る時の消費倍率
         },
         // 停止時の消費値
         IDLE: {
-            HUNGER: 0.3,     // 停止時の空腹減少率
-            THIRST: 0.5       // 停止時の喉の渇き減少率
+            HUNGER: 0.4,     // 停止時の空腹減少率
+            THIRST: 0.4       // 停止時の喉の渇き減少率
         }
     },
     

@@ -440,7 +440,7 @@ class Game {
         this.leftJoystick.element.addEventListener('touchstart', (e) => {
             e.preventDefault(); // デフォルトの動作を防止
             this.leftJoystick.active = true;
-            const touch = e.touches[0];
+                const touch = e.touches[0];
             const rect = this.leftJoystick.element.getBoundingClientRect();
             this.leftJoystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
             this.leftJoystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
@@ -449,7 +449,7 @@ class Game {
         this.leftJoystick.element.addEventListener('touchmove', (e) => {
             e.preventDefault(); // デフォルトの動作を防止
             if (this.leftJoystick.active) {
-                const touch = e.touches[0];
+                    const touch = e.touches[0];
                 const rect = this.leftJoystick.element.getBoundingClientRect();
                 this.leftJoystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
                 this.leftJoystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
@@ -1403,7 +1403,7 @@ class Game {
             `;
             
             const useButton = document.createElement('button');
-            useButton.textContent = '使用';
+            useButton.textContent = 'use';
             useButton.style.cssText = `
                 padding: 2px 8px;
                 margin: 0 4px;
@@ -1417,7 +1417,7 @@ class Game {
             useButton.addEventListener('click', () => this.useItem(item.type));
             
             const dropButton = document.createElement('button');
-            dropButton.textContent = '捨てる';
+            dropButton.textContent = 'drop';
             dropButton.style.cssText = `
                 padding: 2px 8px;
                 margin: 0 4px;
@@ -1687,11 +1687,12 @@ class Game {
             damage += (this.playerStatus.bleeding - 50) * 0.1 * deltaTime;
         }
         
+        /*
         // 体温が低い場合
         if (this.playerStatus.temperature < 35) {
             damage += (35 - this.playerStatus.temperature) * 0.5 * deltaTime;
         }
-        
+        */
         // 衛生が低い場合
         if (this.playerStatus.hygiene < 20) {
             damage += (20 - this.playerStatus.hygiene) * 0.03 * deltaTime;
