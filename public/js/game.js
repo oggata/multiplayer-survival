@@ -91,8 +91,8 @@ class Game {
         this.seed = null;
         this.gameStartTime = null;
         
-        this.enemies = [];
-        this.enemyBullets = []; // 敵の弾丸を格納する配列
+        this.enemies = new Map();
+        this.enemyBullets = new Map();
         this.maxEnemies = GameConfig.ENEMY.MAX_COUNT;
         this.enemySpawnInterval = GameConfig.ENEMY.SPAWN_INTERVAL;
         this.lastEnemySpawnTime = 0;
@@ -168,6 +168,29 @@ class Game {
         // メッセージ表示用の要素を追加
         this.messageIndicators = new Map(); // メッセージインジケーターを管理
         this.createMessageIndicatorContainer();
+        
+        // WebSocketのメッセージハンドラを追加
+        this.socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            switch (data.type) {
+                case 'enemySpawn':
+                    this.spawnEnemy(data.enemy);
+                    break;
+                case 'enemyUpdate':
+                    this.updateEnemy(data.enemyId, data.position);
+                    break;
+                case 'enemyBulletSpawn':
+                    this.spawnEnemyBullet(data.bullet);
+                    break;
+                case 'enemyBulletRemove':
+                    this.removeEnemyBullet(data.bulletId);
+                    break;
+                case 'itemSpawn':
+                    this.spawnItem(data.item.type, data.item.position.x, data.item.position.z);
+                    break;
+            }
+        };
     }
 
     createMessageIndicatorContainer() {
@@ -596,6 +619,26 @@ class Game {
                 this.removePlayer(playerId);
             }
         });
+
+        // 現在の敵の情報を受信
+        this.socket.on('currentZombies', (zombies) => {
+            zombies.forEach(zombie => this.spawnEnemy(zombie));
+        });
+
+        // 新しい敵の生成
+        this.socket.on('zombieSpawned', (zombie) => {
+            this.spawnEnemy(zombie);
+        });
+
+        // 敵の移動
+        this.socket.on('zombieMoved', (data) => {
+            this.updateEnemy(data.id, data.position);
+        });
+
+        // 敵の攻撃
+        this.socket.on('zombieAttack', (data) => {
+            this.takeDamage(data.damage);
+        });
     }
 
     addPlayer(playerData) {
@@ -663,11 +706,21 @@ class Game {
             
             // 弾丸が寿命を迎えた場合は削除
             if (!isAlive) {
-                this.bullets.splice(i, 1);
+                        this.bullets.splice(i, 1);
                 continue;
             }
 
-            // 弾の衝突判定
+            // 敵との衝突判定
+            this.enemies.forEach((enemy, enemyId) => {
+                if (enemy.checkBulletCollision(bullet.model.position)) {
+                    // 敵にダメージを与える
+                    enemy.takeDamage(100); // 1発で倒せるように大きなダメージを与える
+                    bullet.dispose();
+                    this.bullets.splice(i, 1);
+                }
+            });
+
+            // プレイヤーとの衝突判定
             this.players.forEach((player, playerId) => {
                 if (playerId !== bullet.playerId) {
                     const distance = bullet.checkCollision(player.getPosition(), 1);
@@ -678,23 +731,10 @@ class Game {
                             damage: bullet.damage
                         });
                         bullet.dispose();
-                        this.bullets.splice(i, 1);
-                    }
+                this.bullets.splice(i, 1);
+            }
                 }
             });
-
-            // 敵との衝突判定
-            for (let j = this.enemies.length - 1; j >= 0; j--) {
-                const enemy = this.enemies[j];
-                const distance = bullet.checkCollision(enemy.model.position, 1);
-                if (distance) {
-                    // 敵にダメージを与える
-                    enemy.takeDamage(bullet.damage);
-                    bullet.dispose();
-                this.bullets.splice(i, 1);
-                    break;
-                }
-            }
         }
     }
 
@@ -1197,6 +1237,11 @@ class Game {
         
         // ステータスによるHP減少の処理
         this.updateHealthFromStatus(deltaTime);
+        
+        // 敵の弾丸の更新
+        this.enemyBullets.forEach(bullet => {
+            bullet.update(deltaTime);
+        });
     }
 
     updateStatusDisplay() {
@@ -2076,6 +2121,38 @@ class Game {
                 }
             }
         });
+    }
+
+    spawnEnemy(enemyData) {
+        const enemy = new Enemy(this.scene, enemyData);
+        this.enemies.set(enemyData.id, enemy);
+        this.updateEnemyCount();
+    }
+
+    updateEnemy(enemyId, position) {
+        const enemy = this.enemies.get(enemyId);
+        if (enemy) {
+            enemy.update({ position });
+        }
+    }
+
+    spawnEnemyBullet(bulletData) {
+        const bullet = new EnemyBullet(
+            this.scene,
+            new THREE.Vector3(bulletData.position.x, bulletData.position.y, bulletData.position.z),
+            new THREE.Vector3(bulletData.direction.x, bulletData.direction.y, bulletData.direction.z),
+            bulletData.speed
+        );
+        bullet.id = bulletData.id;
+        this.enemyBullets.set(bulletData.id, bullet);
+    }
+
+    removeEnemyBullet(bulletId) {
+        const bullet = this.enemyBullets.get(bulletId);
+        if (bullet) {
+            bullet.dispose();
+            this.enemyBullets.delete(bulletId);
+        }
     }
 }
 

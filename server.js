@@ -39,11 +39,16 @@ const zombieColor = 0x33aa33;
 // ゾンビの生成間隔（ミリ秒）
 const ZOMBIE_SPAWN_INTERVAL = 500;
 
-// ゾンビの最大数
-const MAX_ZOMBIES = 50;
+// 時間帯ごとのゾンビの最大数
+const MAX_ZOMBIES = {
+    MORNING: 10,   // 朝（6:00-12:00）
+    DAY: 10,      // 昼（12:00-18:00）
+    EVENING: 30,  // 夕方（18:00-24:00）
+    NIGHT: 50     // 夜（0:00-6:00）
+};
 
-//
-const MAP_SIZE = 500;
+// マップサイズ
+const MAP_SIZE = 300;
 
 // プレイヤーのハッシュを生成する関数
 function generatePlayerHash() {
@@ -57,18 +62,73 @@ function generateColorFromHash(hash) {
     return parseInt(colorHex, 16);
 }
 
+// 現在の時間帯を取得する関数
+function getCurrentTimeOfDay() {
+    const now = new Date();
+    const hours = now.getHours();
+    
+    if (hours >= 6 && hours < 12) return 'MORNING';
+    if (hours >= 12 && hours < 18) return 'DAY';
+    if (hours >= 18 && hours < 24) return 'EVENING';
+    return 'NIGHT';
+}
+
+// 現在の時間帯の最大ゾンビ数を取得する関数
+function getMaxZombies() {
+    return MAX_ZOMBIES[getCurrentTimeOfDay()];
+}
+
+// 時間帯が変わった時に敵の数を調整する関数
+function adjustZombieCount() {
+    const currentMaxZombies = getMaxZombies();
+    const currentZombieCount = Object.keys(zombies).length;
+    
+    if (currentZombieCount > currentMaxZombies) {
+        const zombiesToRemove = currentZombieCount - currentMaxZombies;
+        const zombieIds = Object.keys(zombies);
+        
+        // ランダムに敵を選択して削除
+        for (let i = 0; i < zombiesToRemove; i++) {
+            const randomIndex = Math.floor(Math.random() * zombieIds.length);
+            const zombieId = zombieIds[randomIndex];
+            
+            // 敵を削除
+            delete zombies[zombieId];
+            // クライアントに通知
+            io.emit('zombieKilled', zombieId);
+            
+            // 削除したIDを配列から削除
+            zombieIds.splice(randomIndex, 1);
+        }
+    }
+}
+
+// 時間帯チェックの間隔（1分）
+const TIME_CHECK_INTERVAL = 60000;
+let lastTimeOfDay = getCurrentTimeOfDay();
+
+// 定期的に時間帯をチェック
+setInterval(() => {
+    const currentTimeOfDay = getCurrentTimeOfDay();
+    if (currentTimeOfDay !== lastTimeOfDay) {
+        console.log(`時間帯が ${lastTimeOfDay} から ${currentTimeOfDay} に変わりました`);
+        lastTimeOfDay = currentTimeOfDay;
+        adjustZombieCount();
+    }
+}, TIME_CHECK_INTERVAL);
+
 // ゾンビの生成
 function spawnZombie() {
+    const currentMaxZombies = getMaxZombies();
+    //console.log("z=" + Object.keys(zombies).length + "/" + currentMaxZombies);
 
-    //console.log("z=" + Object.keys(zombies).length);
-
-    if (Object.keys(zombies).length >= MAX_ZOMBIES) return;
+    if (Object.keys(zombies).length >= currentMaxZombies) return;
     
     const zombieId = 'zombie_' + Date.now();
 
-    //Math.random() * (max - min + 1) + min
-    const x = Math.random() * (MAP_SIZE - 10 + 1) + 10;
-    const z = Math.random() * (MAP_SIZE - 10 + 1) + 10;
+    // マップサイズ内にスポーン（端から10単位の余白を設ける）
+    const x = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
+    const z = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
     
     zombies[zombieId] = {
         id: zombieId,
@@ -96,6 +156,9 @@ function updateZombies() {
         let minDistance = Infinity;
         
         Object.values(players).forEach(player => {
+            // 死亡したプレイヤーは追跡対象から除外
+            if (player.health <= 0) return;
+            
             const dx = player.position.x - zombie.position.x;
             const dz = player.position.z - zombie.position.z;
             const distance = Math.sqrt(dx * dx + dz * dz);
@@ -118,8 +181,8 @@ function updateZombies() {
             
             zombie.rotation.y = angle;
             
-            // 移動速度
-            const speed = 0.5;
+            // 移動速度を遅くする（0.5 → 0.2）
+            const speed = 0.07;
             zombie.position.x += Math.sin(angle) * speed;
             zombie.position.z += Math.cos(angle) * speed;
             
@@ -137,7 +200,8 @@ function updateZombies() {
                 zombie.rotation.y = Math.random() * Math.PI * 2;
             }
             
-            const speed = 0.2;
+            // 徘徊時の速度を遅くする（0.2 → 0.1）
+            const speed = 0.1;
             zombie.position.x += Math.sin(zombie.rotation.y) * speed;
             zombie.position.z += Math.cos(zombie.rotation.y) * speed;
         }

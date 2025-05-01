@@ -16,9 +16,9 @@ const GameConfig = {
     
     // 敵設定
     ENEMY: {
-        MAX_COUNT:  30,
+        MAX_COUNT:  300,
         SPAWN_INTERVAL: 500, // ミリ秒
-        SPAWN_RADIUS: 100, // プレイヤーからの距離
+        SPAWN_RADIUS: 50, // プレイヤーからの距離
         DESPAWN_RADIUS: 300, // プレイヤーからの距離
         CHASE_DISTANCE: 50, // プレイヤーを追跡する距離
         DAMAGE: 10, // プレイヤーに与えるダメージ
@@ -91,7 +91,7 @@ const GameConfig = {
     
     // 時間設定
     TIME: {
-        DAY_LENGTH: 300, // 秒
+        DAY_LENGTH: 180, // 秒
         TIME_SPEED: 0.1 // 1フレームあたりの時間進行
     },
     
@@ -111,7 +111,7 @@ const GameConfig = {
     
     // マップ設定
     MAP: {
-        SIZE:   500,
+        SIZE:   300,
         BOUNDARY_WALL_HEIGHT:  0,
         FLOOR: {
             THICKNESS: 1,
