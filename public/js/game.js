@@ -403,9 +403,9 @@ class Game {
         shootButton.addEventListener('click', () => this.shoot());
 
         // モバイルコントロール
-        if (this.isMobile) {
+        //if (this.isMobile) {
             this.setupMobileControls();
-        }
+        //}
     }
 
     setupMobileControls() {
@@ -415,43 +415,18 @@ class Game {
         const messageButton = document.getElementById('messageButton');
         const backpackButton = document.getElementById('backpackButton');
 
-        // 要素が存在することを確認
-        if (!shootButton) {
-            console.error('射撃ボタンが見つかりません');
-            return;
-        }
-
-        // 射撃ボタンのスタイルを設定
-        shootButton.style.position = 'relative';
-        shootButton.style.overflow = 'hidden';
-        shootButton.style.backgroundColor = '#ff0000';
-        
-        // 既存のゲージを削除（存在する場合）
-        const existingGauge = document.getElementById('shootGauge');
-        if (existingGauge) {
-            existingGauge.remove();
-        }
-        
-        // ゲージ用の要素を作成
         const gauge = document.createElement('div');
         gauge.style.position = 'absolute';
         gauge.style.bottom = '0';
         gauge.style.left = '0';
         gauge.style.width = '100%';
-        gauge.style.height = '0%';
+        gauge.style.height = '100%';
         gauge.style.backgroundColor = '#00ff00';
         gauge.style.transition = 'height 0.1s linear';
-        gauge.style.zIndex = '1';
+        gauge.style.zIndex = '10';
         gauge.id = 'shootGauge';
+        gauge.style = 'pointer-events: none';
         shootButton.appendChild(gauge);
-        
-        // アイコン用の要素を作成
-        const icon = document.createElement('i');
-        icon.className = 'fas fa-crosshairs';
-        icon.style.position = 'relative';
-        icon.style.zIndex = '2';
-        icon.style.color = '#ffffff';
-        shootButton.appendChild(icon);
         
         // 左ジョイスティック（移動と回転用）
         this.leftJoystick = {
@@ -490,12 +465,12 @@ class Game {
 
         // 射撃ボタンのタッチイベント
         shootButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
+            //e.preventDefault();
             if (this.canShoot) {
                 this.shoot();
                 this.canShoot = false;
                 this.shootTimer = 0;
-                gauge.style.height = '0%';
+                gauge.style.height = '100%';
                 shootButton.style.backgroundColor = '#ff0000'; // 射撃後は赤に戻す
             }
         }, { passive: false });
@@ -1182,16 +1157,16 @@ class Game {
             const shootButton = document.getElementById('shootButton');
             
             if (gauge && shootButton) {
-                //const progress = (this.shootTimer / this.shootCooldown) * 100;
-                //gauge.style.height = `${progress}%`;
-                /*
+                const progress = (this.shootTimer / this.shootCooldown) * 100;
+                gauge.style.height = `${progress}%`;
+                
                 // ゲージの進行に応じてボタンの色を変更
                 if (progress >= 100) {
                     shootButton.style.backgroundColor = '#00ff00'; // 射撃可能時は緑
                 } else {
                     shootButton.style.backgroundColor = '#ff0000'; // クールダウン中は赤
                 }
-                    */
+                    
             }
             
             if (this.shootTimer >= this.shootCooldown) {
