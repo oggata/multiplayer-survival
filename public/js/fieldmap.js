@@ -80,11 +80,29 @@ class FieldMap {
         // バイオームの種類を定義
         const biomeTypes = ['urban', 'forest', 'ruins', 'industrial'];
         
+        // マップの端から砂浜の幅を定義
+        const beachWidth = 30; // 砂浜の幅
+        
         // バイオームの配置を決定
         for (let x = -this.mapSize/2; x < this.mapSize/2; x += 50) {
             for (let z = -this.mapSize/2; z < this.mapSize/2; z += 50) {
-                const noise = this.rng();
-                const biomeType = biomeTypes[Math.floor(noise * biomeTypes.length)];
+                // マップの端からbeachWidth以内の距離かどうかをチェック
+                const distanceFromEdge = Math.min(
+                    Math.abs(x + this.mapSize/2),
+                    Math.abs(x - this.mapSize/2),
+                    Math.abs(z + this.mapSize/2),
+                    Math.abs(z - this.mapSize/2)
+                );
+                
+                let biomeType;
+                if (distanceFromEdge < beachWidth) {
+                    // マップの端は砂浜
+                    biomeType = 'beach';
+                } else {
+                    // それ以外は通常のバイオーム
+                    const noise = this.rng();
+                    biomeType = biomeTypes[Math.floor(noise * biomeTypes.length)];
+                }
                 
                 this.biomes.push({
                     type: biomeType,
@@ -186,22 +204,61 @@ class FieldMap {
                 case 'industrial':
                     this.generateIndustrialObjects(biome);
                     break;
+                case 'beach':
+                    this.generateBeachObjects(biome);
+                    break;
             }
         }
     }
     
     generateUrbanObjects(biome) {
+        const mapSize = GameConfig.MAP.SIZE;
+        const halfSize = mapSize / 2;
+        const minDistance = 20; // オブジェクト間の最小距離
+        
         // ビルの生成確率を増加
         const buildingChance = 0.7; // 70%の確率でビルを生成
         
         // ビルを生成
         if (this.rng() < buildingChance) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
-            const buildingType = this.buildingTypes[Math.floor(this.rng() * this.buildingTypes.length)];
-            const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
-            const width = 5 + this.rng() * 15;
-            this.createBuilding(x, z, width, height);
+            let position;
+            let isSafe = false;
+            let attempts = 0;
+            const maxAttempts = 100;
+            
+            while (!isSafe && attempts < maxAttempts) {
+                // マップの範囲内でランダムな位置を生成
+                position = new THREE.Vector3(
+                    (Math.random() - 0.5) * (mapSize - minDistance * 2),
+                    0,
+                    (Math.random() - 0.5) * (mapSize - minDistance * 2)
+                );
+                
+                // マップの境界からminDistance以上離れていることを確認
+                if (Math.abs(position.x) > halfSize - minDistance || 
+                    Math.abs(position.z) > halfSize - minDistance) {
+                    attempts++;
+                    continue;
+                }
+                
+                // 他のオブジェクトとの距離をチェック
+                isSafe = true;
+                for (const object of this.objects) {
+                    if (object.position.distanceTo(position) < minDistance) {
+                        isSafe = false;
+                        break;
+                    }
+                }
+                
+                attempts++;
+            }
+            
+            if (isSafe) {
+                const buildingType = this.buildingTypes[Math.floor(Math.random() * this.buildingTypes.length)];
+                const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
+                const width = 5 + this.rng() * 15;
+                this.createBuilding(position, buildingType, height, width);
+            }
         }
         
         // 車の生成
@@ -214,13 +271,37 @@ class FieldMap {
     }
     
     generateForestObjects(biome) {
+        // バイオームの種類に応じて木の種類を決定
+        let treeType;
+        switch (biome.type) {
+            case 'urban':
+                // 都市部は桜とメープル
+                treeType = Math.random() < 0.5 ? 'cherry' : 'maple';
+                break;
+            case 'forest':
+                // 森は松、オーク、シラカバ
+                const forestTypes = ['pine', 'oak', 'birch'];
+                treeType = forestTypes[Math.floor(Math.random() * forestTypes.length)];
+                break;
+            case 'ruins':
+                // 廃墟は松と糸杉
+                treeType = Math.random() < 0.5 ? 'pine' : 'cypress';
+                break;
+            case 'industrial':
+                // 工業地帯は松とレッドウッド
+                treeType = Math.random() < 0.5 ? 'pine' : 'redwood';
+                break;
+            default:
+                treeType = 'pine';
+        }
+
         // 木の生成
         const treeCount = Math.floor(this.rng() * 10) + 5;
         for (let i = 0; i < treeCount; i++) {
             const x = biome.x + (this.rng() - 0.5) * biome.size;
             const z = biome.z + (this.rng() - 0.5) * biome.size;
             const height = Math.floor(this.rng() * 5) + 3;
-            this.createTree(x, z, height);
+            this.createTree(x, z, height, treeType);
         }
         
         // 岩の生成
@@ -260,6 +341,41 @@ class FieldMap {
             const x = biome.x + (this.rng() - 0.5) * biome.size;
             const z = biome.z + (this.rng() - 0.5) * biome.size;
             this.createTank(x, z);
+        }
+    }
+    
+    generateBeachObjects(biome) {
+        // 砂浜のマテリアルを作成
+        const sandMaterial = new THREE.MeshStandardMaterial({
+            color: 0xF4A460, // 砂の色
+            roughness: 0.9,
+            metalness: 0.1
+        });
+
+        // 砂浜の平面を作成
+        const sandGeometry = new THREE.PlaneGeometry(biome.size, biome.size);
+        const sand = new THREE.Mesh(sandGeometry, sandMaterial);
+        sand.rotation.x = -Math.PI / 2;
+        sand.position.set(biome.x, -0.05, biome.z);
+        this.scene.add(sand);
+        this.objects.push(sand);
+
+        // ヤシの木を生成
+        const palmCount = Math.floor(this.rng() * 3) + 1;
+        for (let i = 0; i < palmCount; i++) {
+            const x = biome.x + (this.rng() - 0.5) * biome.size;
+            const z = biome.z + (this.rng() - 0.5) * biome.size;
+            const height = Math.floor(this.rng() * 3) + 5;
+            this.createTree(x, z, height, 'palm');
+        }
+
+        // 岩を生成
+        const rockCount = Math.floor(this.rng() * 4) + 2;
+        for (let i = 0; i < rockCount; i++) {
+            const x = biome.x + (this.rng() - 0.5) * biome.size;
+            const z = biome.z + (this.rng() - 0.5) * biome.size;
+            const size = this.rng() * 1.5 + 0.5;
+            this.createRock(x, z, size);
         }
     }
     
@@ -441,8 +557,12 @@ class FieldMap {
         this.objects.push(car);
     }
     
-    createTree(x, z, height) {
-        const treeType = this.treeTypes[Math.floor(this.rng() * this.treeTypes.length)];
+    createTree(x, z, height, specifiedType = null) {
+        // 指定された木の種類を使用するか、ランダムに選択
+        const treeType = specifiedType ? 
+            this.treeTypes.find(type => type.name === specifiedType) : 
+            this.treeTypes[Math.floor(this.rng() * this.treeTypes.length)];
+        
         const trunkHeight = height * treeType.trunkHeight;
         const leavesHeight = height * (1 - treeType.trunkHeight);
         
@@ -661,7 +781,7 @@ class FieldMap {
     }
     
     createBoundaryWalls() {
-        const wallHeight = 1;
+        const wallHeight = 0;
         const wallThickness = 1;
         
         // 北の壁
@@ -693,49 +813,65 @@ class FieldMap {
     }
     
     createOcean() {
-        // 海の平面を作成
-        const oceanSize = this.mapSize * 2; // マップの2倍の大きさ
+        // 海の平面を作成（マップの2倍の大きさ）
+        const oceanSize = this.mapSize * 2;
         const oceanGeometry = new THREE.PlaneGeometry(oceanSize, oceanSize, 100, 100);
         
         // 海のマテリアルを作成
         const oceanMaterial = new THREE.MeshStandardMaterial({
             color: 0x0077be, // 海の色
-            roughness: 0.1,
-            metalness: 0.3,
             transparent: true,
-            opacity: 0.8
+            opacity: 1,
+            side: THREE.DoubleSide // 両面を表示
         });
         
         // 海のメッシュを作成
         const ocean = new THREE.Mesh(oceanGeometry, oceanMaterial);
         ocean.rotation.x = -Math.PI / 2; // 平面を水平に
-        ocean.position.y = -1; // 地面より少し下に配置
+        ocean.position.y = -0.1; // 地面より少し下に配置
         
         // 波のアニメーション用の頂点を取得
-        const vertices = oceanGeometry.attributes.position.array;
+        const positions = oceanGeometry.attributes.position.array;
+        const originalPositions = new Float32Array(positions);
         
         // アニメーション関数を定義
         const animateOcean = () => {
             const time = Date.now() * 0.001; // 秒単位の時間
             
-            for (let i = 0; i < vertices.length; i += 3) {
-                const x = vertices[i];
-                const z = vertices[i + 2];
+            for (let i = 0; i < positions.length; i += 3) {
+                const x = originalPositions[i];
+                const z = originalPositions[i + 2];
                 
-                // 波の高さを計算（複数の波を重ね合わせる）
-                const wave1 = Math.sin(x * 0.1 + time) * 0.2;
-                const wave2 = Math.sin(z * 0.1 + time * 0.7) * 0.2;
-                const wave3 = Math.sin((x + z) * 0.05 + time * 0.5) * 0.1;
+                // 複雑な波のパターンを計算
+                const distance = Math.sqrt(x * x + z * z);
+                const angle = Math.atan2(z, x);
                 
-                vertices[i + 1] = wave1 + wave2 + wave3;
+                // 主な波の動き
+                const mainWave = Math.sin(distance * 0.1 - time * 2) * 0.3;
+                
+                // 二次的な波の動き
+                const secondaryWave = Math.sin(distance * 0.2 + time) * 0.15;
+                
+                // 方向性のある波
+                const directionalWave = Math.sin(angle * 3 + time * 1.5) * 0.2;
+                
+                // 小さな波紋
+                const ripple = Math.sin(distance * 0.5 - time * 3) * 0.1;
+                
+                // すべての波を組み合わせる
+                const waveHeight = mainWave + secondaryWave + directionalWave + ripple;
+                
+                // 波の高さを適用
+                positions[i + 1] = waveHeight;
             }
             
             oceanGeometry.attributes.position.needsUpdate = true;
+            oceanGeometry.computeVertexNormals();
             requestAnimationFrame(animateOcean);
         };
         
         // アニメーションを開始
-        animateOcean();
+        //animateOcean();
         
         // 海をシーンに追加
         this.scene.add(ocean);
@@ -762,29 +898,43 @@ class FieldMap {
     }
     
     getSafeSpawnPosition() {
-        // 安全なスポーン位置を返す（オブジェクトがない場所）
-        let x, z;
-        let isSafe = false;
+        const mapSize = GameConfig.MAP.SIZE;
+        const halfSize = mapSize / 2;
+        const minDistance = 20; // 他のオブジェクトからの最小距離
         
-        while (!isSafe) {
-            x = (this.rng() - 0.5) * (this.mapSize - 20);
-            z = (this.rng() - 0.5) * (this.mapSize - 20);
+        let position;
+        let isSafe = false;
+        let attempts = 0;
+        const maxAttempts = 100;
+        
+        while (!isSafe && attempts < maxAttempts) {
+            // マップの範囲内でランダムな位置を生成
+            position = new THREE.Vector3(
+                (Math.random() - 0.5) * (mapSize - minDistance * 2),
+                0,
+                (Math.random() - 0.5) * (mapSize - minDistance * 2)
+            );
             
-            // オブジェクトとの距離をチェック
+            // マップの境界からminDistance以上離れていることを確認
+            if (Math.abs(position.x) > halfSize - minDistance || 
+                Math.abs(position.z) > halfSize - minDistance) {
+                attempts++;
+                continue;
+            }
+            
+            // 他のオブジェクトとの距離をチェック
             isSafe = true;
-            for (const obj of this.objects) {
-                const dx = x - obj.position.x;
-                const dz = z - obj.position.z;
-                const distance = Math.sqrt(dx * dx + dz * dz);
-                
-                if (distance < 5) {
+            for (const object of this.objects) {
+                if (object.position.distanceTo(position) < minDistance) {
                     isSafe = false;
                     break;
                 }
             }
+            
+            attempts++;
         }
         
-        return { x, y: 0, z };
+        return position;
     }
     
     checkCollision(position, radius) {

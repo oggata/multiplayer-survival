@@ -34,7 +34,7 @@ const GameConfig = {
         SPAWN: {
             BUILDING_RADIUS: 20, // 建物からのスポーン半径
             BUILDING_CHANCE: 0.7, // 建物近くでのスポーン確率
-            EMPTY_CHANCE: 0.2 // 空き地でのスポーン確率
+            EMPTY_CHANCE: 0.22 // 空き地でのスポーン確率
         },
         TYPES: {
             NORMAL: {
@@ -93,7 +93,7 @@ const GameConfig = {
     
     // 霧設定
     FOG: {
-        DENSITY: 0.016
+        DENSITY: 0.013
     },
     
     // カメラ設定
@@ -107,7 +107,7 @@ const GameConfig = {
     
     // マップ設定
     MAP: {
-        SIZE: 500,
+        SIZE:   600,
         BOUNDARY_WALL_HEIGHT:  0,
         FLOOR: {
             THICKNESS: 1,

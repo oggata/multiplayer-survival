@@ -40,6 +40,18 @@ class PlayerStatus {
         this.hygieneBar = document.querySelector('.status-bar.hygiene .status-fill');
         this.hygieneText = document.getElementById('hygieneValue');
 
+        // 気温関連のパラメータ
+        this.baseTemperature = 20; // 基準気温
+        this.clothingBonus = 0; // 服による気温補正
+        this.minTemperature = 0; // 最低気温
+        this.maxTemperature = 40; // 最高気温
+        this.temperatureDamageThreshold = 5; // ダメージを受ける気温閾値
+        this.temperatureDamageRate = 0.1; // ダメージを受ける速度
+        
+        // 天気と時間による気温変化
+        this.weather = 'sunny'; // 'sunny', 'rainy', 'snowy'
+        this.isDaytime = true;
+
         this.updateUI();
     }
 
@@ -67,6 +79,9 @@ class PlayerStatus {
         
         // エフェクトの更新
         this.updateEffects(deltaTime);
+        
+        // 気温の更新
+        this.updateTemperature();
         
         // UIの更新
         this.updateUI();
@@ -131,6 +146,18 @@ class PlayerStatus {
         if (this.bleedingBar) this.bleedingBar.style.width = `${this.bleeding}%`;
         if (this.temperatureBar) this.temperatureBar.style.width = `${Math.min(100, Math.max(0, ((this.temperature - 35) / 3) * 100))}%`;
         if (this.hygieneBar) this.hygieneBar.style.width = `${this.hygiene}%`;
+        
+        // 気温バーの更新
+        if (this.temperatureBar) {
+            // 0-40度を0-100%に変換
+            const temperaturePercentage = (this.temperature / this.maxTemperature) * 100;
+            this.temperatureBar.style.width = `${temperaturePercentage}%`;
+        }
+        
+        // 気温テキストの更新
+        if (this.temperatureText) {
+            this.temperatureText.textContent = `${Math.round(this.temperature)}°C`;
+        }
     }
 
     getHealthColor() {
@@ -337,5 +364,54 @@ class PlayerStatus {
         });
         
         console.log(`持続効果を追加: ${effect.type}, 持続時間: ${effect.duration}秒`);
+    }
+
+    // 天気と時間を設定するメソッド
+    setWeather(weather) {
+        this.weather = weather;
+        this.updateTemperature();
+    }
+
+    setDaytime(isDaytime) {
+        this.isDaytime = isDaytime;
+        this.updateTemperature();
+    }
+
+    // 気温を更新するメソッド
+    updateTemperature() {
+        // 天気と時間に基づいて基準気温を設定
+        if (this.weather === 'sunny') {
+            this.baseTemperature = this.isDaytime ? 30 : 20;
+        } else if (this.weather === 'rainy' || this.weather === 'snowy') {
+            this.baseTemperature = this.isDaytime ? 10 : 0;
+        }
+
+        // 体感気温を計算（基準気温 + 服による補正）
+        const feltTemperature = this.baseTemperature + this.clothingBonus;
+        
+        // 気温を0-40度の範囲に制限
+        this.temperature = Math.max(this.minTemperature, Math.min(this.maxTemperature, feltTemperature));
+        
+        // UIを更新
+        this.updateUI();
+        
+        // 低温ダメージをチェック
+        this.checkTemperatureDamage();
+    }
+
+    // 服による気温補正を設定
+    setClothingBonus(bonus) {
+        this.clothingBonus = bonus;
+        this.updateTemperature();
+    }
+
+    // 低温ダメージをチェック
+    checkTemperatureDamage() {
+        if (this.temperature <= this.temperatureDamageThreshold) {
+            // 気温が閾値以下の場合、HPを徐々に減少
+            const damage = this.temperatureDamageRate * (this.temperatureDamageThreshold - this.temperature);
+            this.health = Math.max(0, this.health - damage);
+            this.updateUI();
+        }
     }
 } 

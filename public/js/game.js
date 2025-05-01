@@ -159,6 +159,28 @@ class Game {
 
         // 敵が倒された時のイベントリスナーを追加
         document.addEventListener('enemyDied', this.handleEnemyDeath.bind(this));
+        
+        // 射撃関連の変数を追加
+        this.shootCooldown = 2.0; // クールダウン時間（秒）
+        this.shootTimer = 0; // 現在のクールダウンタイマー
+        this.canShoot = true; // 射撃可能かどうか
+        
+        // メッセージ表示用の要素を追加
+        this.messageIndicators = new Map(); // メッセージインジケーターを管理
+        this.createMessageIndicatorContainer();
+    }
+
+    createMessageIndicatorContainer() {
+        const container = document.createElement('div');
+        container.id = 'messageIndicators';
+        container.style.position = 'fixed';
+        container.style.top = '0';
+        container.style.left = '0';
+        container.style.width = '100%';
+        container.style.height = '100%';
+        container.style.pointerEvents = 'none';
+        container.style.zIndex = '1000';
+        document.body.appendChild(container);
     }
 
     setupMessageSocketEvents() {
@@ -188,91 +210,113 @@ class Game {
     showMessagePopupForPlayer(playerId, position) {
         console.log('メッセージを表示:', playerId, position);
         
-        // messagePopupsが存在しない場合は初期化
-        if (!this.messagePopups) {
-            this.messagePopups = new Map();
-        }
-        
-        // 既存のポップアップがあれば削除
-        if (this.messagePopups.has(playerId)) {
-            this.messagePopups.get(playerId).remove();
-            this.messagePopups.delete(playerId);
-        }
-        
-        // メッセージポップアップの作成
-        const popup = document.createElement('div');
-        popup.className = 'message-popup';
-        popup.textContent = 'help';
-        document.body.appendChild(popup);
-        
-        // ポップアップをMapに保存
-        this.messagePopups.set(playerId, popup);
-
         // プレイヤーの位置を取得
-        const screenPosition = this.getScreenPosition(position);
+        const playerPosition = this.players.get(playerId)?.getPosition();
+        if (!playerPosition) return;
 
-        // ポップアップの位置を設定
-        popup.style.left = `${screenPosition.x}px`;
-        popup.style.top = `${screenPosition.y}px`;
+        // 画面内かどうかをチェック
+        const screenPosition = this.getScreenPosition(playerPosition);
+        const isOnScreen = screenPosition.x >= 0 && screenPosition.x <= window.innerWidth &&
+                          screenPosition.y >= 0 && screenPosition.y <= window.innerHeight;
 
-        // 3秒後にポップアップを削除
-        setTimeout(() => {
-            if (this.messagePopups && this.messagePopups.has(playerId)) {
+        if (isOnScreen) {
+            // 画面内の場合は通常のポップアップを表示
+            if (!this.messagePopups) {
+                this.messagePopups = new Map();
+            }
+            
+            if (this.messagePopups.has(playerId)) {
                 this.messagePopups.get(playerId).remove();
                 this.messagePopups.delete(playerId);
             }
+            
+            const popup = document.createElement('div');
+            popup.className = 'message-popup';
+            popup.textContent = 'help';
+            document.body.appendChild(popup);
+            
+            this.messagePopups.set(playerId, popup);
+            
+            popup.style.left = `${screenPosition.x}px`;
+            popup.style.top = `${screenPosition.y}px`;
+            
+            setTimeout(() => {
+                if (this.messagePopups && this.messagePopups.has(playerId)) {
+                    this.messagePopups.get(playerId).remove();
+                    this.messagePopups.delete(playerId);
+                }
+            }, 3000);
+        } else {
+            // 画面外の場合は方向インジケーターを表示
+            this.showMessageIndicator(playerId, screenPosition);
+        }
+    }
+
+    showMessageIndicator(playerId, screenPosition) {
+        // 既存のインジケーターを削除
+        if (this.messageIndicators.has(playerId)) {
+            this.messageIndicators.get(playerId).remove();
+            this.messageIndicators.delete(playerId);
+        }
+
+        // 新しいインジケーターを作成
+        const indicator = document.createElement('div');
+        indicator.className = 'message-indicator';
+        indicator.innerHTML = '<i class="fas fa-exclamation-circle"></i> help';
+        indicator.style.position = 'fixed';
+        indicator.style.color = 'red';
+        indicator.style.fontSize = '20px';
+        indicator.style.pointerEvents = 'none';
+        indicator.style.zIndex = '1000';
+        
+        // 画面の端に配置
+        const edgeMargin = 20;
+        let left = screenPosition.x;
+        let top = screenPosition.y;
+
+        // 画面外の位置を調整
+        if (left < 0) left = edgeMargin;
+        if (left > window.innerWidth) left = window.innerWidth - edgeMargin;
+        if (top < 0) top = edgeMargin;
+        if (top > window.innerHeight) top = window.innerHeight - edgeMargin;
+
+        indicator.style.left = `${left}px`;
+        indicator.style.top = `${top}px`;
+
+        // インジケーターを追加
+        document.getElementById('messageIndicators').appendChild(indicator);
+        this.messageIndicators.set(playerId, indicator);
+
+        // 3秒後に削除
+        setTimeout(() => {
+            if (this.messageIndicators.has(playerId)) {
+                this.messageIndicators.get(playerId).remove();
+                this.messageIndicators.delete(playerId);
+            }
         }, 3000);
     }
-    
-    // アニメーションループ内でポップアップの位置を更新
-    updateMessagePopups() {
-        // messagePopupsが存在しない場合は初期化
-        if (!this.messagePopups) {
-            this.messagePopups = new Map();
-            return;
-        }
-        
-        this.messagePopups.forEach((popup, playerId) => {
-            // プレイヤーの位置を取得
-            let position;
-            if (playerId === this.socket.id) {
-                position = this.playerModel.getPosition();
-            } else {
-                const player = this.players.get(playerId);
-                if (player) {
-                    position = player.getPosition();
-                }
-            }
-            
-            if (position) {
-                const screenPosition = this.getScreenPosition(position);
-                popup.style.left = `${screenPosition.x}px`;
-                popup.style.top = `${screenPosition.y}px`;
-            }
+
+    updateMessageIndicators() {
+        if (!this.messageIndicators || this.messageIndicators.size === 0) return;
+
+        this.messageIndicators.forEach((indicator, playerId) => {
+            const player = this.players.get(playerId);
+            if (!player) return;
+
+            const screenPosition = this.getScreenPosition(player.getPosition());
+            const edgeMargin = 20;
+            let left = screenPosition.x;
+            let top = screenPosition.y;
+
+            // 画面外の位置を調整
+            if (left < 0) left = edgeMargin;
+            if (left > window.innerWidth) left = window.innerWidth - edgeMargin;
+            if (top < 0) top = edgeMargin;
+            if (top > window.innerHeight) top = window.innerHeight - edgeMargin;
+
+            indicator.style.left = `${left}px`;
+            indicator.style.top = `${top}px`;
         });
-    }
-
-    getScreenPosition(worldPosition) {
-        // worldPositionがTHREE.Vector3でない場合は変換
-        let vector;
-        if (worldPosition instanceof THREE.Vector3) {
-            vector = worldPosition.clone();
-        } else {
-            // 通常のオブジェクトの場合はTHREE.Vector3に変換
-            vector = new THREE.Vector3(
-                worldPosition.x || 0,
-                worldPosition.y || 0,
-                worldPosition.z || 0
-            );
-        }
-        
-        // 3D座標を2D画面座標に変換
-        vector.project(this.camera);
-
-        return {
-            x: (vector.x * 0.5 + 0.5) * window.innerWidth,
-            y: -(vector.y * 0.5 - 0.5) * window.innerHeight
-        };
     }
 
     setupScene(seed) {
@@ -365,7 +409,49 @@ class Game {
     }
 
     setupMobileControls() {
+        // DOM要素の取得を確実にする
         const leftJoystick = document.getElementById('leftJoystick');
+        const shootButton = document.getElementById('shootButton');
+        const messageButton = document.getElementById('messageButton');
+        const backpackButton = document.getElementById('backpackButton');
+
+        // 要素が存在することを確認
+        if (!shootButton) {
+            console.error('射撃ボタンが見つかりません');
+            return;
+        }
+
+        // 射撃ボタンのスタイルを設定
+        shootButton.style.position = 'relative';
+        shootButton.style.overflow = 'hidden';
+        shootButton.style.backgroundColor = '#ff0000';
+        
+        // 既存のゲージを削除（存在する場合）
+        const existingGauge = document.getElementById('shootGauge');
+        if (existingGauge) {
+            existingGauge.remove();
+        }
+        
+        // ゲージ用の要素を作成
+        const gauge = document.createElement('div');
+        gauge.style.position = 'absolute';
+        gauge.style.bottom = '0';
+        gauge.style.left = '0';
+        gauge.style.width = '100%';
+        gauge.style.height = '0%';
+        gauge.style.backgroundColor = '#00ff00';
+        gauge.style.transition = 'height 0.1s linear';
+        gauge.style.zIndex = '1';
+        gauge.id = 'shootGauge';
+        shootButton.appendChild(gauge);
+        
+        // アイコン用の要素を作成
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-crosshairs';
+        icon.style.position = 'relative';
+        icon.style.zIndex = '2';
+        icon.style.color = '#ffffff';
+        shootButton.appendChild(icon);
         
         // 左ジョイスティック（移動と回転用）
         this.leftJoystick = {
@@ -377,27 +463,57 @@ class Game {
 
         // タッチイベントの設定
         this.leftJoystick.element.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // デフォルトの動作を防止
             this.leftJoystick.active = true;
-                const touch = e.touches[0];
+            const touch = e.touches[0];
             const rect = this.leftJoystick.element.getBoundingClientRect();
             this.leftJoystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
             this.leftJoystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
-        });
+        }, { passive: false });
 
         this.leftJoystick.element.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // デフォルトの動作を防止
             if (this.leftJoystick.active) {
-                    const touch = e.touches[0];
+                const touch = e.touches[0];
                 const rect = this.leftJoystick.element.getBoundingClientRect();
                 this.leftJoystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
                 this.leftJoystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
             }
-        });
+        }, { passive: false });
 
-        this.leftJoystick.element.addEventListener('touchend', () => {
+        this.leftJoystick.element.addEventListener('touchend', (e) => {
+            e.preventDefault(); // デフォルトの動作を防止
             this.leftJoystick.active = false;
             this.leftJoystick.x = 0;
             this.leftJoystick.y = 0;
-        });
+        }, { passive: false });
+
+        // 射撃ボタンのタッチイベント
+        shootButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (this.canShoot) {
+                this.shoot();
+                this.canShoot = false;
+                this.shootTimer = 0;
+                gauge.style.height = '0%';
+                shootButton.style.backgroundColor = '#ff0000'; // 射撃後は赤に戻す
+            }
+        }, { passive: false });
+
+        // メッセージボタンのタッチイベント
+        messageButton.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // デフォルトの動作を防止
+            this.socket.emit('playerMessage', {
+                position: this.playerModel.getPosition()
+            });
+            this.showMessagePopup();
+        }, { passive: false });
+
+        // バックパックボタンのタッチイベント
+        backpackButton.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // デフォルトの動作を防止
+            this.toggleBackpack();
+        }, { passive: false });
     }
 
     setupSocketEvents() {
@@ -536,7 +652,7 @@ class Game {
     }
 
     shoot() {
-        if (this.isGameOver) return;
+        if (this.isGameOver || !this.canShoot) return;
         
         // プレイヤーの向きに基づいて弾を発射
         const direction = new THREE.Vector3(0, 0, -1);
@@ -552,6 +668,10 @@ class Game {
         });
         
         this.createBullet(bulletPosition, direction, this.socket.id);
+        
+        // 射撃後はクールダウンを開始
+        this.canShoot = false;
+        this.shootTimer = 0;
     }
 
     createBullet(position, direction, playerId) {
@@ -846,13 +966,14 @@ class Game {
         this.isGameOver = false;
         this.gameOverElement.style.display = 'none';
         
-        // プレイヤーの位置をリセット（他のプレイヤーの近くにリスポーン）
+        // 古いキャラクターを削除
         if (this.playerModel) {
-            const spawnPosition = this.getNearbyPlayerPosition();
-            this.playerModel.setPosition(spawnPosition.x, spawnPosition.y, spawnPosition.z);
-            this.playerModel.setRotation(0);
-            this.updateCameraPosition();
+            this.playerModel.dispose();
+            this.playerModel = null;
         }
+        
+        // 新しいキャラクターを作成
+        this.createPlayerModel();
         
         // サーバーにリスタートを通知
         this.socket.emit('playerRestart');
@@ -1046,11 +1167,42 @@ class Game {
             this.monochromePass.uniforms.intensity.value = 0.0;
         this.renderer.render(this.scene, this.camera);
         }
+        
+        // メッセージインジケーターの位置を更新
+        this.updateMessageIndicators();
     }
 
     update(deltaTime) {
         if (this.isGameOver) return;
         
+        // 射撃のクールダウンを更新
+        if (!this.canShoot) {
+            this.shootTimer += deltaTime;
+            const gauge = document.getElementById('shootGauge');
+            const shootButton = document.getElementById('shootButton');
+            
+            if (gauge && shootButton) {
+                const progress = (this.shootTimer / this.shootCooldown) * 100;
+                gauge.style.height = `${progress}%`;
+                
+                // ゲージの進行に応じてボタンの色を変更
+                if (progress >= 100) {
+                    shootButton.style.backgroundColor = '#00ff00'; // 射撃可能時は緑
+                } else {
+                    shootButton.style.backgroundColor = '#ff0000'; // クールダウン中は赤
+                }
+            }
+            
+            if (this.shootTimer >= this.shootCooldown) {
+                this.canShoot = true;
+                this.shootTimer = 0;
+            }
+        }
+        
+        // ゲーム時間の更新（サーバーからの開始時間を考慮）
+        if (this.gameStartTime) {
+            this.gameTime = (Date.now() - this.gameStartTime) / 1000;
+        }
         // ゲーム時間の更新（サーバーからの開始時間を考慮）
         if (this.gameStartTime) {
             this.gameTime = (Date.now() - this.gameStartTime) / 1000;
@@ -1885,6 +2037,68 @@ class Game {
         
         // アイテム数を更新
         this.updateItemCount();
+    }
+
+    getScreenPosition(worldPosition) {
+        // worldPositionがTHREE.Vector3でない場合は変換
+        let vector;
+        if (worldPosition instanceof THREE.Vector3) {
+            vector = worldPosition.clone();
+        } else {
+            // 通常のオブジェクトの場合はTHREE.Vector3に変換
+            vector = new THREE.Vector3(
+                worldPosition.x || 0,
+                worldPosition.y || 0,
+                worldPosition.z || 0
+            );
+        }
+        
+        // 3D座標を2D画面座標に変換
+        vector.project(this.camera);
+
+        return {
+            x: (vector.x * 0.5 + 0.5) * window.innerWidth,
+            y: -(vector.y * 0.5 - 0.5) * window.innerHeight
+        };
+    }
+
+    // アニメーションループ内でポップアップの位置を更新
+    updateMessagePopups() {
+        // messagePopupsが存在しない場合は初期化
+        if (!this.messagePopups) {
+            this.messagePopups = new Map();
+            return;
+        }
+        
+        this.messagePopups.forEach((popup, playerId) => {
+            // プレイヤーの位置を取得
+            let position;
+            if (playerId === this.socket.id) {
+                position = this.playerModel.getPosition();
+            } else {
+                const player = this.players.get(playerId);
+                if (player) {
+                    position = player.getPosition();
+                }
+            }
+            
+            if (position) {
+                const screenPosition = this.getScreenPosition(position);
+                const isOnScreen = screenPosition.x >= 0 && screenPosition.x <= window.innerWidth &&
+                                 screenPosition.y >= 0 && screenPosition.y <= window.innerHeight;
+
+                if (isOnScreen) {
+                    // 画面内の場合は通常のポップアップを表示
+                    popup.style.left = `${screenPosition.x}px`;
+                    popup.style.top = `${screenPosition.y}px`;
+                    popup.style.display = 'block';
+                } else {
+                    // 画面外の場合はポップアップを非表示にしてインジケーターを表示
+                    popup.style.display = 'none';
+                    this.showMessageIndicator(playerId, screenPosition);
+                }
+            }
+        });
     }
 }
 
