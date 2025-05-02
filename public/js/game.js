@@ -384,7 +384,7 @@ class Game {
     
     createPlayerModel() {
         // 新しいキャラクタークラスを使用してプレイヤーモデルを作成
-        this.playerModel = new Character(this.scene);
+        this.playerModel = new Character(this.scene,"player");
         
         // プレイヤーの色を設定
         if (this.playerHash) {
@@ -1263,8 +1263,10 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             bullet.update(deltaTime);
         });
 
-        this.items.forEach(item => {item.update(deltaTime);});
-        
+        //itemの更新
+        this.items.forEach(item => {
+            item.update(deltaTime);
+        });
     }
 
     updateStatusDisplay() {
@@ -1915,6 +1917,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         this.items.forEach(item => {
             if (!item || !item.mesh) return;
             
+            //item.update(deltaTime);
             const distance = playerPosition.distanceTo(item.mesh.position);
             
             if (distance > maxDistance) {
@@ -2147,7 +2150,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     }
 
     spawnEnemy(enemyData) {
-        const enemy = new Enemy(this.scene, enemyData);
+        const enemy = new Enemy(this.scene, enemyData, this);
         this.enemies.set(enemyData.id, enemy);
         this.zombies.set(enemyData.id, enemy);  // zombiesにも追加
         this.updateEnemyCount();
