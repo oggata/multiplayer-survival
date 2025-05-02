@@ -8,7 +8,7 @@ class Item {
         }
 
         // アイテムのメッシュを作成
-        const geometry = new THREE.SphereGeometry(0.5, 8, 8);
+        const geometry = new THREE.SphereGeometry(0.2, 3, 3);
         const material = new THREE.MeshStandardMaterial({
             color: this.itemConfig.color,
             emissive: this.itemConfig.color,
@@ -25,9 +25,9 @@ class Item {
         this.mesh.position.y += 0.5;
         
         // 回転アニメーション用の変数
-        this.rotationSpeed = 0.01;
-        this.floatSpeed = 0.04;
-        this.floatHeight = 0.5;
+        this.rotationSpeed = 0.1;
+        this.floatSpeed = 1.5;
+        this.floatHeight = 0.7;
         this.initialY = this.mesh.position.y;
         this.time = 0;
     }
@@ -38,6 +38,7 @@ class Item {
         
         // 回転
         this.mesh.rotation.y += this.rotationSpeed;
+        //console.log(this.mesh.rotation.y);
         
         // 上下の浮遊
         this.mesh.position.y = this.initialY + Math.sin(this.time * this.floatSpeed) * this.floatHeight;

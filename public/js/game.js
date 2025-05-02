@@ -384,7 +384,7 @@ class Game {
     
     createPlayerModel() {
         // 新しいキャラクタークラスを使用してプレイヤーモデルを作成
-        this.playerModel = new Character(this.scene,"player");
+        this.playerModel = new Character(this.scene);
         
         // プレイヤーの色を設定
         if (this.playerHash) {
@@ -1262,6 +1262,9 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         this.enemyBullets.forEach(bullet => {
             bullet.update(deltaTime);
         });
+
+        this.items.forEach(item => {item.update(deltaTime);});
+        
     }
 
     updateStatusDisplay() {
@@ -2144,7 +2147,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     }
 
     spawnEnemy(enemyData) {
-        const enemy = new Enemy(this.scene, enemyData, this);
+        const enemy = new Enemy(this.scene, enemyData);
         this.enemies.set(enemyData.id, enemy);
         this.zombies.set(enemyData.id, enemy);  // zombiesにも追加
         this.updateEnemyCount();
