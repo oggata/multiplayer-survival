@@ -651,7 +651,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             if (zombie.model) {
                 zombie.model.dispose();
             }
-            
+            zombie.die2();
             // ゾンビを削除
             this.zombies.delete(zombieId);
             this.enemies.delete(zombieId);  // enemiesからも削除

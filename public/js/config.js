@@ -70,7 +70,7 @@ const GameConfig = {
     
     // アイテム設定
     ITEM: {
-        MAX_COUNT:      400,
+        MAX_COUNT:      100,
         COLLECTION_RADIUS: 1.0,
         SPAWN: {
             BUILDING_RADIUS: 15, // 建物からのスポーン半径

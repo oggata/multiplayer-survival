@@ -81,6 +81,26 @@ class Enemy {
         }, 100); // 1秒後に削除
     }
 
+
+    die2(){
+        if (this.isDead) return;
+        
+        this.isDead = true;
+        
+        // 死亡エフェクトを生成
+        this.createDeathEffect();
+        
+
+
+
+
+        // 敵を削除
+        setTimeout(() => {
+            this.dispose();
+        }, 100); // 1秒後に削除
+
+    }
+
     spawnItem(itemType, position) {
         const item = new Item(itemType, position);
         this.scene.add(item.mesh);
