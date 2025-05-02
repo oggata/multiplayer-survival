@@ -289,6 +289,7 @@ class PlayerStatus {
         }
     }
 
+    
     applyEffect(effect, deltaTime) {
         switch (effect.type) {
             case 'bandage':
@@ -318,10 +319,17 @@ class PlayerStatus {
             case 'wepon':
                 // 武器を強化
                 console.log(effect.attack);
+                //effect.attack.type
                 break;
             default:
                 console.warn(`未知の効果タイプ: ${effect.type}`);
         }
+    }
+
+    getCurrentWeponType(){
+
+
+        
     }
 
     updateEffectsDisplay() {

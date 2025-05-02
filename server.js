@@ -148,7 +148,7 @@ function spawnZombie() {
         id: zombieId,
         position: { x, y: 0, z },
         rotation: { y: Math.random() * Math.PI * 2 },
-        health: 100,
+        health: 20,
         target: null,
         state: 'wandering', // wandering, chasing
         lastAttack: 0
@@ -295,33 +295,40 @@ io.on('connection', (socket) => {
             position: data.position,
             direction: data.direction,
             playerId: socket.id,
-            weponId: data.weponId
+            weponId: data.weponId,
+            bulletDamage:data.bulletDamage
         });
         
+
+        /*
         // ゾンビとの衝突判定
         Object.values(zombies).forEach(zombie => {
             const dx = zombie.position.x - data.position.x;
             const dy = zombie.position.y - data.position.y;
             const dz = zombie.position.z - data.position.z;
             const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            
+            const bulletDamage = data.bulletDamage;
             if (distance < 8) {
+
+                console.log(zombie.health + " - " + data.bulletDamage);
                 // ゾンビにダメージを与える
-                zombie.health -= 50;
+                zombie.health -= bulletDamage;
                 
                 if (zombie.health <= 0) {
+                    console.log("aaa");
                     // ゾンビを倒した
                     io.emit('zombieKilled', zombie.id);
                     delete zombies[zombie.id];
                 } else {
                     // ゾンビにダメージを与えた
+                    console.log("bbb");
                     io.emit('zombieHit', {
                         id: zombie.id,
                         health: zombie.health
                     });
                 }
             }
-        });
+        });*/
     });
     
     // プレイヤーがダメージを受けた時の処理

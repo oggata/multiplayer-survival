@@ -917,7 +917,7 @@ machineGun: {
                 damage: 20,
                 speed: 0.1,
                 diameter:1,
-                reload:1 //
+                reload:1
             }
         }
     }

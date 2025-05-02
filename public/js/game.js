@@ -704,7 +704,8 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         this.socket.emit('shoot', {
             weponId:"wepon001",
             position: bulletPosition,
-            direction: direction
+            direction: direction,
+            bulletDamage:10
         });
         
         this.createBullet(bulletPosition, direction, this.socket.id,"wepon001");
@@ -717,26 +718,75 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     createBullet(position, direction, playerId, weponId) {
 
         if(weponId=="wepon001"){
-            const bullet = new Bullet(this.scene, position, direction, playerId);
+            const bullet = new Bullet(this.scene, position, direction, playerId,"bullet001");
             this.bullets.push(bullet);
         }
         if(weponId=="wepon002"){
-            const bullet = new Bullet(this.scene, position, direction, playerId);
+            const bullet = new Bullet(this.scene, position, direction, playerId,"bullet001");
             this.bullets.push(bullet);
         }
         if(weponId=="wepon003"){
-            const bullet = new Bullet(this.scene, position, direction, playerId);
+            const bullet = new Bullet(this.scene, position, direction, playerId,"bullet001");
             this.bullets.push(bullet);
         }
-        if(weponId=="wepon004"){
-            const bullet = new Bullet(this.scene, position, direction, playerId);
+        if (weponId == "wepon004") {
+            const spreadAngle = Math.PI / 8; // 放射の角度（ラジアン単位、ここでは22.5度）
+            const bulletCount = 4; // 弾丸の数
+        
+            for (let i = 0; i < bulletCount; i++) {
+                // 放射状に広がる方向を計算
+                const angleOffset = spreadAngle * (i - (bulletCount - 1) / 2); // 中心から左右に広がる
+                const spreadDirection = direction.clone().applyAxisAngle(new THREE.Vector3(0, 0.5, 0), angleOffset);
+                // 弾丸を生成
+                const bullet = new Bullet(this.scene, position, spreadDirection, playerId,"bullet001");
+                this.bullets.push(bullet);
+            }
+        }
+        if (weponId == "wepon005") {
+            const spreadAngle = Math.PI / 8; // 放射の角度（ラジアン単位、ここでは22.5度）
+            const bulletCount = 6; // 弾丸の数
+        
+            for (let i = 0; i < bulletCount; i++) {
+                // 放射状に広がる方向を計算
+                const angleOffset = spreadAngle * (i - (bulletCount - 1) / 2); // 中心から左右に広がる
+                const spreadDirection = direction.clone().applyAxisAngle(new THREE.Vector3(0, 0.1, 0), angleOffset);
+                // 弾丸を生成
+                const bullet = new Bullet(this.scene, position, spreadDirection, playerId,"bullet001");
+                this.bullets.push(bullet);
+            }
+        }
+        if (weponId == "wepon006") {
+            const bulletCount = 3; // 弾丸の数
+            const delay = 200; // 各弾丸の発射間隔（ミリ秒）
+        
+            for (let i = 0; i < bulletCount; i++) {
+                setTimeout(() => {
+                    // 弾丸を生成
+                    const bullet = new Bullet(this.scene, position.clone(), direction.clone(), playerId,"bullet001");
+                    this.bullets.push(bullet);
+                }, i * delay); // 時間差を設定
+            }
+        }
+        if (weponId == "wepon007") {
+            const bulletCount = 3; // 弾丸の数
+            const delay = 200; // 各弾丸の発射間隔（ミリ秒）
+        
+            for (let i = 0; i < bulletCount; i++) {
+                setTimeout(() => {
+                    // 弾丸を生成
+                    const bullet = new Bullet(this.scene, position.clone(), direction.clone(), playerId,"bullet001");
+                    this.bullets.push(bullet);
+                }, i * delay); // 時間差を設定
+            }
+        }
+        if(weponId=="wepon008"){
+            const bullet = new Bullet(this.scene, position, direction, playerId,"bullet001");
             this.bullets.push(bullet);
         }
-        if(weponId=="wepon005"){
-            const bullet = new Bullet(this.scene, position, direction, playerId);
+        if(weponId=="wepon009"){
+            const bullet = new Bullet(this.scene, position, direction, playerId,"bullet001");
             this.bullets.push(bullet);
         }
-
     }
 
     updateBullets(deltaTime) {
@@ -756,7 +806,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             this.enemies.forEach((enemy, enemyId) => {
                 if (enemy.checkBulletCollision(bullet.model.position)) {
                     // 敵にダメージを与える
-                    enemy.takeDamage(100); // 1発で倒せるように大きなダメージを与える
+                    enemy.takeDamage(bullet.damage); // 1発で倒せるように大きなダメージを与える
                     bullet.dispose();
                     this.bullets.splice(i, 1);
                 }
