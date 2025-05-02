@@ -224,6 +224,7 @@ const GameConfig = {
     },
     
     ITEMS: {
+        /*
         // 医療アイテム
         healthKit: {
             name: 'Health Kit',
@@ -899,6 +900,32 @@ const GameConfig = {
                     infection: 20
                 }
             }
+        },*/
+// 攻撃武器
+machineGun: {
+    name: 'マシンガン',
+    description: '3連射可能な高速射撃武器',
+    color: 0x666666,
+    dropChance: 0.05,
+    effects: {                
+        duration: {
+            type: 'wepon',
+            value: 0.6,
+            duration: 40,
+            attack: {
+                type: 'normal',
+                damage: 20,
+                speed: 0.1,
+                diameter:1,
+                reload:1 //
+            }
         }
+    }
+}
+
+
+
+
+
     },
 }; 

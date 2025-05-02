@@ -315,6 +315,10 @@ class PlayerStatus {
                 // 移動速度を上昇
                 this.moveSpeedMultiplier = effect.value;
                 break;
+            case 'wepon':
+                // 武器を強化
+                console.log(effect.attack);
+                break;
             default:
                 console.warn(`未知の効果タイプ: ${effect.type}`);
         }

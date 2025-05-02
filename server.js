@@ -294,7 +294,8 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('bulletFired', {
             position: data.position,
             direction: data.direction,
-            playerId: socket.id
+            playerId: socket.id,
+            weponId: data.weponId
         });
         
         // ゾンビとの衝突判定

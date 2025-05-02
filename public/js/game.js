@@ -572,8 +572,9 @@ class Game {
                 data.position.y,
                 data.position.z
             );
+
             
-            this.createBullet(position, direction, data.playerId);
+            this.createBullet(position, direction, data.playerId,data.weponId);
         });
         
         // ダメージを受けた時のイベント
@@ -701,20 +702,41 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         bulletPosition.y += 0.5; // プレイヤーの目の高さ
         
         this.socket.emit('shoot', {
+            weponId:"wepon001",
             position: bulletPosition,
             direction: direction
         });
         
-        this.createBullet(bulletPosition, direction, this.socket.id);
+        this.createBullet(bulletPosition, direction, this.socket.id,"wepon001");
         
         // 射撃後はクールダウンを開始
         this.canShoot = false;
         this.shootTimer = 0;
     }
 
-    createBullet(position, direction, playerId) {
-        const bullet = new Bullet(this.scene, position, direction, playerId);
-        this.bullets.push(bullet);
+    createBullet(position, direction, playerId, weponId) {
+
+        if(weponId=="wepon001"){
+            const bullet = new Bullet(this.scene, position, direction, playerId);
+            this.bullets.push(bullet);
+        }
+        if(weponId=="wepon002"){
+            const bullet = new Bullet(this.scene, position, direction, playerId);
+            this.bullets.push(bullet);
+        }
+        if(weponId=="wepon003"){
+            const bullet = new Bullet(this.scene, position, direction, playerId);
+            this.bullets.push(bullet);
+        }
+        if(weponId=="wepon004"){
+            const bullet = new Bullet(this.scene, position, direction, playerId);
+            this.bullets.push(bullet);
+        }
+        if(weponId=="wepon005"){
+            const bullet = new Bullet(this.scene, position, direction, playerId);
+            this.bullets.push(bullet);
+        }
+
     }
 
     updateBullets(deltaTime) {
