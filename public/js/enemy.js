@@ -44,9 +44,28 @@ class Enemy {
         if (this.isDead) return;
         
         this.health -= damage;
+        
+        // ダメージを受けた時のエフェクト
+        this.flashEffect();
+        
         if (this.health <= 0) {
             this.die();
         }
+    }
+
+    flashEffect() {
+        // 元の色を保存
+        const originalColor = this.color;
+        
+        // 白く光らせる
+        this.model.setColor(0xffffff);
+        
+        // 0.1秒後に元の色に戻す
+        setTimeout(() => {
+            if (this.model) {
+                this.model.setColor(originalColor);
+            }
+        }, 100);
     }
 
     die() {
