@@ -693,6 +693,10 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     shoot() {
         if (this.isGameOver || !this.canShoot) return;
         
+        // 現在の武器タイプを取得
+        const currentWeponTypes = this.playerStatus.getCurrentWeponType();
+        const weponId = currentWeponTypes.length > 0 ? currentWeponTypes[0] : "wepon001";
+        
         // プレイヤーの向きに基づいて弾を発射
         const direction = new THREE.Vector3(0, 0, -1);
         direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerModel.getRotation().y);
@@ -700,15 +704,15 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // プレイヤーの位置から少し上に弾を発射
         const bulletPosition = this.playerModel.getPosition().clone();
         bulletPosition.y += 0.5; // プレイヤーの目の高さ
-        
+        console.log(weponId);
         this.socket.emit('shoot', {
-            weponId:"wepon001",
+            weponId: weponId,
             position: bulletPosition,
             direction: direction,
             bulletDamage:10
         });
         
-        this.createBullet(bulletPosition, direction, this.socket.id,"wepon001");
+        this.createBullet(bulletPosition, direction, this.socket.id, weponId);
         
         // 射撃後はクールダウンを開始
         this.canShoot = false;

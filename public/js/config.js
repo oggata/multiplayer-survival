@@ -913,7 +913,7 @@ machineGun: {
             value: 0.6,
             duration: 40,
             attack: {
-                type: 'normal',
+                type: 'wepon004',
                 damage: 20,
                 speed: 0.1,
                 diameter:1,

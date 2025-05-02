@@ -318,7 +318,7 @@ class PlayerStatus {
                 break;
             case 'wepon':
                 // 武器を強化
-                console.log(effect.attack);
+                //console.log(effect.attack);
                 //effect.attack.type
                 break;
             default:
@@ -326,10 +326,18 @@ class PlayerStatus {
         }
     }
 
-    getCurrentWeponType(){
+    getCurrentWeponType() {
+        const currentWeponTypes = [];
+        const currentTime = Date.now();
 
-
-        
+        // 持続効果を確認
+        this.effects.forEach(effect => {
+            if (effect.type === 'wepon' && effect.endTime > currentTime) {
+                currentWeponTypes.push(effect.attack.type);
+            }
+        });
+//console.log(currentWeponTypes);
+        return currentWeponTypes;
     }
 
     updateEffectsDisplay() {
