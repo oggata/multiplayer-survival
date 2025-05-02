@@ -899,6 +899,187 @@ const GameConfig = {
                     infection: 20
                 }
             }
+        },
+
+        // 攻撃武器
+        machineGun: {
+            name: 'マシンガン',
+            description: '3連射可能な高速射撃武器',
+            color: 0x666666,
+            dropChance: 0.05,
+            effects: {
+                duration: {
+                    duration: 30, // 30秒間効果が持続
+                    attack: {
+                        type: 'tripleShot',
+                        damage: 20,
+                        speed: 0.1, // 射撃間隔（秒）
+                        spread: 0.1 // 弾の広がり
+                    }
+                }
+            }
+        },
+        sniperRifle: {
+            name: '狙撃銃',
+            description: '高威力の単発射撃武器',
+            color: 0x333333,
+            dropChance: 0.03,
+            effects: {
+                duration: {
+                    duration: 20,
+                    attack: {
+                        type: 'sniper',
+                        damage: 100,
+                        speed: 1.0,
+                        range: 100 // 射程距離
+                    }
+                }
+            }
+        },
+        bazooka: {
+            name: 'バズーカー',
+            description: '爆発する大型弾を発射',
+            color: 0x8B4513,
+            dropChance: 0.02,
+            effects: {
+                duration: {
+                    duration: 15,
+                    attack: {
+                        type: 'explosive',
+                        damage: 200,
+                        speed: 0.5,
+                        radius: 5 // 爆発範囲
+                    }
+                }
+            }
+        },
+        shotgun: {
+            name: 'ショットガン',
+            description: '広範囲に散弾を発射',
+            color: 0x8B0000,
+            dropChance: 0.04,
+            effects: {
+                duration: {
+                    duration: 25,
+                    attack: {
+                        type: 'spread',
+                        damage: 15,
+                        speed: 0.8,
+                        pellets: 8, // 散弾の数
+                        spread: 0.3 // 散弾の広がり
+                    }
+                }
+            }
+        },
+        laserGun: {
+            name: 'レーザーガン',
+            description: '貫通するレーザーを発射',
+            color: 0x00FF00,
+            dropChance: 0.03,
+            effects: {
+                duration: {
+                    duration: 20,
+                    attack: {
+                        type: 'laser',
+                        damage: 40,
+                        speed: 0.2,
+                        pierce: true // 貫通効果
+                    }
+                }
+            }
+        },
+        flamethrower: {
+            name: '火炎放射器',
+            description: '連続的な火炎を放射',
+            color: 0xFF4500,
+            dropChance: 0.03,
+            effects: {
+                duration: {
+                    duration: 15,
+                    attack: {
+                        type: 'flame',
+                        damage: 10,
+                        speed: 0.1,
+                        duration: 3, // 火炎の持続時間
+                        area: 3 // 火炎の範囲
+                    }
+                }
+            }
+        },
+        grenadeLauncher: {
+            name: 'グレネードランチャー',
+            description: '跳ね返る爆発弾を発射',
+            color: 0x4B0082,
+            dropChance: 0.02,
+            effects: {
+                duration: {
+                    duration: 20,
+                    attack: {
+                        type: 'bouncing',
+                        damage: 150,
+                        speed: 0.6,
+                        bounces: 3, // 跳ね返り回数
+                        radius: 4 // 爆発範囲
+                    }
+                }
+            }
+        },
+        railgun: {
+            name: 'レールガン',
+            description: '超高速の電磁加速弾を発射',
+            color: 0x4169E1,
+            dropChance: 0.02,
+            effects: {
+                duration: {
+                    duration: 15,
+                    attack: {
+                        type: 'rail',
+                        damage: 80,
+                        speed: 0.3,
+                        velocity: 2.0 // 弾速倍率
+                    }
+                }
+            }
+        },
+        poisonGun: {
+            name: '毒銃',
+            description: '毒効果のある弾を発射',
+            color: 0x7CFC00,
+            dropChance: 0.04,
+            effects: {
+                duration: {
+                    duration: 25,
+                    attack: {
+                        type: 'poison',
+                        damage: 15,
+                        speed: 0.4,
+                        poison: {
+                            damage: 5,
+                            duration: 5 // 毒の持続時間
+                        }
+                    }
+                }
+            }
+        },
+        freezeGun: {
+            name: '凍結銃',
+            description: '敵を凍結させる弾を発射',
+            color: 0x00FFFF,
+            dropChance: 0.03,
+            effects: {
+                duration: {
+                    duration: 20,
+                    attack: {
+                        type: 'freeze',
+                        damage: 10,
+                        speed: 0.5,
+                        freeze: {
+                            duration: 3, // 凍結時間
+                            slow: 0.5 // 移動速度低下率
+                        }
+                    }
+                }
+            }
         }
     },
 }; 

@@ -1,8 +1,9 @@
 class Enemy {
-    constructor(scene, enemyData) {
+    constructor(scene, enemyData, game) {
         this.scene = scene;
+        this.game = game;
         this.id = enemyData.id;
-        this.model = new Character(this.scene);
+        this.model = new Character(this.scene,"enemy");
         this.model.setPosition(
             enemyData.position.x,
             enemyData.position.y,
@@ -56,13 +57,125 @@ class Enemy {
         // 死亡エフェクトを生成
         this.createDeathEffect();
         
+
+
+
+            // GameConfig.ITEMSからランダムにアイテムタイプを選択
+            const itemTypes = Object.entries(GameConfig.ITEMS)
+                .filter(([_, item]) => item.dropChance !== undefined)
+                .map(([type]) => type);
+            
+            //if (itemTypes.length === 0) continue;
+            
+            const selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+            //if (!selectedType || !GameConfig.ITEMS[selectedType]) continue;
+
+            // アイテムを生成
+            const position = new THREE.Vector3(this.model.position.x, 0.5, this.model.position.z);
+            this.spawnItem(selectedType, position);
+
+
         // 敵を削除
         setTimeout(() => {
             this.dispose();
-        }, 1000); // 1秒後に削除
+        }, 100); // 1秒後に削除
     }
 
+    spawnItem(itemType, position) {
+        const item = new Item(itemType, position);
+        this.scene.add(item.mesh);
+        this.game.items.push(item);
+    }
+
+
     createDeathEffect() {
+        // パーティクルエフェクトの作成
+        const particleCount = 50;
+        const particles = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const velocities = new Float32Array(particleCount * 3); // 各パーティクルの速度
+        const colors = new Float32Array(particleCount * 3);
+        
+        const enemyPosition = this.model.getPosition();
+        const gravity = -9.8; // 重力加速度
+    
+        for (let i = 0; i < particleCount; i++) {
+            // ランダムな方向にパーティクルを配置
+            const angle = Math.random() * Math.PI * 2;
+            const radius = Math.random() * 2;
+            positions[i * 3] = enemyPosition.x + Math.cos(angle) * radius;
+            positions[i * 3 + 1] = enemyPosition.y + Math.random() * 2;
+            positions[i * 3 + 2] = enemyPosition.z + Math.sin(angle) * radius;
+    
+            // ランダムな速度を設定
+            velocities[i * 3] = (Math.random() - 0.5) * 5; // x方向の速度
+            velocities[i * 3 + 1] = Math.random() * 5; // y方向の速度（上方向）
+            velocities[i * 3 + 2] = (Math.random() - 0.5) * 5; // z方向の速度
+    
+            // 敵の色に基づいてパーティクルの色を設定
+            const color = new THREE.Color(this.color);
+            colors[i * 3] = color.r;
+            colors[i * 3 + 1] = color.g;
+            colors[i * 3 + 2] = color.b;
+        }
+    
+        particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particles.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3)); // 速度を属性として追加
+        particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    
+        const particleMaterial = new THREE.PointsMaterial({
+            size: 0.5, // パーティクルを大きめに設定
+            vertexColors: true,
+            transparent: true,
+            opacity: 1
+        });
+    
+        const particleSystem = new THREE.Points(particles, particleMaterial);
+        this.scene.add(particleSystem);
+    
+        // パーティクルのアニメーション
+        const startTime = Date.now();
+        const animate = () => {
+            const elapsed = (Date.now() - startTime) / 1000; // 経過時間（秒）
+            const positions = particleSystem.geometry.attributes.position.array;
+            const velocities = particleSystem.geometry.attributes.velocity.array;
+    
+            for (let i = 0; i < particleCount; i++) {
+                // 重力を適用して速度を更新
+                velocities[i * 3 + 1] += gravity * 0.016; // y方向に重力を適用（フレーム間隔を約16msと仮定）
+    
+                // 位置を更新
+                positions[i * 3] += velocities[i * 3] * 0.016; // x方向
+                positions[i * 3 + 1] += velocities[i * 3 + 1] * 0.016; // y方向
+                positions[i * 3 + 2] += velocities[i * 3 + 2] * 0.016; // z方向
+    
+                // 地面に到達したら停止
+                if (positions[i * 3 + 1] < 0) {
+                    positions[i * 3 + 1] = 0;
+                    velocities[i * 3] = 0;
+                    velocities[i * 3 + 1] = 0;
+                    velocities[i * 3 + 2] = 0;
+                }
+            }
+    
+            particleSystem.geometry.attributes.position.needsUpdate = true;
+    
+            // フェードアウト
+            particleMaterial.opacity = Math.max(1 - elapsed, 0);
+    
+            if (elapsed < 2) {
+                requestAnimationFrame(animate);
+            } else {
+                this.scene.remove(particleSystem);
+                particleSystem.geometry.dispose();
+                particleSystem.material.dispose();
+            }
+        };
+    
+        animate();
+    }
+    
+    createDeathEffect2() {
         // パーティクルエフェクトの作成
         const particleCount = 50;
         const particles = new THREE.BufferGeometry();

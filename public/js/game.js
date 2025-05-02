@@ -384,7 +384,7 @@ class Game {
     
     createPlayerModel() {
         // 新しいキャラクタークラスを使用してプレイヤーモデルを作成
-        this.playerModel = new Character(this.scene);
+        this.playerModel = new Character(this.scene,"player");
         
         // プレイヤーの色を設定
         if (this.playerHash) {
@@ -2144,7 +2144,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     }
 
     spawnEnemy(enemyData) {
-        const enemy = new Enemy(this.scene, enemyData);
+        const enemy = new Enemy(this.scene, enemyData, this);
         this.enemies.set(enemyData.id, enemy);
         this.zombies.set(enemyData.id, enemy);  // zombiesにも追加
         this.updateEnemyCount();

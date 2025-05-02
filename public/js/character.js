@@ -1,9 +1,11 @@
 // キャラクター作成用のクラス
 class Character {
-    constructor(scene) {
+    constructor(scene,type) {
         this.scene = scene;
+        this.type = type;
         this.character = new THREE.Group();
         this.scene.add(this.character);
+
         
         // キャラクターのパーツ
         this.head = null;
@@ -117,6 +119,12 @@ class Character {
         }
         if (this.rightLeg) {
             this.rightLeg.material.color.setHex(darkerColor);
+        }
+        //this.head.material.color.setHex(color);
+        if(this.type == "enemy"){
+            this.head.material.color.setHex(color);
+            this.leftLeg.material.color.setHex(color);
+            this.rightLeg.material.color.setHex(color);
         }
     }
     
