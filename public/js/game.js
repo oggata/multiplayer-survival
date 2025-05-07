@@ -1,3 +1,27 @@
+class AudioManager {
+    constructor() {
+        this.sounds = {};
+        this.loadSounds();
+    }
+
+    loadSounds() {
+        // 敵を倒した時の音
+        this.sounds.enemyDeath = new Audio('se/maou_se_system06.mp3');
+        // 銃を発射した時の音
+        this.sounds.gunShot = new Audio('se/maou_se_system45.mp3');
+        // リスタート時の音
+        this.sounds.restart = new Audio('se/maou_se_system13.mp3');
+    }
+
+    play(soundName) {
+        if (this.sounds[soundName]) {
+            // 音声を最初から再生
+            this.sounds[soundName].currentTime = 0;
+            this.sounds[soundName].play();
+        }
+    }
+}
+
 class Game {
     constructor() {
         this.scene = new THREE.Scene();
@@ -211,6 +235,8 @@ class Game {
         
         // 初期表示を設定
         this.updateEffectsDisplay();
+
+        this.audioManager = new AudioManager();
     }
 
     createMessageIndicatorContainer() {
@@ -669,7 +695,7 @@ class Game {
 
         // 敵の攻撃
         this.socket.on('enemyAttack', (data) => {
-            console.log("enemyattac");
+           // console.log("enemyattac");
             this.takeDamage(data.damage);
         });
 
@@ -724,6 +750,9 @@ this.socket.on('zombiesKilled', (zombieIds) => {
 
     shoot() {
         if (this.isGameOver || !this.canShoot) return;
+        
+        // 音を再生
+        this.audioManager.play('gunShot');
         
         // 現在の武器タイプを取得
         const currentWeponTypes = this.playerStatus.getCurrentWeponType();
@@ -984,7 +1013,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     takeDamage(damage) {
         
         if (this.isGameOver) return;
-        console.log(damage);
+       // console.log(damage);
        this.currentHealth -= damage;
         this.playerStatus.health = this.currentHealth; // HPを同期
         
@@ -1108,6 +1137,9 @@ this.socket.on('zombiesKilled', (zombieIds) => {
 
     // ゲームをリスタートする処理
     restartGame() {
+        // 音を再生
+        this.audioManager.play('restart');
+        
         this.currentHealth = this.maxHealth;
         this.playerStatus.reset(); // プレイヤーステータスを完全にリセット
         this.isGameOver = false;
@@ -2330,6 +2362,18 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         }
         
         this.effectsContainer.innerHTML = html;
+    }
+
+    handleEnemyKilled(enemyIds) {
+        enemyIds.forEach(enemyId => {
+            const enemy = this.enemies.get(enemyId);
+            if (enemy) {
+                // 音を再生
+                this.audioManager.play('enemyDeath');
+                enemy.die();
+                this.enemies.delete(enemyId);
+            }
+        });
     }
 }
 
