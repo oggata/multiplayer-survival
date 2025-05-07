@@ -294,6 +294,7 @@ class FieldMap {
         // ビルの生成確率を設定から取得
         const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
         
+for(var i=0;i< GameConfig.MAP.BUILDINGS.COUNT;i++){
         // ビルを生成
         if (this.rng() < buildingChance) {
             let position;
@@ -335,7 +336,7 @@ class FieldMap {
                 this.createBuilding(position, buildingType, height, width);
             }
         }
-        
+        for(var i=0;i<GameConfig.MAP.BUILDINGS.CAR_COUNT;i++){        
         // 車の生成
         const carChance = 0.3; // 30%の確率で車を生成
         if (this.rng() < carChance) {
@@ -343,6 +344,8 @@ class FieldMap {
             const z = biome.z + (this.rng() - 0.5) * biome.size;
             this.createCar(x, z, this.rng() * Math.PI * 2);
         }
+    }
+    }
     }
     
     generateForestObjects(biome) {
@@ -376,7 +379,7 @@ class FieldMap {
                 // ビルの生成確率を設定から取得
                 const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
                 
-                // ビルを生成
+                for(var i=0;i<GameConfig.MAP.BUILDINGS.COUNT;i++){               // ビルを生成
                 if (this.rng() < buildingChance) {
                     let position;
                     let isSafe = false;
@@ -417,15 +420,15 @@ class FieldMap {
                         this.createBuilding(position, buildingType, height, width);
                     }
                 }
-                
+                for(var i=0;i<GameConfig.MAP.BUILDINGS.CAR_COUNT;i++){
                 // 車の生成
                 const carChance = 0.3; // 30%の確率で車を生成
                 if (this.rng() < carChance) {
                     const x = biome.x + (this.rng() - 0.5) * biome.size;
                     const z = biome.z + (this.rng() - 0.5) * biome.size;
                     this.createCar(x, z, this.rng() * Math.PI * 2);
-                }
-
+                }}
+            }
 
         }
 
@@ -464,7 +467,7 @@ class FieldMap {
         
         // ビルの生成確率を設定から取得
         const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
-        
+        for(var i=0;i<GameConfig.MAP.BUILDINGS.COUNT;i++){
         // ビルを生成
         if (this.rng() < buildingChance) {
             let position;
@@ -506,14 +509,15 @@ class FieldMap {
                 this.createBuilding(position, buildingType, height, width);
             }
         }
-        
+    }
         // 車の生成
         const carChance = 0.5; // 30%の確率で車を生成
+        for(var i=0;i<GameConfig.MAP.BUILDINGS.CAR_COUNT;i++){
         if (this.rng() < carChance) {
             const x = biome.x + (this.rng() - 0.5) * biome.size;
             const z = biome.z + (this.rng() - 0.5) * biome.size;
             this.createCar(x, z, this.rng() * Math.PI * 2);
-        }
+        }}
 
     }
     

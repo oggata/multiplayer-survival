@@ -795,15 +795,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             const bullet = new Bullet(this.scene, position, direction, playerId,"bullet001");
             this.bullets.push(bullet);
         }
-        if(weponId=="wepon002"){
-            const bullet = new Bullet(this.scene, position, direction, playerId,"bullet001");
-            this.bullets.push(bullet);
-        }
-        if(weponId=="wepon003"){
-            const bullet = new Bullet(this.scene, position, direction, playerId,"bullet001");
-            this.bullets.push(bullet);
-        }
-        if (weponId == "wepon004") {
+        if (weponId == "shotgun") {
             const spreadAngle = Math.PI / 8; // 放射の角度（ラジアン単位、ここでは22.5度）
             const bulletCount = 4; // 弾丸の数
         
@@ -812,55 +804,53 @@ this.socket.on('zombiesKilled', (zombieIds) => {
                 const angleOffset = spreadAngle * (i - (bulletCount - 1) / 2); // 中心から左右に広がる
                 const spreadDirection = direction.clone().applyAxisAngle(new THREE.Vector3(0, 0.5, 0), angleOffset);
                 // 弾丸を生成
-                const bullet = new Bullet(this.scene, position, spreadDirection, playerId,"bullet001");
+                const bullet = new Bullet(this.scene, position, spreadDirection, playerId,"shotgun");
                 this.bullets.push(bullet);
             }
         }
-        if (weponId == "wepon005") {
-            const spreadAngle = Math.PI / 8; // 放射の角度（ラジアン単位、ここでは22.5度）
-            const bulletCount = 6; // 弾丸の数
+        if(weponId=="magnum"){
+            const bullet = new Bullet(this.scene, position, direction, playerId,"magnum");
+            this.bullets.push(bullet);
+        }
+        if (weponId == "machinegun") {
+            const bulletCount = 5; // 弾丸の数
+            const delay = 200; // 各弾丸の発射間隔（ミリ秒）
+        
+            for (let i = 0; i < bulletCount; i++) {
+                setTimeout(() => {
+                    // 弾丸を生成
+                    const bullet = new Bullet(this.scene, position.clone(), direction.clone(), playerId,"machinegun");
+                    this.bullets.push(bullet);
+                }, i * delay); // 時間差を設定
+            }
+        }
+        if (weponId == "sniperrifle") {
+            const bulletCount = 2; // 弾丸の数
+            const delay = 200; // 各弾丸の発射間隔（ミリ秒）
+        
+            for (let i = 0; i < bulletCount; i++) {
+                setTimeout(() => {
+                    // 弾丸を生成
+                    const bullet = new Bullet(this.scene, position.clone(), direction.clone(), playerId,"machinegun");
+                    this.bullets.push(bullet);
+                }, i * delay); // 時間差を設定
+            }
+        }
+        if (weponId == "rocketlauncher") {
+            const spreadAngle = Math.PI / 12; // 放射の角度（ラジアン単位、ここでは22.5度）
+            const bulletCount = 12; // 弾丸の数
         
             for (let i = 0; i < bulletCount; i++) {
                 // 放射状に広がる方向を計算
                 const angleOffset = spreadAngle * (i - (bulletCount - 1) / 2); // 中心から左右に広がる
-                const spreadDirection = direction.clone().applyAxisAngle(new THREE.Vector3(0, 0.1, 0), angleOffset);
+                const spreadDirection = direction.clone().applyAxisAngle(new THREE.Vector3(0, 0.5, 0), angleOffset);
                 // 弾丸を生成
-                const bullet = new Bullet(this.scene, position, spreadDirection, playerId,"bullet001");
+                const bullet = new Bullet(this.scene, position, spreadDirection, playerId,"rocketlauncher");
                 this.bullets.push(bullet);
             }
         }
-        if (weponId == "wepon006") {
-            const bulletCount = 3; // 弾丸の数
-            const delay = 200; // 各弾丸の発射間隔（ミリ秒）
+
         
-            for (let i = 0; i < bulletCount; i++) {
-                setTimeout(() => {
-                    // 弾丸を生成
-                    const bullet = new Bullet(this.scene, position.clone(), direction.clone(), playerId,"bullet001");
-                    this.bullets.push(bullet);
-                }, i * delay); // 時間差を設定
-            }
-        }
-        if (weponId == "wepon007") {
-            const bulletCount = 3; // 弾丸の数
-            const delay = 200; // 各弾丸の発射間隔（ミリ秒）
-        
-            for (let i = 0; i < bulletCount; i++) {
-                setTimeout(() => {
-                    // 弾丸を生成
-                    const bullet = new Bullet(this.scene, position.clone(), direction.clone(), playerId,"bullet001");
-                    this.bullets.push(bullet);
-                }, i * delay); // 時間差を設定
-            }
-        }
-        if(weponId=="wepon008"){
-            const bullet = new Bullet(this.scene, position, direction, playerId,"bullet001");
-            this.bullets.push(bullet);
-        }
-        if(weponId=="wepon009"){
-            const bullet = new Bullet(this.scene, position, direction, playerId,"bullet001");
-            this.bullets.push(bullet);
-        }
     }
 
     updateBullets(deltaTime) {
@@ -2399,7 +2389,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // 効果がある場合はコンテナを表示
         this.effectsContainer.style.display = 'block';
         
-        let html = '<div style="font-weight: bold; margin-bottom: 3px; font-size: 10px;">Active Effects:</div>';
+        let html = '';
         
         for (const [effectId, effect] of Object.entries(effects)) {
             const remainingTime = Math.ceil(effect.remainingTime);
@@ -2419,10 +2409,11 @@ this.socket.on('zombiesKilled', (zombieIds) => {
                     if (dur.hunger) effectDetails.push(`Hunger ${dur.hunger > 0 ? '+' : ''}${dur.hunger}/秒`);
                     if (dur.thirst) effectDetails.push(`Thirst ${dur.thirst > 0 ? '+' : ''}${dur.thirst}/秒`);
                 }
-
+console.log(effectConfig);
                 html += `
-                    <div style="margin: 2px 0; font-size: 7px;">
+                    <div style="margin: 2px 0; font-size: 8px;">
                         <div style="color: #4CAF50; font-weight: bold;">${effectConfig.name}</div>
+                        <div style="color: #4CAF50; font-weight: bold;">${effectConfig.description}</div>
                         <div style="color: #FFD700; margin-left: 5px;">${remainingTime}sec</div>
                         <div style="color: #aaa; margin-left: 5px; font-size: 8px;">${effectDetails.join(', ')}</div>
                     </div>

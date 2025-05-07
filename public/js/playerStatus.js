@@ -275,7 +275,7 @@ class PlayerStatus {
         }
 
         // エフェクトの表示を更新
-        this.updateEffectsDisplay();
+        //this.updateEffectsDisplay();
     }
 
     updateEffects(deltaTime) {
@@ -367,15 +367,17 @@ class PlayerStatus {
 //console.log(currentWeponTypes);
         return currentWeponTypes;
     }
-
+/*
     updateEffectsDisplay() {
+        console.log(this.effects);
         const effectsDiv = document.getElementById('activeEffects');
         if (!effectsDiv) return; // effectsDivが存在しない場合は処理をスキップ
         
         effectsDiv.innerHTML = '';
-
+        console.log(this.effects);
         for (const [itemType, effect] of this.effects) {
             const itemConfig = GameConfig.ITEMS[itemType];
+            console.log(itemConfig);
             if (!itemConfig) continue;
 
             const remainingTime = Math.ceil((effect.duration * 1000 - (Date.now() - effect.startTime)) / 1000);
@@ -383,12 +385,12 @@ class PlayerStatus {
             effectDiv.className = 'effect-item';
             effectDiv.innerHTML = `
                 <span class="effect-name">${itemConfig.name}</span>
-                <span class="effect-time">${remainingTime}秒</span>
+                <span class="effect-time">${remainingTime}Sec</span>
             `;
             effectsDiv.appendChild(effectDiv);
         }
     }
-
+*/
     updateStatusDisplay() {
         // このメソッドは既存のものを使用
         this.updateUI();

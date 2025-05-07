@@ -83,9 +83,9 @@ const GameConfig = {
     
     // ライティング設定
     LIGHTING: {
-        AMBIENT_INTENSITY: 0.3,
-        SUN_INTENSITY: 0.6,
-        SUN_INTENSITY_NIGHT: 0.05,
+        AMBIENT_INTENSITY: 0.1,
+        SUN_INTENSITY: 0.5,
+        SUN_INTENSITY_NIGHT: 0.03,
         SUN_INTENSITY_DAWN_DUSK: 10
     },
     
@@ -97,7 +97,7 @@ const GameConfig = {
     
     // 霧設定
     FOG: {
-        DENSITY: 0.008
+        DENSITY: 0.028
     },
     
     // カメラ設定
@@ -111,7 +111,7 @@ const GameConfig = {
     
     // マップ設定
     MAP: {
-        SIZE:   400,
+        SIZE:   500,
         BOUNDARY_WALL_HEIGHT:  0,
         FLOOR: {
             THICKNESS: 1,
@@ -121,8 +121,10 @@ const GameConfig = {
             GRID_SECONDARY_COLOR: 0x444444
         },
         BUILDINGS: {
-            DENSITY: 0.9,  // 建物の生成確率（0-1）
-            MIN_DISTANCE: 5,  // 建物間の最小距離
+            COUNT: 10,
+            CAR_COUNT:100,
+            DENSITY: 1,  // 建物の生成確率（0-1）
+            MIN_DISTANCE: 0.1,  // 建物間の最小距離
             MAX_ATTEMPTS: 100  // 建物配置の最大試行回数
         }
     },
@@ -229,6 +231,7 @@ const GameConfig = {
     },
     
     ITEMS: {
+        
         // 医療アイテム
         healthKit: {
             name: 'Health Kit',
@@ -308,8 +311,10 @@ const GameConfig = {
                 }
             }
         },
+
+        
         vitaminPills: {
-            name: 'Vitamin Pills',
+            name: 'VitaminPills',
             description: 'Increases natural HP regeneration rate (5 minutes)',
             color: 0xffff00,
             dropChance: 0.05,
@@ -321,6 +326,7 @@ const GameConfig = {
                 }
             }
         },
+        
         disinfectant: {
             name: 'Disinfectant',
             description: 'Reduces infection risk (1 minute)',
@@ -334,6 +340,7 @@ const GameConfig = {
                 }
             }
         },
+        
         morphine: {
             name: 'Morphine',
             description: 'Completely eliminates pain and restores 15 HP',
@@ -478,6 +485,7 @@ const GameConfig = {
                 }
             }
         },
+        
         proteinBar: {
             name: 'Protein Bar',
             description: 'Restores 30 hunger and increases max HP by 15 (3 minutes)',
@@ -813,6 +821,7 @@ const GameConfig = {
                 }
             }
         },
+        
         energyDrink: {
             name: 'Energy Drink',
             description: 'Doubles stamina recovery rate (15 seconds)',
@@ -858,6 +867,7 @@ const GameConfig = {
                 }
             }
         },
+        
         wine: {
             name: 'Wine',
             description: 'Restores 22 thirst and 7 HP but causes blurred vision (20 seconds)',
@@ -905,10 +915,11 @@ const GameConfig = {
                 }
             }
         },
+        
 // 攻撃武器
-machineGun: {
-    name: 'マシンガン',
-    description: '3連射可能な高速射撃武器',
+shotgun: {
+    name: 'shotgun',
+    description: '４方向に弾丸を発射',
     color: 0x666666,
     dropChance: 0.05,
     effects: {                
@@ -917,7 +928,87 @@ machineGun: {
             value: 0.6,
             duration: 40,
             attack: {
-                type: 'wepon004',
+                type: 'shotgun',
+                damage: 10,
+                speed: 0.1,
+                diameter:1,
+                reload:1
+            }
+        }
+    }
+},
+machinegun: {
+    name: 'machinegun',
+    description: '５連続で弾丸を発射',
+    color: 0x666666,
+    dropChance: 0.05,
+    effects: {                
+        duration: {
+            type: 'wepon',
+            value: 0.6,
+            duration: 40,
+            attack: {
+                type: 'machinegun',
+                damage: 10,
+                speed: 0.1,
+                diameter:1,
+                reload:1
+            }
+        }
+    }
+},
+machinegun: {
+    name: 'magnum',
+    description: '威力のある弾丸を発射',
+    color: 0x666666,
+    dropChance: 0.05,
+    effects: {                
+        duration: {
+            type: 'wepon',
+            value: 0.6,
+            duration: 40,
+            attack: {
+                type: 'magnum',
+                damage: 20,
+                speed: 0.1,
+                diameter:1,
+                reload:1
+            }
+        }
+    }
+},
+sniperrifle: {
+    name: 'sniperrifle',
+    description: '威力のある弾丸を発射',
+    color: 0x666666,
+    dropChance: 0.05,
+    effects: {                
+        duration: {
+            type: 'wepon',
+            value: 0.6,
+            duration: 40,
+            attack: {
+                type: 'sniperrifle',
+                damage: 20,
+                speed: 0.1,
+                diameter:1,
+                reload:1
+            }
+        }
+    }
+},
+rocketlauncher: {
+    name: 'rocketlauncher',
+    description: '威力のある弾丸を発射',
+    color: 0x666666,
+    dropChance: 0.05,
+    effects: {                
+        duration: {
+            type: 'wepon',
+            value: 0.6,
+            duration: 40,
+            attack: {
+                type: 'rocketlauncher',
                 damage: 20,
                 speed: 0.1,
                 diameter:1,
@@ -926,8 +1017,6 @@ machineGun: {
         }
     }
 }
-
-
 
 
 

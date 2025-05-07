@@ -6,44 +6,47 @@ class Bullet {
         this.speed =    20;
         this.lifetime = 3.0; // 5秒後に消える
         this.damage = 10;
+
         if(bulletType == "bullet001"){
             //normal
             this.speed =    15;
             this.lifetime = 1.5; // 5秒後に消える
             this.damage = 10;
         }
-        if(bulletType == "bullet002"){
-            //big
-            this.speed =    15;
+        if(bulletType == "shotgun"){
+            //normal
+            this.speed =    20;
             this.lifetime = 1.5; // 5秒後に消える
-            this.damage = 20;
+            this.damage = 10;
         }
-        if(bulletType == "bullet003"){
-            //fast long
+        if(bulletType == "machinegun"){
+            //normal
+            this.speed =    20;
+            this.lifetime = 1.5; // 5秒後に消える
+            this.damage = 10;
+        }
+        if(bulletType == "magnum"){
+            //normal
             this.speed =    20;
             this.lifetime = 3; // 5秒後に消える
+            this.damage = 20;
+        }
+        if(bulletType == "sniperrifle"){
+            //normal
+            this.speed =    25;
+            this.lifetime = 6; // 5秒後に消える
             this.damage = 10;
         }
-        if(bulletType == "bullet004"){
-            //slow big damage
-            this.speed =    10;
-            this.lifetime = 3; // 5秒後に消える
+        if(bulletType == "rocketlauncher"){
+            //normal
+            this.speed =    15;
+            this.lifetime = 1.5; // 5秒後に消える
             this.damage = 10;
         }
-        if(bulletType == "bullet005"){
-            //slow long
-            this.speed =    10;
-            this.lifetime = 5; // 5秒後に消える
-            this.damage = 10;
-        }
-        if(bulletType == "bullet006"){
-            this.speed =    10;
-            this.lifetime = 1; // 5秒後に消える
-            this.damage = 10;
-        }
+
         
         // 弾丸のモデルを作成
-        this.model = this.createModel("bullet004");
+        this.model = this.createModel(bulletType);
         this.model.position.copy(position);
         
         // 移動方向を設定
@@ -58,16 +61,28 @@ class Bullet {
     }
     
     createModel(bulletType) {
+console.log(bulletType);
+        if(bulletType == "shotgun"){
+            // 弾丸のジオメトリとマテリアルを作成
+            const geometry = new THREE.SphereGeometry(0.3, 12, 12);
+            const material = new THREE.MeshPhongMaterial({ 
+                color: "0x0066FF",//yellow
+                emissive: 0x0066FF,
+                emissiveIntensity: 0.8
+            });
+            // メッシュを作成
+            const model = new THREE.Mesh(geometry, material);
+            // 影を設定
+            model.castShadow = true;
+            return model;
+    }
 
-
-
-
-if(bulletType == "bullet001"){
+    if(bulletType == "machinegun"){
         // 弾丸のジオメトリとマテリアルを作成
-        const geometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const geometry = new THREE.SphereGeometry(0.05, 12, 12);
         const material = new THREE.MeshPhongMaterial({ 
-            color: "0xffff00",//yellow
-            emissive: 0xffff00,
+            color: "0x969696",//yellow
+            emissive: 0x969696,
             emissiveIntensity: 0.5
         });
         // メッシュを作成
@@ -77,14 +92,57 @@ if(bulletType == "bullet001"){
         return model;
 }
 
-
-
-if(bulletType == "bullet002"){
+if(bulletType == "magnum"){
     // 弾丸のジオメトリとマテリアルを作成
-    const geometry = new THREE.SphereGeometry(0.3, 8, 8);
+    const geometry = new THREE.SphereGeometry(0.7, 12, 12);
     const material = new THREE.MeshPhongMaterial({ 
-        color: 0xff2b00, //red
-        emissive: 0xffff00,
+        color: "0x00CCFF",//yellow
+        emissive: 0x00CCFF,
+        emissiveIntensity: 0.5
+    });
+    // メッシュを作成
+    const model = new THREE.Mesh(geometry, material);
+    // 影を設定
+    model.castShadow = true;
+    return model;
+}
+
+if(bulletType == "sniperrifle"){
+    // 弾丸のジオメトリとマテリアルを作成
+    const geometry = new THREE.SphereGeometry(0.4, 12, 12);
+    const material = new THREE.MeshPhongMaterial({ 
+        color: "0xFFFF00",//yellow
+        emissive: 0xFFFF00,
+        emissiveIntensity: 0.5
+    });
+    // メッシュを作成
+    const model = new THREE.Mesh(geometry, material);
+    // 影を設定
+    model.castShadow = true;
+    return model;
+}
+
+if(bulletType == "rocketlauncher"){
+    // 弾丸のジオメトリとマテリアルを作成
+    const geometry = new THREE.SphereGeometry(0.5, 12, 12);
+    const material = new THREE.MeshPhongMaterial({ 
+        color: "0x0000FF",//yellow
+        emissive: 0x0000FF,
+        emissiveIntensity: 0.5
+    });
+    // メッシュを作成
+    const model = new THREE.Mesh(geometry, material);
+    // 影を設定
+    model.castShadow = true;
+    return model;
+}
+
+if(bulletType == "bullet001"){
+    // 弾丸のジオメトリとマテリアルを作成
+    const geometry = new THREE.SphereGeometry(0.1, 8, 8);
+    const material = new THREE.MeshPhongMaterial({ 
+        color: "0x00CCFF",//yellow
+        emissive: 0x00CCFF,
         emissiveIntensity: 0.5
     });
     // メッシュを作成
@@ -95,48 +153,8 @@ if(bulletType == "bullet002"){
 }
 
 
-if(bulletType == "bullet003"){
-    // 弾丸のジオメトリとマテリアルを作成
-    const geometry = new THREE.SphereGeometry(0.1, 8, 8);
-    const material = new THREE.MeshPhongMaterial({ 
-        color: 0xff00ff, //purple
-        emissive: 0xffff00,
-        emissiveIntensity: 0.5
-    });
-    // メッシュを作成
-    const model = new THREE.Mesh(geometry, material);
-    // 影を設定
-    model.castShadow = true;
-    return model;
-}
 
 
-if(bulletType == "bullet004"){
-    // 弾丸のジオメトリとマテリアルを作成
-    const geometry = new THREE.SphereGeometry(0.1, 8, 8);
-    const material = new THREE.MeshPhongMaterial({ 
-        color: 0x00aaff
-    });
-    // メッシュを作成
-    const model = new THREE.Mesh(geometry, material);
-    // 影を設定
-    model.castShadow = true;
-    return model;
-}
-
-
-if(bulletType == "bullet005"){
-    // 弾丸のジオメトリとマテリアルを作成
-    const geometry = new THREE.SphereGeometry(0.1, 8, 8);
-    const material = new THREE.MeshPhongMaterial({ 
-        color: 0xe6e6e6
-    });
-    // メッシュを作成
-    const model = new THREE.Mesh(geometry, material);
-    // 影を設定
-    model.castShadow = true;
-    return model;
-}
 
 
 
