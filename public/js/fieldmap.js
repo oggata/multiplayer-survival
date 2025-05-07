@@ -214,17 +214,17 @@ class FieldMap {
     generateUrbanObjects(biome) {
         const mapSize = GameConfig.MAP.SIZE;
         const halfSize = mapSize / 2;
-        const minDistance = 20; // オブジェクト間の最小距離
+        const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
         
-        // ビルの生成確率を増加
-        const buildingChance = 0.7; // 70%の確率でビルを生成
+        // ビルの生成確率を設定から取得
+        const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
         
         // ビルを生成
         if (this.rng() < buildingChance) {
             let position;
             let isSafe = false;
             let attempts = 0;
-            const maxAttempts = 100;
+            const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
             
             while (!isSafe && attempts < maxAttempts) {
                 // マップの範囲内でランダムな位置を生成

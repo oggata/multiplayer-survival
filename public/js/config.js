@@ -119,6 +119,11 @@ const GameConfig = {
             GRID_SIZE: 1,
             GRID_COLOR: 0x000000,
             GRID_SECONDARY_COLOR: 0x444444
+        },
+        BUILDINGS: {
+            DENSITY: 0.9,  // 建物の生成確率（0-1）
+            MIN_DISTANCE: 20,  // 建物間の最小距離
+            MAX_ATTEMPTS: 100  // 建物配置の最大試行回数
         }
     },
     
