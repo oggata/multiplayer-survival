@@ -41,8 +41,8 @@ const ENEMY_SPAWN_INTERVAL = 100;
 
 // 時間帯ごとの敵の最大数
 const MAX_ENEMIES = {
-    MORNING: 50,   // 朝（6:00-12:00）
-    DAY: 60,      // 昼（12:00-18:00）
+    MORNING:        30,   // 朝（6:00-12:00）
+    DAY: 40,      // 昼（12:00-18:00）
     EVENING: 200,  // 夕方（18:00-24:00）
     NIGHT: 300     // 夜（0:00-6:00）
 };
@@ -165,6 +165,9 @@ function updateEnemies() {
     const now = Date.now();
     
     Object.values(enemies).forEach(enemy => {
+        // 敵が死亡している場合はスキップ
+        if (enemy.health <= 0) return;
+
         // プレイヤーとの距離を計算
         let closestPlayer = null;
         let minDistance = Infinity;
@@ -202,8 +205,11 @@ function updateEnemies() {
             
             // プレイヤーに攻撃
             if (minDistance < 2 && now - enemy.lastAttack > 1000) {
-                enemy.lastAttack = now;
-                io.to(closestPlayer.id).emit('enemyAttack', { damage: 10 });
+                // 敵が死亡していない場合のみ攻撃
+                if (enemy.health > 0) {
+                    enemy.lastAttack = now;
+                    io.to(closestPlayer.id).emit('enemyAttack', { damage: 10 });
+                }
             }
         } else {
             // ランダムに徘徊
@@ -299,8 +305,6 @@ io.on('connection', (socket) => {
             bulletDamage:data.bulletDamage
         });
         
-
-        
         // 敵との衝突判定
         Object.values(enemies).forEach(enemy => {
             const dx = enemy.position.x - data.position.x;
@@ -309,19 +313,18 @@ io.on('connection', (socket) => {
             const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
             const bulletDamage = data.bulletDamage;
             if (distance < 8) {
-
-                console.log(enemy.health + " - " + data.bulletDamage);
                 // 敵にダメージを与える
                 enemy.health -= bulletDamage;
                 
                 if (enemy.health <= 0) {
-                    console.log("aaa");
-                    // 敵を倒した
+                    // 敵の死亡を通知
+                    io.emit('enemyDied', enemy.id);
+                    // 敵を倒したことを通知
                     io.emit('enemiesKilled', [enemy.id]);
+                    // 即座に敵を削除
                     delete enemies[enemy.id];
                 } else {
                     // 敵にダメージを与えた
-                    console.log("bbb");
                     io.emit('enemyHit', {
                         id: enemy.id,
                         health: enemy.health
@@ -330,23 +333,18 @@ io.on('connection', (socket) => {
             }
         });
     });
-    /*
-    // プレイヤーがダメージを受けた時の処理
-    socket.on('playerHit', (data) => {
-        if (players[data.targetId]) {
-            players[data.targetId].health -= data.damage;
-            
-            if (players[data.targetId].health <= 0) {
-                players[data.targetId].health = 0;
-                io.to(data.targetId).emit('playerDied');
-            } else {
-                io.to(data.targetId).emit('playerHealthUpdate', {
-                    id: data.targetId,
-                    health: players[data.targetId].health
-                });
-            }
+
+    // 敵の死亡イベントを処理
+    socket.on('enemyDied', (enemyId) => {
+        if (enemies[enemyId]) {
+            // 敵の死亡を通知
+            io.emit('enemyDied', enemyId);
+            // 敵を倒したことを通知
+            io.emit('enemiesKilled', [enemyId]);
+            // 即座に敵を削除
+            delete enemies[enemyId];
         }
-    });*/
+    });
     
     // プレイヤーがリスタートした時の処理
     socket.on('playerRestart', () => {

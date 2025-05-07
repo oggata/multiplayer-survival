@@ -191,6 +191,26 @@ class Game {
                     break;
             }
         };
+        
+        // アイテム効果表示用の要素
+        this.effectsContainer = document.createElement('div');
+        this.effectsContainer.id = 'effectsContainer';
+        this.effectsContainer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+            font-size: 14px;
+            z-index: 1000;
+            min-width: 200px;
+        `;
+        document.body.appendChild(this.effectsContainer);
+        
+        // 初期表示を設定
+        this.updateEffectsDisplay();
     }
 
     createMessageIndicatorContainer() {
@@ -634,7 +654,9 @@ class Game {
             enemyIds.forEach(enemyId => {
                 const enemy = this.enemies.get(enemyId);
                 if (enemy) {
-                    enemy.remove();
+                    // 敵のモデルをシーンから削除
+                    enemy.dispose();
+                    // 敵をMapから削除
                     this.enemies.delete(enemyId);
                 }
             });
@@ -647,10 +669,11 @@ class Game {
 
         // 敵の攻撃
         this.socket.on('enemyAttack', (data) => {
+            console.log("enemyattac");
             this.takeDamage(data.damage);
         });
 
-
+/*
         // ゾンビの削除イベントを処理
 this.socket.on('zombiesKilled', (zombieIds) => {
     zombieIds.forEach(zombieId => {
@@ -662,12 +685,13 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             }
             zombie.die2();
             // ゾンビを削除
-            this.zombies.delete(zombieId);
+            //this.zombies.delete(zombieId);
             this.enemies.delete(zombieId);  // enemiesからも削除
             this.updateEnemyCount();
         }
     });
 }); 
+*/
     }
 
     addPlayer(playerData) {
@@ -1358,6 +1382,9 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         this.items.forEach(item => {
             item.update(deltaTime);
         });
+        
+        // アイテム効果の表示を更新
+        this.updateEffectsDisplay();
     }
 
     updateStatusDisplay() {
@@ -2270,6 +2297,39 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             bullet.dispose();
             this.enemyBullets.delete(bulletId);
         }
+    }
+
+    // アイテム効果の表示を更新
+    updateEffectsDisplay() {
+        if (!this.effectsContainer) return;
+        
+        const effects = this.playerStatus.getCurrentEffects();
+        
+        // 効果がない場合はコンテナを非表示
+        if (Object.keys(effects).length === 0) {
+            this.effectsContainer.style.display = 'none';
+            return;
+        }
+        
+        // 効果がある場合はコンテナを表示
+        this.effectsContainer.style.display = 'block';
+        
+        let html = '<div style="font-weight: bold; margin-bottom: 5px;">Active Effects:</div>';
+        
+        for (const [effectId, effect] of Object.entries(effects)) {
+            const remainingTime = Math.ceil(effect.remainingTime);
+            const effectConfig = GameConfig.ITEMS[effect.type];
+            if (effectConfig) {
+                html += `
+                    <div style="margin: 3px 0;">
+                        <span style="color: #4CAF50;">${effectConfig.name}</span>
+                        <span style="color: #FFD700;">${remainingTime}s</span>
+                    </div>
+                `;
+            }
+        }
+        
+        this.effectsContainer.innerHTML = html;
     }
 }
 

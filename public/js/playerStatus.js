@@ -332,6 +332,28 @@ class PlayerStatus {
         }
     }
 
+    getCurrentEffects() {
+        const currentTime = Date.now();
+        const activeEffects = {};
+
+        // 各効果をチェック
+        this.effects.forEach((effect, effectId) => {
+            if (currentTime < effect.endTime) {
+                // 効果がまだ有効な場合
+                const remainingTime = (effect.endTime - currentTime) / 1000; // ミリ秒を秒に変換
+                activeEffects[effectId] = {
+                    ...effect,
+                    remainingTime
+                };
+            } else {
+                // 効果が期限切れの場合、Mapから削除
+                this.effects.delete(effectId);
+            }
+        });
+
+        return activeEffects;
+    }
+
     getCurrentWeponType() {
         const currentWeponTypes = [];
         const currentTime = Date.now();
@@ -373,10 +395,7 @@ class PlayerStatus {
     }
 
     addDurationEffect(effect) {
-        // 効果のIDを生成
-        const effectId = Date.now() + Math.random();
-        
-        // 効果の開始時間を記録
+        const effectId = Date.now().toString();
         const startTime = Date.now();
         
         // 効果をMapに追加
@@ -385,8 +404,6 @@ class PlayerStatus {
             startTime,
             endTime: startTime + (effect.duration * 1000) // 秒をミリ秒に変換
         });
-        
-        console.log(`持続効果を追加: ${effect.type}, 持続時間: ${effect.duration}秒`);
     }
 
     // 天気と時間を設定するメソッド

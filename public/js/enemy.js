@@ -75,31 +75,26 @@ class Enemy {
         
         // 死亡エフェクトを生成
         this.createDeathEffect();
+
+        // サーバーに敵の死亡を通知
+        this.game.socket.emit('enemyDied', this.id);
+
+        // GameConfig.ITEMSからランダムにアイテムタイプを選択
+        const itemTypes = Object.entries(GameConfig.ITEMS)
+            .filter(([_, item]) => item.dropChance !== undefined)
+            .map(([type]) => type);
         
+        const selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
 
-
-
-            // GameConfig.ITEMSからランダムにアイテムタイプを選択
-            const itemTypes = Object.entries(GameConfig.ITEMS)
-                .filter(([_, item]) => item.dropChance !== undefined)
-                .map(([type]) => type);
-            
-            //if (itemTypes.length === 0) continue;
-            
-            const selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
-            //if (!selectedType || !GameConfig.ITEMS[selectedType]) continue;
-
-            // アイテムを生成
-            const position = new THREE.Vector3(this.model.position.x, 0.5, this.model.position.z);
-            this.spawnItem(selectedType, position);
-
+        // アイテムを生成
+        const position = new THREE.Vector3(this.model.position.x, 0.5, this.model.position.z);
+        this.spawnItem(selectedType, position);
 
         // 敵を削除
         setTimeout(() => {
             this.dispose();
         }, 100); // 1秒後に削除
     }
-
 
     die2(){
         if (this.isDead) return;
