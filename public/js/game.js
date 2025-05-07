@@ -1117,7 +1117,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     getNearbyPlayerPosition() {
         if (this.players.size === 0) {
             // 他のプレイヤーがいない場合は安全なスポーン位置を返す
-            return this.fieldMap.getSafeSpawnPosition();
+            return this.getSafeSpawnPosition();
         }
 
         // ランダムに他のプレイヤーを選択
@@ -1127,21 +1127,59 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // 選択したプレイヤーの位置を取得
         const playerPosition = randomPlayer.getPosition();
         
-        // プレイヤーの周囲にランダムなオフセットを加える
-        const offset = new THREE.Vector3(
-            (Math.random() - 0.5) * 10, // -5から5の範囲でランダム
-            0,
-            (Math.random() - 0.5) * 10  // -5から5の範囲でランダム
-        );
+        // 最大試行回数
+        const maxAttempts = 10;
+        let attempts = 0;
         
-        // 新しい位置を計算
-        const newPosition = playerPosition.clone().add(offset);
+        while (attempts < maxAttempts) {
+            // プレイヤーの周囲にランダムなオフセットを加える
+            const offset = new THREE.Vector3(
+                (Math.random() - 0.5) * 10, // -5から5の範囲でランダム
+                0,
+                (Math.random() - 0.5) * 10  // -5から5の範囲でランダム
+            );
+            
+            // 新しい位置を計算
+            const newPosition = playerPosition.clone().add(offset);
+            
+            // マップの境界内に収める
+            newPosition.x = Math.max(-450, Math.min(450, newPosition.x));
+            newPosition.z = Math.max(-450, Math.min(450, newPosition.z));
+            
+            // 建物との衝突チェック
+            if (!this.fieldMap.checkCollision(newPosition, 1)) {
+                return newPosition;
+            }
+            
+            attempts++;
+        }
         
-        // マップの境界内に収める
-        newPosition.x = Math.max(-450, Math.min(450, newPosition.x));
-        newPosition.z = Math.max(-450, Math.min(450, newPosition.z));
+        // 最大試行回数を超えた場合は、マップの安全な位置を返す
+        return this.getSafeSpawnPosition();
+    }
+
+    getSafeSpawnPosition() {
+        const maxAttempts = 20;
+        let attempts = 0;
         
-        return newPosition;
+        while (attempts < maxAttempts) {
+            // マップ内のランダムな位置を生成
+            const position = new THREE.Vector3(
+                (Math.random() - 0.5) * 900, // -450から450の範囲
+                0,
+                (Math.random() - 0.5) * 900  // -450から450の範囲
+            );
+            
+            // 建物との衝突チェック
+            if (!this.fieldMap.checkCollision(position, 1)) {
+                return position;
+            }
+            
+            attempts++;
+        }
+        
+        // デフォルトの位置（マップの中心付近）
+        return new THREE.Vector3(0, 0, 0);
     }
 
     // ゲームをリスタートする処理
