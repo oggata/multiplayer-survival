@@ -84,8 +84,8 @@ class FieldMap {
         const beachWidth = 30; // 砂浜の幅
         
         // バイオームの配置を決定
-        for (let x = -this.mapSize/2; x < this.mapSize/2; x += 50) {
-            for (let z = -this.mapSize/2; z < this.mapSize/2; z += 50) {
+        for (let x = -this.mapSize/2; x < this.mapSize/2; x += 100) {
+            for (let z = -this.mapSize/2; z < this.mapSize/2; z += 100) {
                 // マップの端からbeachWidth以内の距離かどうかをチェック
                 const distanceFromEdge = Math.min(
                     Math.abs(x + this.mapSize/2),

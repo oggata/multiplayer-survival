@@ -185,6 +185,9 @@ function updateEnemies() {
                 closestPlayer = player;
             }
         });
+
+        // 移動前の位置を保存
+        const oldPosition = { ...enemy.position };
         
         // プレイヤーが近くにいる場合、追いかける
         if (closestPlayer && minDistance < 50) {
@@ -224,6 +227,30 @@ function updateEnemies() {
             const speed = 0.1;
             enemy.position.x += Math.sin(enemy.rotation.y) * speed;
             enemy.position.z += Math.cos(enemy.rotation.y) * speed;
+        }
+
+        // 敵同士の衝突判定
+        let hasCollision = false;
+        Object.values(enemies).forEach(otherEnemy => {
+            if (otherEnemy.id === enemy.id || otherEnemy.health <= 0) return;
+
+            const dx = otherEnemy.position.x - enemy.position.x;
+            const dz = otherEnemy.position.z - enemy.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            // 衝突判定の距離（敵の半径の2倍）
+            const collisionDistance = 2.0;
+
+            if (distance < collisionDistance) {
+                hasCollision = true;
+                // 衝突した場合、元の位置に戻す
+                enemy.position = oldPosition;
+            }
+        });
+
+        // マップの境界チェック
+        if (Math.abs(enemy.position.x) > MAP_SIZE / 2 || Math.abs(enemy.position.z) > MAP_SIZE / 2) {
+            enemy.position = oldPosition;
         }
         
         // 敵の位置を更新

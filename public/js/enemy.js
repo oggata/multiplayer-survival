@@ -73,6 +73,9 @@ class Enemy {
         
         this.isDead = true;
         
+        // 死亡音を再生
+        this.game.audioManager.play('enemyDeath');
+        
         // 死亡エフェクトを生成
         this.createDeathEffect();
 

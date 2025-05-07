@@ -1,3 +1,5 @@
+//const { deltaTime } = require("three/tsl");
+
 class AudioManager {
     constructor() {
         this.sounds = {};
@@ -681,7 +683,7 @@ class Game {
                 const enemy = this.enemies.get(enemyId);
                 if (enemy) {
                     // 敵のモデルをシーンから削除
-                    enemy.dispose();
+                    enemy.die2();
                     // 敵をMapから削除
                     this.enemies.delete(enemyId);
                 }
@@ -1410,6 +1412,15 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             bullet.update(deltaTime);
         });
 
+
+        // 敵の表示/非表示を更新
+        this.enemies.forEach(enemy => {
+ 
+
+            enemy.model.updateLimbAnimation2(deltaTime);
+        });
+
+
         //itemの更新
         this.items.forEach(item => {
             item.update(deltaTime);
@@ -2030,6 +2041,8 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // 敵の表示/非表示を更新
         this.enemies.forEach(enemy => {
             if (!enemy || !enemy.model) return;
+
+            //enemy.model.updateLimbAnimation(deltaTime);
             
             const distance = enemy.model.position.distanceTo(playerPosition);
             
@@ -2346,16 +2359,32 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // 効果がある場合はコンテナを表示
         this.effectsContainer.style.display = 'block';
         
-        let html = '<div style="font-weight: bold; margin-bottom: 5px;">Active Effects:</div>';
+        let html = '<div style="font-weight: bold; margin-bottom: 3px; font-size: 10px;">Active Effects:</div>';
         
         for (const [effectId, effect] of Object.entries(effects)) {
             const remainingTime = Math.ceil(effect.remainingTime);
             const effectConfig = GameConfig.ITEMS[effect.type];
             if (effectConfig) {
+                // 効果の詳細を取得
+                const effectDetails = [];
+                if (effectConfig.effects?.immediate) {
+                    const imm = effectConfig.effects.immediate;
+                    if (imm.health) effectDetails.push(`HP ${imm.health > 0 ? '+' : ''}${imm.health}`);
+                    if (imm.hunger) effectDetails.push(`Hunger ${imm.hunger > 0 ? '+' : ''}${imm.hunger}`);
+                    if (imm.thirst) effectDetails.push(`Thirst ${imm.thirst > 0 ? '+' : ''}${imm.thirst}`);
+                }
+                if (effectConfig.effects?.duration) {
+                    const dur = effectConfig.effects.duration;
+                    if (dur.health) effectDetails.push(`HP ${dur.health > 0 ? '+' : ''}${dur.health}/秒`);
+                    if (dur.hunger) effectDetails.push(`Hunger ${dur.hunger > 0 ? '+' : ''}${dur.hunger}/秒`);
+                    if (dur.thirst) effectDetails.push(`Thirst ${dur.thirst > 0 ? '+' : ''}${dur.thirst}/秒`);
+                }
+
                 html += `
-                    <div style="margin: 3px 0;">
-                        <span style="color: #4CAF50;">${effectConfig.name}</span>
-                        <span style="color: #FFD700;">${remainingTime}s</span>
+                    <div style="margin: 2px 0; font-size: 7px;">
+                        <div style="color: #4CAF50; font-weight: bold;">${effectConfig.name}</div>
+                        <div style="color: #FFD700; margin-left: 5px;">${remainingTime}sec</div>
+                        <div style="color: #aaa; margin-left: 5px; font-size: 8px;">${effectDetails.join(', ')}</div>
                     </div>
                 `;
             }
