@@ -180,17 +180,22 @@ class FieldMap {
     }
     
     generateObjects() {
+        // バイオームごとのオブジェクト生成
         for (const biome of this.biomes) {
             // がれきの生成確率を増加
-            const debrisChance = 0.3; // 30%の確率でがれきを生成
+            const debrisChance = 0.5; // 50%の確率でがれきを生成
             
-            // がれきを生成
+            // がれきを生成（複数個）
             if (this.rng() < debrisChance) {
-                const x = biome.x + (this.rng() - 0.5) * biome.size;
-                const z = biome.z + (this.rng() - 0.5) * biome.size;
-                this.createDebris(x, z);
+                const debrisCount = Math.floor(this.rng() * 3) + 1; // 1-3個のがれきを生成
+                for (let i = 0; i < debrisCount; i++) {
+                    const x = biome.x + (this.rng() - 0.5) * biome.size;
+                    const z = biome.z + (this.rng() - 0.5) * biome.size;
+                    this.createDebris(x, z);
+                }
             }
             
+            // バイオームタイプに応じたオブジェクト生成
             switch (biome.type) {
                 case 'urban':
                     this.generateUrbanObjects(biome);
@@ -207,6 +212,76 @@ class FieldMap {
                 case 'beach':
                     this.generateBeachObjects(biome);
                     break;
+            }
+        }
+
+        // グリッドベースの追加オブジェクト生成
+        const gridSize = 20; // グリッドのサイズ
+        const gridCount = Math.floor(this.mapSize / gridSize);
+        
+        for (let x = -gridCount/2; x < gridCount/2; x++) {
+            for (let z = -gridCount/2; z < gridCount/2; z++) {
+                // グリッドの中心位置を計算
+                const centerX = x * gridSize + (this.rng() - 0.5) * gridSize * 0.5;
+                const centerZ = z * gridSize + (this.rng() - 0.5) * gridSize * 0.5;
+                
+                // グリッド内に複数のオブジェクトを配置
+                const objectCount = Math.floor(this.rng() * 3) + 1; // 1-3個のオブジェクト
+                
+                for (let i = 0; i < objectCount; i++) {
+                    // グリッド内のランダムな位置を計算
+                    const offsetX = (this.rng() - 0.5) * gridSize * 0.8;
+                    const offsetZ = (this.rng() - 0.5) * gridSize * 0.8;
+                    const posX = centerX + offsetX;
+                    const posZ = centerZ + offsetZ;
+                    
+                    // 他のオブジェクトとの距離をチェック
+                    let isSafe = true;
+                    for (const object of this.objects) {
+                        const dx = posX - object.position.x;
+                        const dz = posZ - object.position.z;
+                        const distance = Math.sqrt(dx * dx + dz * dz);
+                        if (distance < 8) { // 最小距離を8に設定
+                            isSafe = false;
+                            break;
+                        }
+                    }
+                    
+                    if (isSafe) {
+                        // ランダムにオブジェクトタイプを選択
+                        const objectType = Math.floor(this.rng() * 6); // 6種類のオブジェクト
+                        switch (objectType) {
+                            case 0: // がれき
+                                this.createDebris(posX, posZ);
+                                break;
+                            case 1: // 岩
+                                const rockSize = this.rng() * 2 + 1;
+                                this.createRock(posX, posZ, rockSize);
+                                break;
+                            case 2: // 木
+                                const treeHeight = Math.floor(this.rng() * 5) + 3;
+                                const treeType = this.treeTypes[Math.floor(this.rng() * this.treeTypes.length)].name;
+                                this.createTree(posX, posZ, treeHeight, treeType);
+                                break;
+                            case 3: // 車
+                                this.createCar(posX, posZ, this.rng() * Math.PI * 2);
+                                break;
+                            case 4: // 廃墟
+                                const ruinHeight = Math.floor(this.rng() * 5) + 2;
+                                this.createRuins(posX, posZ, ruinHeight);
+                                break;
+                            case 5: // 小さな岩の群れ
+                                const smallRockCount = Math.floor(this.rng() * 3) + 2;
+                                for (let j = 0; j < smallRockCount; j++) {
+                                    const smallRockX = posX + (this.rng() - 0.5) * 3;
+                                    const smallRockZ = posZ + (this.rng() - 0.5) * 3;
+                                    const smallRockSize = this.rng() * 1.5 + 0.5;
+                                    this.createRock(smallRockX, smallRockZ, smallRockSize);
+                                }
+                                break;
+                        }
+                    }
+                }
             }
         }
     }
@@ -256,7 +331,7 @@ class FieldMap {
             if (isSafe) {
                 const buildingType = this.buildingTypes[Math.floor(Math.random() * this.buildingTypes.length)];
                 const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
-                const width = 5 + this.rng() * 15;
+                const width = 15 + this.rng() * 25;
                 this.createBuilding(position, buildingType, height, width);
             }
         }
@@ -266,7 +341,7 @@ class FieldMap {
         if (this.rng() < carChance) {
             const x = biome.x + (this.rng() - 0.5) * biome.size;
             const z = biome.z + (this.rng() - 0.5) * biome.size;
-            this.createCar(x, z);
+            this.createCar(x, z, this.rng() * Math.PI * 2);
         }
     }
     
@@ -379,17 +454,14 @@ class FieldMap {
         }
     }
     
-    createBuilding(x, z, width, height) {
-        // ビルタイプをランダムに選択
-        const buildingType = this.buildingTypes[Math.floor(this.rng() * this.buildingTypes.length)];
-        
-        // ビルの基本パラメータ
-        const buildingWidth = width || (5 + this.rng() * 15);
-        const buildingDepth = width || (5 + this.rng() * 15);
-        const buildingHeight = height || (buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight));
-        
+    createBuilding(position, buildingType, height, width) {
         // 破壊レベルを計算（0-1）
         const destructionLevel = 0.3 + this.rng() * 0.7;
+        
+        // ビルの基本パラメータ
+        const buildingWidth = width || (15 + this.rng() * 25);  // 幅を15-40の範囲に拡大
+        const buildingDepth = width || (15 + this.rng() * 25);  // 奥行きも15-40の範囲に拡大
+        const buildingHeight = height || (buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight));
         
         // ビルのジオメトリを作成
         const buildingGeometry = new THREE.BoxGeometry(buildingWidth, buildingHeight, buildingDepth);
@@ -399,9 +471,9 @@ class FieldMap {
         for (let i = 0; i < vertices.length; i += 3) {
             // 底面の頂点は変形させない
             if (vertices[i + 1] > 0.1) {
-                vertices[i] += (this.rng() - 0.5) * destructionLevel * 2;
-                vertices[i + 1] += (this.rng() - 0.5) * destructionLevel * 2;
-                vertices[i + 2] += (this.rng() - 0.5) * destructionLevel * 2;
+                vertices[i] += (this.rng() - 0.5) * destructionLevel * 3;  // 変形量を増加
+                vertices[i + 1] += (this.rng() - 0.5) * destructionLevel * 3;
+                vertices[i + 2] += (this.rng() - 0.5) * destructionLevel * 3;
             }
         }
         
@@ -422,7 +494,7 @@ class FieldMap {
         const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
         
         // ビルの位置を設定
-        building.position.set(x, buildingHeight / 2, z);
+        building.position.set(position.x, buildingHeight / 2, position.z);
         
         // 破壊レベルが高い場合はランダムな回転と傾きを適用
         if (destructionLevel > 0.6) {
@@ -451,11 +523,26 @@ class FieldMap {
         
         // 破壊レベルが高い場合は周囲にがれきを追加
         if (destructionLevel > 0.5) {
-            for (let i = 0; i < destructionLevel * 10; i++) {
-                const debrisX = x + (this.rng() - 0.5) * buildingWidth * 2;
-                const debrisZ = z + (this.rng() - 0.5) * buildingDepth * 2;
+            for (let i = 0; i < destructionLevel * 15; i++) {  // がれきの数を増加
+                const debrisX = position.x + (this.rng() - 0.5) * buildingWidth * 3;  // がれきの範囲を拡大
+                const debrisZ = position.z + (this.rng() - 0.5) * buildingDepth * 3;
                 this.createDebris(debrisX, debrisZ);
             }
+        }
+
+        // 建物の上部に破壊された部分を追加
+        if (destructionLevel > 0.4) {
+            this.createDestroyedTop(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
+        }
+
+        // 建物の壁に亀裂を追加
+        if (destructionLevel > 0.3) {
+            this.createCracks(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
+        }
+
+        // 建物の周りに崩れた壁の破片を追加
+        if (destructionLevel > 0.6) {
+            this.createCollapsedWalls(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
         }
     }
     
@@ -541,23 +628,193 @@ class FieldMap {
         }
     }
     
-    createCar(x, z) {
-        const geometry = new THREE.BoxGeometry(2, 1, 4);
-        const material = new THREE.MeshStandardMaterial({
-            color: 0x444444,
-            roughness: 0.5,
-            metalness: 0.7
+    createCar(x, z, rotation) {
+        const carGroup = new THREE.Group();
+        carGroup.position.set(x, 0, z);
+        carGroup.rotation.y = rotation;
+
+        // 車体の色をランダムに設定
+        const carColors = [
+            0x000000, // 黒
+            0xFFFFFF, // 白
+            0xFF0000, // 赤
+            0x0000FF, // 青
+            0x808080  // グレー
+        ];
+        const carColor = carColors[Math.floor(Math.random() * carColors.length)];
+
+        // 車体の基本形状
+        const bodyGeometry = new THREE.BoxGeometry(4, 1.5, 2);
+        const bodyMaterial = new THREE.MeshStandardMaterial({ 
+            color: carColor,
+            metalness: 0.8,
+            roughness: 0.2
         });
-        const car = new THREE.Mesh(geometry, material);
-        car.position.set(x, 0.5, z);
-        car.rotation.y = this.rng() * Math.PI * 2;
-        car.castShadow = true;
-        car.receiveShadow = true;
-        this.scene.add(car);
-        this.objects.push(car);
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.position.y = 0.75;
+        carGroup.add(body);
+
+        // フロントガラス
+        const windshieldGeometry = new THREE.BoxGeometry(1.2, 1, 2.1);
+        const glassMaterial = new THREE.MeshStandardMaterial({
+            color: 0x88ccff,
+            transparent: true,
+            opacity: 0.6,
+            metalness: 0.9,
+            roughness: 0.1
+        });
+        const windshield = new THREE.Mesh(windshieldGeometry, glassMaterial);
+        windshield.position.set(1.2, 1.5, 0);
+        windshield.rotation.x = Math.PI / 6;
+        carGroup.add(windshield);
+
+        // リアガラス
+        const rearWindowGeometry = new THREE.BoxGeometry(1.2, 1, 2.1);
+        const rearWindow = new THREE.Mesh(rearWindowGeometry, glassMaterial);
+        rearWindow.position.set(-1.2, 1.5, 0);
+        rearWindow.rotation.x = -Math.PI / 6;
+        carGroup.add(rearWindow);
+
+        // タイヤ
+        const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
+        const wheelMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x333333,
+            metalness: 0.5,
+            roughness: 0.7
+        });
+
+        // フロントタイヤ
+        const frontLeftWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        frontLeftWheel.rotation.z = Math.PI / 2;
+        frontLeftWheel.position.set(1.2, 0.4, 1.1);
+        carGroup.add(frontLeftWheel);
+
+        const frontRightWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        frontRightWheel.rotation.z = Math.PI / 2;
+        frontRightWheel.position.set(1.2, 0.4, -1.1);
+        carGroup.add(frontRightWheel);
+
+        // リアタイヤ
+        const rearLeftWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        rearLeftWheel.rotation.z = Math.PI / 2;
+        rearLeftWheel.position.set(-1.2, 0.4, 1.1);
+        carGroup.add(rearLeftWheel);
+
+        const rearRightWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+        rearRightWheel.rotation.z = Math.PI / 2;
+        rearRightWheel.position.set(-1.2, 0.4, -1.1);
+        carGroup.add(rearRightWheel);
+
+        // ヘッドライト
+        const headlightGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+        const headlightMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffffcc,
+            emissive: 0xffffcc,
+            emissiveIntensity: 0.5
+        });
+
+        const leftHeadlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
+        leftHeadlight.position.set(2, 0.8, 0.6);
+        carGroup.add(leftHeadlight);
+
+        const rightHeadlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
+        rightHeadlight.position.set(2, 0.8, -0.6);
+        carGroup.add(rightHeadlight);
+
+        // テールライト
+        const taillightGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+        const taillightMaterial = new THREE.MeshStandardMaterial({
+            color: 0xff0000,
+            emissive: 0xff0000,
+            emissiveIntensity: 0.5
+        });
+
+        const leftTaillight = new THREE.Mesh(taillightGeometry, taillightMaterial);
+        leftTaillight.position.set(-2, 0.8, 0.6);
+        carGroup.add(leftTaillight);
+
+        const rightTaillight = new THREE.Mesh(taillightGeometry, taillightMaterial);
+        rightTaillight.position.set(-2, 0.8, -0.6);
+        carGroup.add(rightTaillight);
+
+        // バンパー
+        const bumperGeometry = new THREE.BoxGeometry(0.3, 0.4, 2.2);
+        const bumperMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x333333,
+            metalness: 0.5,
+            roughness: 0.7
+        });
+
+        const frontBumper = new THREE.Mesh(bumperGeometry, bumperMaterial);
+        frontBumper.position.set(2.15, 0.2, 0);
+        carGroup.add(frontBumper);
+
+        const rearBumper = new THREE.Mesh(bumperGeometry, bumperMaterial);
+        rearBumper.position.set(-2.15, 0.2, 0);
+        carGroup.add(rearBumper);
+
+        // ドアハンドル
+        const handleGeometry = new THREE.BoxGeometry(0.1, 0.2, 0.4);
+        const handleMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x888888,
+            metalness: 0.9,
+            roughness: 0.1
+        });
+
+        const leftHandle = new THREE.Mesh(handleGeometry, handleMaterial);
+        leftHandle.position.set(0, 1, 1.05);
+        carGroup.add(leftHandle);
+
+        const rightHandle = new THREE.Mesh(handleGeometry, handleMaterial);
+        rightHandle.position.set(0, 1, -1.05);
+        carGroup.add(rightHandle);
+
+        // ミラー
+        const mirrorGeometry = new THREE.BoxGeometry(0.1, 0.3, 0.5);
+        const mirrorMaterial = new THREE.MeshStandardMaterial({ 
+            color: carColor,
+            metalness: 0.8,
+            roughness: 0.2
+        });
+
+        const leftMirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
+        leftMirror.position.set(1.8, 1.2, 1.1);
+        carGroup.add(leftMirror);
+
+        const rightMirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
+        rightMirror.position.set(1.8, 1.2, -1.1);
+        carGroup.add(rightMirror);
+
+        // アンテナ
+        const antennaGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.5, 8);
+        const antennaMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x333333,
+            metalness: 0.8,
+            roughness: 0.2
+        });
+        const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
+        antenna.position.set(-1, 2, 0);
+        carGroup.add(antenna);
+
+        // 車の下に影を追加
+        const shadowGeometry = new THREE.PlaneGeometry(4.5, 2.5);
+        const shadowMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0.3
+        });
+        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.position.y = 0.01;
+        carGroup.add(shadow);
+
+        return carGroup;
     }
     
     createTree(x, z, height, specifiedType = null) {
+        const treeGroup = new THREE.Group();
+        treeGroup.position.set(x, 0, z);
+
         // 指定された木の種類を使用するか、ランダムに選択
         const treeType = specifiedType ? 
             this.treeTypes.find(type => type.name === specifiedType) : 
@@ -566,109 +823,247 @@ class FieldMap {
         const trunkHeight = height * treeType.trunkHeight;
         const leavesHeight = height * (1 - treeType.trunkHeight);
         
-        // 幹の作成
+        // 幹の作成（より自然な形状）
         const trunkGeometry = new THREE.CylinderGeometry(
             treeType.trunkWidth * 0.3, 
             treeType.trunkWidth, 
             trunkHeight, 
             8
         );
+        
+        // 幹を不規則に変形
+        const vertices = trunkGeometry.attributes.position.array;
+        for (let i = 0; i < vertices.length; i += 3) {
+            if (vertices[i + 1] > 0.1) { // 幹の上部のみ変形
+                vertices[i] += (this.rng() - 0.5) * 0.2;
+                vertices[i + 2] += (this.rng() - 0.5) * 0.2;
+            }
+        }
+        
         const trunkMaterial = new THREE.MeshStandardMaterial({
             color: treeType.trunkColor,
             roughness: 0.9,
             metalness: 0.1
         });
         const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-        trunk.position.set(x, trunkHeight/2, z);
+        trunk.position.y = trunkHeight/2;
         trunk.castShadow = true;
         trunk.receiveShadow = true;
+        treeGroup.add(trunk);
         
-        // 葉の作成（木の種類に応じて異なる形状）
-        let leavesGeometry;
+        // 木の種類に応じた葉の作成
         switch(treeType.name) {
             case 'pine':
-                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
+                // 松の木は複数の円錐を重ねる
+                for (let i = 0; i < 3; i++) {
+                    const coneGeometry = new THREE.ConeGeometry(
+                        treeType.leavesSize * (1 - i * 0.2),
+                        leavesHeight * 0.4,
+                        8
+                    );
+                    const leavesMaterial = new THREE.MeshStandardMaterial({
+                        color: treeType.leavesColor,
+                        roughness: 0.8,
+                        metalness: 0.1
+                    });
+                    const leaves = new THREE.Mesh(coneGeometry, leavesMaterial);
+                    leaves.position.y = trunkHeight + leavesHeight * 0.3 * i;
+                    leaves.castShadow = true;
+                    leaves.receiveShadow = true;
+                    treeGroup.add(leaves);
+                }
                 break;
+                
             case 'oak':
-                leavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
+                // オークは複数の球体を組み合わせる
+                const mainLeavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
+                const leavesMaterial = new THREE.MeshStandardMaterial({
+                    color: treeType.leavesColor,
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+                const mainLeaves = new THREE.Mesh(mainLeavesGeometry, leavesMaterial);
+                mainLeaves.position.y = trunkHeight + leavesHeight * 0.6;
+                mainLeaves.castShadow = true;
+                mainLeaves.receiveShadow = true;
+                treeGroup.add(mainLeaves);
+                
+                // 追加の葉の塊
+                for (let i = 0; i < 3; i++) {
+                    const subLeavesGeometry = new THREE.SphereGeometry(
+                        treeType.leavesSize * 0.7,
+                        8,
+                        8
+                    );
+                    const subLeaves = new THREE.Mesh(subLeavesGeometry, leavesMaterial);
+                    const angle = (i * Math.PI * 2) / 3;
+                    subLeaves.position.set(
+                        Math.cos(angle) * treeType.leavesSize * 0.5,
+                        trunkHeight + leavesHeight * 0.4,
+                        Math.sin(angle) * treeType.leavesSize * 0.5
+                    );
+                    subLeaves.castShadow = true;
+                    subLeaves.receiveShadow = true;
+                    treeGroup.add(subLeaves);
+                }
                 break;
-            case 'birch':
-                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
-                break;
-            case 'maple':
-                leavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
-                break;
-            case 'willow':
-                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
-                break;
+                
             case 'palm':
-                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
+                // ヤシの木は葉を放射状に配置
+                const trunkTop = trunkHeight + 0.5;
+                for (let i = 0; i < 8; i++) {
+                    const leafGeometry = new THREE.PlaneGeometry(2, 4);
+                    const leafMaterial = new THREE.MeshStandardMaterial({
+                        color: treeType.leavesColor,
+                        roughness: 0.8,
+                        metalness: 0.1,
+                        side: THREE.DoubleSide
+                    });
+                    const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+                    const angle = (i * Math.PI * 2) / 8;
+                    leaf.position.set(
+                        Math.cos(angle) * 1,
+                        trunkTop,
+                        Math.sin(angle) * 1
+                    );
+                    leaf.rotation.y = angle;
+                    leaf.rotation.x = Math.PI / 4;
+                    leaf.castShadow = true;
+                    leaf.receiveShadow = true;
+                    treeGroup.add(leaf);
+                }
                 break;
-            case 'cherry':
-                leavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
-                break;
-            case 'cypress':
-                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
-                break;
-            case 'redwood':
-                leavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight, 8);
-                break;
+                
+            default:
+                // その他の木は基本的な形状
+                const defaultLeavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
+                const defaultLeavesMaterial = new THREE.MeshStandardMaterial({
+                    color: treeType.leavesColor,
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+                const defaultLeaves = new THREE.Mesh(defaultLeavesGeometry, defaultLeavesMaterial);
+                defaultLeaves.position.y = trunkHeight + leavesHeight * 0.6;
+                defaultLeaves.castShadow = true;
+                defaultLeaves.receiveShadow = true;
+                treeGroup.add(defaultLeaves);
         }
         
-        const leavesMaterial = new THREE.MeshStandardMaterial({
-            color: treeType.leavesColor,
-            roughness: 0.8,
-            metalness: 0.1
+        // 木の下に影を追加
+        const shadowGeometry = new THREE.PlaneGeometry(treeType.leavesSize * 2, treeType.leavesSize * 2);
+        const shadowMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0.3
         });
-        const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
-        leaves.position.set(x, trunkHeight + leavesHeight/2, z);
-        leaves.castShadow = true;
-        leaves.receiveShadow = true;
+        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.position.y = 0.01;
+        treeGroup.add(shadow);
         
-        this.scene.add(trunk);
-        this.scene.add(leaves);
-        this.objects.push(trunk, leaves);
+        this.scene.add(treeGroup);
+        this.objects.push(treeGroup);
     }
     
     createRock(x, z, size) {
+        const rockGroup = new THREE.Group();
+        rockGroup.position.set(x, 0, z);
+
         const rockType = this.rockTypes[Math.floor(this.rng() * this.rockTypes.length)];
         const rockSize = size * rockType.size;
         
-        // 岩の形状をランダムに選択
-        let rockGeometry;
+        // メインの岩の形状をランダムに選択
+        let mainRockGeometry;
         const geometryType = Math.floor(this.rng() * 3);
         switch(geometryType) {
             case 0:
-                rockGeometry = new THREE.DodecahedronGeometry(rockSize, 0);
+                mainRockGeometry = new THREE.DodecahedronGeometry(rockSize, 1);
                 break;
             case 1:
-                rockGeometry = new THREE.IcosahedronGeometry(rockSize, 0);
+                mainRockGeometry = new THREE.IcosahedronGeometry(rockSize, 1);
                 break;
             case 2:
-                rockGeometry = new THREE.OctahedronGeometry(rockSize, 0);
+                mainRockGeometry = new THREE.OctahedronGeometry(rockSize, 1);
                 break;
         }
         
         // 頂点を変形させて自然な形状を作成
-        const vertices = rockGeometry.attributes.position.array;
+        const vertices = mainRockGeometry.attributes.position.array;
         for (let i = 0; i < vertices.length; i += 3) {
-            vertices[i] += (this.rng() - 0.5) * 0.2;
-            vertices[i + 1] += (this.rng() - 0.5) * 0.2;
-            vertices[i + 2] += (this.rng() - 0.5) * 0.2;
+            vertices[i] += (this.rng() - 0.5) * 0.3;
+            vertices[i + 1] += (this.rng() - 0.5) * 0.3;
+            vertices[i + 2] += (this.rng() - 0.5) * 0.3;
         }
         
+        // 岩のマテリアルを作成
         const rockMaterial = new THREE.MeshStandardMaterial({
             color: rockType.color,
             roughness: rockType.roughness,
-            metalness: 0.1
+            metalness: 0.1,
+            flatShading: true
         });
-        const rock = new THREE.Mesh(rockGeometry, rockMaterial);
-        rock.position.set(x, rockSize/2, z);
-        rock.rotation.set(this.rng() * Math.PI, this.rng() * Math.PI, this.rng() * Math.PI);
-        rock.castShadow = true;
-        rock.receiveShadow = true;
-        this.scene.add(rock);
-        this.objects.push(rock);
+        
+        // メインの岩を作成
+        const mainRock = new THREE.Mesh(mainRockGeometry, rockMaterial);
+        mainRock.position.y = rockSize/2;
+        mainRock.castShadow = true;
+        mainRock.receiveShadow = true;
+        rockGroup.add(mainRock);
+        
+        // 小さな岩を追加して自然な見た目に
+        const smallRockCount = Math.floor(this.rng() * 3) + 2;
+        for (let i = 0; i < smallRockCount; i++) {
+            const smallRockSize = rockSize * (0.2 + this.rng() * 0.3);
+            const smallRockGeometry = new THREE.DodecahedronGeometry(smallRockSize, 0);
+            
+            // 小さな岩の頂点を変形
+            const smallVertices = smallRockGeometry.attributes.position.array;
+            for (let j = 0; j < smallVertices.length; j += 3) {
+                smallVertices[j] += (this.rng() - 0.5) * 0.2;
+                smallVertices[j + 1] += (this.rng() - 0.5) * 0.2;
+                smallVertices[j + 2] += (this.rng() - 0.5) * 0.2;
+            }
+            
+            const smallRock = new THREE.Mesh(smallRockGeometry, rockMaterial);
+            
+            // 小さな岩の位置をランダムに設定
+            const angle = this.rng() * Math.PI * 2;
+            const distance = rockSize * (0.5 + this.rng() * 0.5);
+            smallRock.position.set(
+                Math.cos(angle) * distance,
+                smallRockSize/2,
+                Math.sin(angle) * distance
+            );
+            
+            // ランダムな回転
+            smallRock.rotation.set(
+                this.rng() * Math.PI,
+                this.rng() * Math.PI,
+                this.rng() * Math.PI
+            );
+            
+            smallRock.castShadow = true;
+            smallRock.receiveShadow = true;
+            rockGroup.add(smallRock);
+        }
+        
+        // 岩の下に影を追加
+        const shadowGeometry = new THREE.PlaneGeometry(rockSize * 2, rockSize * 2);
+        const shadowMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0.3
+        });
+        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.position.y = 0.01;
+        rockGroup.add(shadow);
+        
+        // 岩のグループ全体をランダムに回転
+        rockGroup.rotation.y = this.rng() * Math.PI * 2;
+        
+        this.scene.add(rockGroup);
+        this.objects.push(rockGroup);
     }
     
     createRuins(x, z, height) {
@@ -688,65 +1083,158 @@ class FieldMap {
     }
     
     createDebris(x, z) {
+        const debrisGroup = new THREE.Group();
+        debrisGroup.position.set(x, 0, z);
+
         const debrisType = this.debrisTypes[Math.floor(this.rng() * this.debrisTypes.length)];
         
-        // 可変サイズのがれき
-        const size = debrisType.size * (0.5 + this.rng());
+        // メインのがれきのサイズ
+        const mainSize = debrisType.size * (0.5 + this.rng());
         
-        let debrisGeometry;
-        const geometryType = Math.floor(this.rng() * 3);
+        // がれきの種類に応じた形状とマテリアルを設定
+        let mainDebrisGeometry;
+        let mainDebrisMaterial;
         
-        // 異なるジオメトリタイプを作成
-        switch (geometryType) {
-            case 0: // 立方体（コンクリートの塊）
-                debrisGeometry = new THREE.BoxGeometry(size, size, size);
+        switch (debrisType.name) {
+            case 'concrete':
+                // コンクリートは不規則な塊
+                mainDebrisGeometry = new THREE.DodecahedronGeometry(mainSize, 1);
+                mainDebrisMaterial = new THREE.MeshStandardMaterial({
+                    color: debrisType.color,
+                    roughness: 0.9,
+                    metalness: 0.1,
+                    flatShading: true
+                });
                 break;
-            case 1: // 四面体（ガラスの破片）
-                debrisGeometry = new THREE.TetrahedronGeometry(size);
+                
+            case 'metal':
+                // 金属は板状またはパイプ状
+                if (this.rng() > 0.5) {
+                    mainDebrisGeometry = new THREE.BoxGeometry(mainSize, mainSize * 0.1, mainSize * 0.8);
+                } else {
+                    mainDebrisGeometry = new THREE.CylinderGeometry(mainSize * 0.2, mainSize * 0.2, mainSize * 2, 8);
+                }
+                mainDebrisMaterial = new THREE.MeshStandardMaterial({
+                    color: debrisType.color,
+                    roughness: 0.5,
+                    metalness: 0.8
+                });
                 break;
-            case 2: // 円柱（パイプ/柱）
-                debrisGeometry = new THREE.CylinderGeometry(size/3, size/3, size*2, 8);
+                
+            case 'glass':
+                // ガラスは鋭い破片
+                mainDebrisGeometry = new THREE.TetrahedronGeometry(mainSize);
+                mainDebrisMaterial = new THREE.MeshStandardMaterial({
+                    color: debrisType.color,
+                    roughness: 0.1,
+                    metalness: 0.9,
+                    transparent: true,
+                    opacity: 0.7
+                });
                 break;
+                
+            case 'wood':
+                // 木材は細長い形状
+                mainDebrisGeometry = new THREE.BoxGeometry(mainSize * 0.2, mainSize * 0.2, mainSize * 2);
+                mainDebrisMaterial = new THREE.MeshStandardMaterial({
+                    color: debrisType.color,
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+                break;
+                
+            default:
+                // その他は不規則な形状
+                mainDebrisGeometry = new THREE.DodecahedronGeometry(mainSize, 0);
+                mainDebrisMaterial = new THREE.MeshStandardMaterial({
+                    color: debrisType.color,
+                    roughness: 0.7,
+                    metalness: 0.2
+                });
         }
         
-        // ジオメトリを変形させて壊れた外観を作成
-        const vertices = debrisGeometry.attributes.position.array;
+        // メインのがれきを作成
+        const mainDebris = new THREE.Mesh(mainDebrisGeometry, mainDebrisMaterial);
+        
+        // 頂点を変形させて不規則な形状に
+        const vertices = mainDebrisGeometry.attributes.position.array;
         for (let i = 0; i < vertices.length; i += 3) {
-            vertices[i] += (this.rng() - 0.5) * 0.4;
-            vertices[i + 1] += (this.rng() - 0.5) * 0.4;
-            vertices[i + 2] += (this.rng() - 0.5) * 0.4;
+            vertices[i] += (this.rng() - 0.5) * 0.3;
+            vertices[i + 1] += (this.rng() - 0.5) * 0.3;
+            vertices[i + 2] += (this.rng() - 0.5) * 0.3;
         }
         
-        // 色のバリエーション
-        const colorVariation = (this.rng() - 0.5) * 0.2;
-        const color = new THREE.Color(debrisType.color);
-        color.r += colorVariation;
-        color.g += colorVariation;
-        color.b += colorVariation;
+        // メインのがれきを配置
+        mainDebris.position.y = mainSize / 2;
+        mainDebris.rotation.set(
+            this.rng() * Math.PI,
+            this.rng() * Math.PI,
+            this.rng() * Math.PI
+        );
+        mainDebris.castShadow = true;
+        mainDebris.receiveShadow = true;
+        debrisGroup.add(mainDebris);
         
-        const debrisMaterial = new THREE.MeshStandardMaterial({
-            color: color,
-            roughness: 0.7 + this.rng() * 0.3,
-            metalness: debrisType.name === 'metal' ? 0.7 : 0.1,
-            flatShading: true
+        // 小さな破片を追加
+        const smallDebrisCount = Math.floor(this.rng() * 5) + 3; // 3-7個の小さな破片
+        for (let i = 0; i < smallDebrisCount; i++) {
+            const smallSize = mainSize * (0.1 + this.rng() * 0.3);
+            let smallDebrisGeometry;
+            
+            // 小さな破片の形状をランダムに選択
+            const geometryType = Math.floor(this.rng() * 3);
+            switch (geometryType) {
+                case 0:
+                    smallDebrisGeometry = new THREE.TetrahedronGeometry(smallSize);
+                    break;
+                case 1:
+                    smallDebrisGeometry = new THREE.BoxGeometry(smallSize, smallSize * 0.1, smallSize);
+                    break;
+                case 2:
+                    smallDebrisGeometry = new THREE.SphereGeometry(smallSize, 4, 4);
+                    break;
+            }
+            
+            const smallDebris = new THREE.Mesh(smallDebrisGeometry, mainDebrisMaterial);
+            
+            // 小さな破片の位置をランダムに設定
+            const angle = this.rng() * Math.PI * 2;
+            const distance = mainSize * (0.5 + this.rng() * 0.5);
+            smallDebris.position.set(
+                Math.cos(angle) * distance,
+                smallSize / 2,
+                Math.sin(angle) * distance
+            );
+            
+            // ランダムな回転
+            smallDebris.rotation.set(
+                this.rng() * Math.PI,
+                this.rng() * Math.PI,
+                this.rng() * Math.PI
+            );
+            
+            smallDebris.castShadow = true;
+            smallDebris.receiveShadow = true;
+            debrisGroup.add(smallDebris);
+        }
+        
+        // がれきの下に影を追加
+        const shadowGeometry = new THREE.PlaneGeometry(mainSize * 2, mainSize * 2);
+        const shadowMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0.3
         });
+        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+        shadow.rotation.x = -Math.PI / 2;
+        shadow.position.y = 0.01;
+        debrisGroup.add(shadow);
         
-        const debris = new THREE.Mesh(debrisGeometry, debrisMaterial);
+        // がれきのグループ全体をランダムに回転
+        debrisGroup.rotation.y = this.rng() * Math.PI * 2;
         
-        // がれきの位置を設定
-        debris.position.set(x, size / 2, z);
-        
-        // ランダムな回転
-        debris.rotation.x = this.rng() * Math.PI;
-        debris.rotation.y = this.rng() * Math.PI;
-        debris.rotation.z = this.rng() * Math.PI;
-        
-        // がれきをシーンに追加
-        debris.userData = { type: 'debris', debrisType: debrisType.name };
-        debris.castShadow = true;
-        debris.receiveShadow = true;
-        this.scene.add(debris);
-        this.objects.push(debris);
+        this.scene.add(debrisGroup);
+        this.objects.push(debrisGroup);
     }
     
     createFactory(x, z, height) {
@@ -956,5 +1444,107 @@ class FieldMap {
         }
         
         return false;
+    }
+
+    createDestroyedTop(building, width, height, depth, destructionLevel) {
+        const topGeometry = new THREE.BoxGeometry(width * 0.8, height * 0.2, depth * 0.8);
+        const topMaterial = new THREE.MeshStandardMaterial({
+            color: 0x666666,
+            roughness: 0.9,
+            metalness: 0.1,
+            flatShading: true
+        });
+
+        const top = new THREE.Mesh(topGeometry, topMaterial);
+        top.position.y = height * 0.4;
+        
+        // 上部を不規則に変形
+        const vertices = topGeometry.attributes.position.array;
+        for (let i = 0; i < vertices.length; i += 3) {
+            vertices[i] += (this.rng() - 0.5) * destructionLevel * 3;
+            vertices[i + 1] += (this.rng() - 0.5) * destructionLevel * 3;
+            vertices[i + 2] += (this.rng() - 0.5) * destructionLevel * 3;
+        }
+
+        building.add(top);
+    }
+
+    createCracks(building, width, height, depth, destructionLevel) {
+        const crackCount = Math.floor(destructionLevel * 10);
+        
+        for (let i = 0; i < crackCount; i++) {
+            const crackGeometry = new THREE.PlaneGeometry(2, height * 0.3);
+            const crackMaterial = new THREE.MeshStandardMaterial({
+                color: 0x333333,
+                roughness: 0.8,
+                metalness: 0.2,
+                side: THREE.DoubleSide
+            });
+
+            const crack = new THREE.Mesh(crackGeometry, crackMaterial);
+            
+            // ランダムな位置に亀裂を配置
+            const side = Math.floor(this.rng() * 4);
+            const offset = (this.rng() - 0.5) * (width * 0.8);
+            
+            switch(side) {
+                case 0: // 前面
+                    crack.position.set(offset, height * 0.3, depth/2 + 0.1);
+                    break;
+                case 1: // 背面
+                    crack.position.set(offset, height * 0.3, -depth/2 - 0.1);
+                    crack.rotation.y = Math.PI;
+                    break;
+                case 2: // 左面
+                    crack.position.set(-width/2 - 0.1, height * 0.3, offset);
+                    crack.rotation.y = -Math.PI/2;
+                    break;
+                case 3: // 右面
+                    crack.position.set(width/2 + 0.1, height * 0.3, offset);
+                    crack.rotation.y = Math.PI/2;
+                    break;
+            }
+
+            // 亀裂を不規則に変形
+            const vertices = crackGeometry.attributes.position.array;
+            for (let j = 0; j < vertices.length; j += 3) {
+                vertices[j] += (this.rng() - 0.5) * 0.5;
+                vertices[j + 1] += (this.rng() - 0.5) * 0.5;
+            }
+
+            building.add(crack);
+        }
+    }
+
+    createCollapsedWalls(building, width, height, depth, destructionLevel) {
+        const wallCount = Math.floor(destructionLevel * 5);
+        
+        for (let i = 0; i < wallCount; i++) {
+            const wallGeometry = new THREE.BoxGeometry(width * 0.3, height * 0.2, 0.5);
+            const wallMaterial = new THREE.MeshStandardMaterial({
+                color: 0x888888,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+
+            const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+            
+            // ランダムな位置に崩れた壁を配置
+            const angle = this.rng() * Math.PI * 2;
+            const distance = (this.rng() * 0.5 + 0.5) * width;
+            
+            wall.position.set(
+                Math.cos(angle) * distance,
+                height * 0.1,
+                Math.sin(angle) * distance
+            );
+            
+            // ランダムな回転
+            wall.rotation.x = this.rng() * Math.PI * 0.5;
+            wall.rotation.y = angle;
+            wall.rotation.z = this.rng() * Math.PI * 0.5;
+
+            building.add(wall);
+        }
     }
 } 

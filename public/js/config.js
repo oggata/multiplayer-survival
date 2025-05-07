@@ -70,7 +70,7 @@ const GameConfig = {
     
     // アイテム設定
     ITEM: {
-        MAX_COUNT:      100,
+        MAX_COUNT:      50,
         COLLECTION_RADIUS: 1.0,
         SPAWN: {
             BUILDING_RADIUS: 15, // 建物からのスポーン半径
@@ -97,7 +97,7 @@ const GameConfig = {
     
     // 霧設定
     FOG: {
-        DENSITY: 0.013
+        DENSITY: 0.008
     },
     
     // カメラ設定
@@ -122,7 +122,7 @@ const GameConfig = {
         },
         BUILDINGS: {
             DENSITY: 0.9,  // 建物の生成確率（0-1）
-            MIN_DISTANCE: 20,  // 建物間の最小距離
+            MIN_DISTANCE: 5,  // 建物間の最小距離
             MAX_ATTEMPTS: 100  // 建物配置の最大試行回数
         }
     },
@@ -207,9 +207,9 @@ const GameConfig = {
     
     // 視覚設定
     VISION: {
-        FOV: 70,
-        MAX_DISTANCE: 150,  // 最大表示距離を50に増加
-        FADE_START: 140,    // フェード開始距離を40に増加
+        FOV: 80,
+        MAX_DISTANCE: 160,  // 最大表示距離を50に増加
+        FADE_START: 165,    // フェード開始距離を40に増加
         UPDATE_INTERVAL: 500
     },
     

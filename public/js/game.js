@@ -1359,6 +1359,10 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     update(deltaTime) {
         if (this.isGameOver) return;
         
+        // プレイヤーの位置に基づいてバイオーム名を表示
+        const biome = this.fieldMap.getBiomeAt(this.playerModel.position.x, this.playerModel.position.z);
+        //console.log('現在のバイオーム:', biome.type);
+        
         // 射撃のクールダウンを更新
         if (!this.canShoot) {
             this.shootTimer += deltaTime;
@@ -1383,43 +1387,35 @@ this.socket.on('zombiesKilled', (zombieIds) => {
                 this.shootTimer = 0;
             }
         }
-        
+
         // ゲーム時間の更新（サーバーからの開始時間を考慮）
         if (this.gameStartTime) {
             this.gameTime = (Date.now() - this.gameStartTime) / 1000;
         }
-        // ゲーム時間の更新（サーバーからの開始時間を考慮）
-        if (this.gameStartTime) {
-            this.gameTime = (Date.now() - this.gameStartTime) / 1000;
-        }
-        
+
         this.playerStatus.update(deltaTime);
-        
+
         // ステータス表示の更新
         this.updateStatusDisplay();
-        
+
         // アイテムとの衝突判定
         this.checkItemCollisions();
-        
+
         // 天気の更新
         this.weather.update(deltaTime, this.gameTime, this.timeOfDay);
-        
+
         // ステータスによるHP減少の処理
         this.updateHealthFromStatus(deltaTime);
-        
+
         // 敵の弾丸の更新
         this.enemyBullets.forEach(bullet => {
             bullet.update(deltaTime);
         });
 
-
         // 敵の表示/非表示を更新
         this.enemies.forEach(enemy => {
- 
-
             enemy.model.updateLimbAnimation2(deltaTime);
         });
-
 
         //itemの更新
         this.items.forEach(item => {
