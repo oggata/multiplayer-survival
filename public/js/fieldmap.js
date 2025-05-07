@@ -368,6 +368,65 @@ class FieldMap {
                 break;
             default:
                 treeType = 'pine';
+
+                const mapSize = GameConfig.MAP.SIZE;
+                const halfSize = mapSize / 2;
+                const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
+                
+                // ビルの生成確率を設定から取得
+                const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
+                
+                // ビルを生成
+                if (this.rng() < buildingChance) {
+                    let position;
+                    let isSafe = false;
+                    let attempts = 0;
+                    const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
+                    
+                    while (!isSafe && attempts < maxAttempts) {
+                        // マップの範囲内でランダムな位置を生成
+                        position = new THREE.Vector3(
+                            (Math.random() - 0.5) * (mapSize - minDistance * 2),
+                            0,
+                            (Math.random() - 0.5) * (mapSize - minDistance * 2)
+                        );
+                        
+                        // マップの境界からminDistance以上離れていることを確認
+                        if (Math.abs(position.x) > halfSize - minDistance || 
+                            Math.abs(position.z) > halfSize - minDistance) {
+                            attempts++;
+                            continue;
+                        }
+                        
+                        // 他のオブジェクトとの距離をチェック
+                        isSafe = true;
+                        for (const object of this.objects) {
+                            if (object.position.distanceTo(position) < minDistance) {
+                                isSafe = false;
+                                break;
+                            }
+                        }
+                        
+                        attempts++;
+                    }
+                    
+                    if (isSafe) {
+                        const buildingType = this.buildingTypes[Math.floor(Math.random() * this.buildingTypes.length)];
+                        const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
+                        const width = 15 + this.rng() * 25;
+                        this.createBuilding(position, buildingType, height, width);
+                    }
+                }
+                
+                // 車の生成
+                const carChance = 0.3; // 30%の確率で車を生成
+                if (this.rng() < carChance) {
+                    const x = biome.x + (this.rng() - 0.5) * biome.size;
+                    const z = biome.z + (this.rng() - 0.5) * biome.size;
+                    this.createCar(x, z, this.rng() * Math.PI * 2);
+                }
+
+
         }
 
         // 木の生成
@@ -398,6 +457,64 @@ class FieldMap {
             const height = Math.floor(this.rng() * 5) + 2;
             this.createRuins(x, z, height);
         }
+
+        const mapSize = GameConfig.MAP.SIZE;
+        const halfSize = mapSize / 2;
+        const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
+        
+        // ビルの生成確率を設定から取得
+        const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
+        
+        // ビルを生成
+        if (this.rng() < buildingChance) {
+            let position;
+            let isSafe = false;
+            let attempts = 0;
+            const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
+            
+            while (!isSafe && attempts < maxAttempts) {
+                // マップの範囲内でランダムな位置を生成
+                position = new THREE.Vector3(
+                    (Math.random() - 0.5) * (mapSize - minDistance * 2),
+                    0,
+                    (Math.random() - 0.5) * (mapSize - minDistance * 2)
+                );
+                
+                // マップの境界からminDistance以上離れていることを確認
+                if (Math.abs(position.x) > halfSize - minDistance || 
+                    Math.abs(position.z) > halfSize - minDistance) {
+                    attempts++;
+                    continue;
+                }
+                
+                // 他のオブジェクトとの距離をチェック
+                isSafe = true;
+                for (const object of this.objects) {
+                    if (object.position.distanceTo(position) < minDistance) {
+                        isSafe = false;
+                        break;
+                    }
+                }
+                
+                attempts++;
+            }
+            
+            if (isSafe) {
+                const buildingType = this.buildingTypes[Math.floor(Math.random() * this.buildingTypes.length)];
+                const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
+                const width = 15 + this.rng() * 25;
+                this.createBuilding(position, buildingType, height, width);
+            }
+        }
+        
+        // 車の生成
+        const carChance = 0.5; // 30%の確率で車を生成
+        if (this.rng() < carChance) {
+            const x = biome.x + (this.rng() - 0.5) * biome.size;
+            const z = biome.z + (this.rng() - 0.5) * biome.size;
+            this.createCar(x, z, this.rng() * Math.PI * 2);
+        }
+
     }
     
     generateIndustrialObjects(biome) {
@@ -417,6 +534,63 @@ class FieldMap {
             const z = biome.z + (this.rng() - 0.5) * biome.size;
             this.createTank(x, z);
         }
+        const mapSize = GameConfig.MAP.SIZE;
+        const halfSize = mapSize / 2;
+        const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
+        
+        // ビルの生成確率を設定から取得
+        const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
+        
+        // ビルを生成
+        if (this.rng() < buildingChance) {
+            let position;
+            let isSafe = false;
+            let attempts = 0;
+            const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
+            
+            while (!isSafe && attempts < maxAttempts) {
+                // マップの範囲内でランダムな位置を生成
+                position = new THREE.Vector3(
+                    (Math.random() - 0.5) * (mapSize - minDistance * 2),
+                    0,
+                    (Math.random() - 0.5) * (mapSize - minDistance * 2)
+                );
+                
+                // マップの境界からminDistance以上離れていることを確認
+                if (Math.abs(position.x) > halfSize - minDistance || 
+                    Math.abs(position.z) > halfSize - minDistance) {
+                    attempts++;
+                    continue;
+                }
+                
+                // 他のオブジェクトとの距離をチェック
+                isSafe = true;
+                for (const object of this.objects) {
+                    if (object.position.distanceTo(position) < minDistance) {
+                        isSafe = false;
+                        break;
+                    }
+                }
+                
+                attempts++;
+            }
+            
+            if (isSafe) {
+                const buildingType = this.buildingTypes[Math.floor(Math.random() * this.buildingTypes.length)];
+                const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
+                const width = 15 + this.rng() * 25;
+                this.createBuilding(position, buildingType, height, width);
+            }
+        }
+        
+        // 車の生成
+        const carChance = 0.3; // 30%の確率で車を生成
+        if (this.rng() < carChance) {
+            const x = biome.x + (this.rng() - 0.5) * biome.size;
+            const z = biome.z + (this.rng() - 0.5) * biome.size;
+            this.createCar(x, z, this.rng() * Math.PI * 2);
+        }
+        
     }
     
     generateBeachObjects(biome) {
