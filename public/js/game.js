@@ -486,6 +486,11 @@ class Game {
         const messageButton = document.getElementById('messageButton');
         const backpackButton = document.getElementById('backpackButton');
 
+        if (!leftJoystick || !shootButton || !messageButton || !backpackButton) {
+            console.warn('モバイルコントロールの要素が見つかりません');
+            return;
+        }
+
         const gauge = document.createElement('div');
         gauge.style.position = 'absolute';
         gauge.style.bottom = '0';
@@ -740,6 +745,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         
         this.scene.add(character.character);
         this.players.set(playerData.id, character);
+        this.updatePlayerCount();
     }
 
     removePlayer(playerId) {
@@ -748,6 +754,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             player.dispose();
             this.players.delete(playerId);
         }
+        this.updatePlayerCount();
     }
 
     shoot() {
@@ -1100,9 +1107,9 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     
     // プレイヤー数を更新するメソッド
     updatePlayerCount() {
-        if (this.playerCountElement) {
-            const count = this.players.size + 1; // 自分を含めた総数
-            //this.playerCountElement.textContent = `プレイヤー数: ${count}`;
+        const playerCountElement = document.getElementById('player-count-number');
+        if (playerCountElement) {
+            //playerCountElement.textContent = this.players.size;
         }
     }
 
@@ -1853,23 +1860,22 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // 世界の時間を24時間表記に変換（0-23時）
         const worldHours = Math.floor(worldTime / (gameDayLengthMs / 24));
         const worldMinutes = Math.floor((worldTime % (gameDayLengthMs / 24)) / (gameDayLengthMs / 24 / 60));
+    
+
+
+        const playerCountElement = document.getElementById('player-count-number');
+        if (playerCountElement) {
+            //playerCountElement.textContent = this.players.size;
+        }
+
+
         
-        /*
         // 時間表示を更新
         const timeDisplay = document.getElementById('timeDisplay');
         if (timeDisplay) {
-            timeDisplay.innerHTML = `生存時間: ${survivalDays}日 ${survivalHours.toString().padStart(2, '0')}時間 ${survivalMinutes.toString().padStart(2, '0')}分<br>世界時間: ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
-        }*/
-        //世界時間を更新
-        const worldTimeDisplay = document.getElementById('worldTimeDisplay');
-        if (worldTimeDisplay) {
-            worldTimeDisplay.innerHTML = ` ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
+            timeDisplay.innerHTML = `P: ${this.players.size} SV: ${survivalDays}D ${survivalHours.toString().padStart(2, '0')}H ${survivalMinutes.toString().padStart(2, '0')}M<br>W: ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
         }
-        //生存時間を更新
-        const survivalTimeDeisplay = document.getElementById('survivalTimeDeisplay');
-        if (survivalTimeDeisplay) {
-            survivalTimeDeisplay.innerHTML = ` ${survivalDays}Day ${survivalHours.toString().padStart(2, '0')}Hour ${survivalMinutes.toString().padStart(2, '0')}min`;
-        }
+
 
 
     }
