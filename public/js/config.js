@@ -224,7 +224,6 @@ const GameConfig = {
     },
     
     ITEMS: {
-        /*
         // 医療アイテム
         healthKit: {
             name: 'Health Kit',
@@ -900,7 +899,7 @@ const GameConfig = {
                     infection: 20
                 }
             }
-        },*/
+        },
 // 攻撃武器
 machineGun: {
     name: 'マシンガン',

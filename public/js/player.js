@@ -88,17 +88,18 @@ class PlayerStatus {
         // ゲージを更新
         this.updateGauges();
     }
-    
+    /*
     // ダメージを受ける
     takeDamage(damage) {
+        console.log(damage);
         this.health = Math.max(0, this.health - damage);
-        this.updateGauges();
+        //this.updateGauges();
         
         // 出血を増加
-        //this.bleeding = Math.min(100, this.bleeding + damage * 0.5);
-        
+        this.bleeding = Math.min(100, this.bleeding + damage);
+        this.updateGauges();
         return this.health <= 0;
-    }
+    }*/
     
     // ゲージを更新する
     updateGauges() {

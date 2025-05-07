@@ -30,17 +30,17 @@ const usedColors = new Set();
 // プレイヤー情報を保存
 const players = {};
 
-// ゾンビ情報を保存
-const zombies = {};
+// 敵情報を保存
+const enemies = {};
 
-// ゾンビの色
-const zombieColor = 0x33aa33;
+// 敵の色
+const enemyColor = 0x33aa33;
 
-// ゾンビの生成間隔（ミリ秒）
-const ZOMBIE_SPAWN_INTERVAL = 100;
+// 敵の生成間隔（ミリ秒）
+const ENEMY_SPAWN_INTERVAL = 100;
 
-// 時間帯ごとのゾンビの最大数
-const MAX_ZOMBIES = {
+// 時間帯ごとの敵の最大数
+const MAX_ENEMIES = {
     MORNING: 50,   // 朝（6:00-12:00）
     DAY: 60,      // 昼（12:00-18:00）
     EVENING: 200,  // 夕方（18:00-24:00）
@@ -80,39 +80,39 @@ function getCurrentTimeOfDay() {
     return 'NIGHT';
 }
 
-// 現在の時間帯の最大ゾンビ数を取得する関数
-function getMaxZombies() {
-    return MAX_ZOMBIES[getCurrentTimeOfDay()];
+// 現在の時間帯の最大敵数を取得する関数
+function getMaxEnemies() {
+    return MAX_ENEMIES[getCurrentTimeOfDay()];
 }
 
 // 時間帯が変わった時に敵の数を調整する関数
-function adjustZombieCount() {
-    const currentMaxZombies = getMaxZombies();
-    const currentZombieCount = Object.keys(zombies).length;
+function adjustEnemyCount() {
+    const currentMaxEnemies = getMaxEnemies();
+    const currentEnemyCount = Object.keys(enemies).length;
     
-    if (currentZombieCount > currentMaxZombies) {
-        const zombiesToRemove = currentZombieCount - currentMaxZombies;
-        const zombieIds = Object.keys(zombies);
-        const removedZombieIds = [];
+    if (currentEnemyCount > currentMaxEnemies) {
+        const enemiesToRemove = currentEnemyCount - currentMaxEnemies;
+        const enemyIds = Object.keys(enemies);
+        const removedEnemyIds = [];
         
         // ランダムに敵を選択して削除
-        for (let i = 0; i < zombiesToRemove; i++) {
-            const randomIndex = Math.floor(Math.random() * zombieIds.length);
-            const zombieId = zombieIds[randomIndex];
+        for (let i = 0; i < enemiesToRemove; i++) {
+            const randomIndex = Math.floor(Math.random() * enemyIds.length);
+            const enemyId = enemyIds[randomIndex];
             
             // 削除する敵のIDを記録
-            removedZombieIds.push(zombieId);
+            removedEnemyIds.push(enemyId);
             
             // 敵を削除
-            delete zombies[zombieId];
+            delete enemies[enemyId];
             
             // 削除したIDを配列から削除
-            zombieIds.splice(randomIndex, 1);
+            enemyIds.splice(randomIndex, 1);
         }
         
         // 削除した敵のIDを一度にクライアントに通知
-        if (removedZombieIds.length > 0) {
-            io.emit('zombiesKilled', removedZombieIds);
+        if (removedEnemyIds.length > 0) {
+            io.emit('enemiesKilled', removedEnemyIds);
         }
     }
 }
@@ -127,25 +127,25 @@ setInterval(() => {
     if (currentTimeOfDay !== lastTimeOfDay) {
         console.log(`時間帯が ${lastTimeOfDay} から ${currentTimeOfDay} に変わりました`);
         lastTimeOfDay = currentTimeOfDay;
-        adjustZombieCount();
+        adjustEnemyCount();
     }
 }, TIME_CHECK_INTERVAL);
 
-// ゾンビの生成
-function spawnZombie() {
-    const currentMaxZombies = getMaxZombies();
-    //console.log("z=" + Object.keys(zombies).length + "/" + currentMaxZombies);
+// 敵の生成
+function spawnEnemy() {
+    const currentMaxEnemies = getMaxEnemies();
+    //console.log("e=" + Object.keys(enemies).length + "/" + currentMaxEnemies);
 
-    if (Object.keys(zombies).length >= currentMaxZombies) return;
+    if (Object.keys(enemies).length >= currentMaxEnemies) return;
     
-    const zombieId = 'zombie_' + Date.now();
+    const enemyId = 'enemy_' + Date.now();
 
     // マップサイズ内にスポーン（端から10単位の余白を設ける）
     const x = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
     const z = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
     
-    zombies[zombieId] = {
-        id: zombieId,
+    enemies[enemyId] = {
+        id: enemyId,
         position: { x, y: 0, z },
         rotation: { y: Math.random() * Math.PI * 2 },
         health: 20,
@@ -154,17 +154,17 @@ function spawnZombie() {
         lastAttack: 0
     };
     
-    io.emit('zombieSpawned', zombies[zombieId]);
+    io.emit('enemySpawned', enemies[enemyId]);
 }
 
-// 定期的にゾンビを生成
-setInterval(spawnZombie, ZOMBIE_SPAWN_INTERVAL);
+// 定期的に敵を生成
+setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
 
-// ゾンビの更新
-function updateZombies() {
+// 敵の更新
+function updateEnemies() {
     const now = Date.now();
     
-    Object.values(zombies).forEach(zombie => {
+    Object.values(enemies).forEach(enemy => {
         // プレイヤーとの距離を計算
         let closestPlayer = null;
         let minDistance = Infinity;
@@ -173,8 +173,8 @@ function updateZombies() {
             // 死亡したプレイヤーは追跡対象から除外
             if (player.health <= 0) return;
             
-            const dx = player.position.x - zombie.position.x;
-            const dz = player.position.z - zombie.position.z;
+            const dx = player.position.x - enemy.position.x;
+            const dz = player.position.z - enemy.position.z;
             const distance = Math.sqrt(dx * dx + dz * dz);
             
             if (distance < minDistance) {
@@ -185,53 +185,53 @@ function updateZombies() {
         
         // プレイヤーが近くにいる場合、追いかける
         if (closestPlayer && minDistance < 50) {
-            zombie.state = 'chasing';
-            zombie.target = closestPlayer.id;
+            enemy.state = 'chasing';
+            enemy.target = closestPlayer.id;
             
             // プレイヤーの方向に向かって移動
-            const dx = closestPlayer.position.x - zombie.position.x;
-            const dz = closestPlayer.position.z - zombie.position.z;
+            const dx = closestPlayer.position.x - enemy.position.x;
+            const dz = closestPlayer.position.z - enemy.position.z;
             const angle = Math.atan2(dx, dz);
             
-            zombie.rotation.y = angle;
+            enemy.rotation.y = angle;
             
             // 移動速度を遅くする（0.5 → 0.2）
             const speed = 0.15;
-            zombie.position.x += Math.sin(angle) * speed;
-            zombie.position.z += Math.cos(angle) * speed;
+            enemy.position.x += Math.sin(angle) * speed;
+            enemy.position.z += Math.cos(angle) * speed;
             
             // プレイヤーに攻撃
-            if (minDistance < 2 && now - zombie.lastAttack > 1000) {
-                zombie.lastAttack = now;
-                io.to(closestPlayer.id).emit('zombieAttack', { damage: 10 });
+            if (minDistance < 2 && now - enemy.lastAttack > 1000) {
+                enemy.lastAttack = now;
+                io.to(closestPlayer.id).emit('enemyAttack', { damage: 10 });
             }
         } else {
             // ランダムに徘徊
-            zombie.state = 'wandering';
-            zombie.target = null;
+            enemy.state = 'wandering';
+            enemy.target = null;
             
             if (Math.random() < 0.02) {
-                zombie.rotation.y = Math.random() * Math.PI * 2;
+                enemy.rotation.y = Math.random() * Math.PI * 2;
             }
             
             // 徘徊時の速度を遅くする（0.2 → 0.1）
             const speed = 0.1;
-            zombie.position.x += Math.sin(zombie.rotation.y) * speed;
-            zombie.position.z += Math.cos(zombie.rotation.y) * speed;
+            enemy.position.x += Math.sin(enemy.rotation.y) * speed;
+            enemy.position.z += Math.cos(enemy.rotation.y) * speed;
         }
         
-        // ゾンビの位置を更新
-        io.emit('zombieMoved', {
-            id: zombie.id,
-            position: zombie.position,
-            rotation: zombie.rotation,
-            state: zombie.state
+        // 敵の位置を更新
+        io.emit('enemyMoved', {
+            id: enemy.id,
+            position: enemy.position,
+            rotation: enemy.rotation,
+            state: enemy.state
         });
     });
 }
 
-// ゾンビの更新を定期的に実行
-setInterval(updateZombies, 100);
+// 敵の更新を定期的に実行
+setInterval(updateEnemies, 100);
 
 io.on('connection', (socket) => {
     console.log('プレイヤーが接続しました:', socket.id);
@@ -271,9 +271,9 @@ io.on('connection', (socket) => {
         hash: playerHash
     };
     
-    // 現在のプレイヤーとゾンビの情報を送信
+    // 現在のプレイヤーと敵の情報を送信
     socket.emit('currentPlayers', Object.values(players));
-    socket.emit('currentZombies', Object.values(zombies));
+    socket.emit('currentEnemies', Object.values(enemies));
     
     // 新しいプレイヤーの情報を他のプレイヤーに送信
     socket.broadcast.emit('newPlayer', players[socket.id]);
@@ -300,37 +300,37 @@ io.on('connection', (socket) => {
         });
         
 
-        /*
-        // ゾンビとの衝突判定
-        Object.values(zombies).forEach(zombie => {
-            const dx = zombie.position.x - data.position.x;
-            const dy = zombie.position.y - data.position.y;
-            const dz = zombie.position.z - data.position.z;
+        
+        // 敵との衝突判定
+        Object.values(enemies).forEach(enemy => {
+            const dx = enemy.position.x - data.position.x;
+            const dy = enemy.position.y - data.position.y;
+            const dz = enemy.position.z - data.position.z;
             const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
             const bulletDamage = data.bulletDamage;
             if (distance < 8) {
 
-                console.log(zombie.health + " - " + data.bulletDamage);
-                // ゾンビにダメージを与える
-                zombie.health -= bulletDamage;
+                console.log(enemy.health + " - " + data.bulletDamage);
+                // 敵にダメージを与える
+                enemy.health -= bulletDamage;
                 
-                if (zombie.health <= 0) {
+                if (enemy.health <= 0) {
                     console.log("aaa");
-                    // ゾンビを倒した
-                    io.emit('zombieKilled', zombie.id);
-                    delete zombies[zombie.id];
+                    // 敵を倒した
+                    io.emit('enemiesKilled', [enemy.id]);
+                    delete enemies[enemy.id];
                 } else {
-                    // ゾンビにダメージを与えた
+                    // 敵にダメージを与えた
                     console.log("bbb");
-                    io.emit('zombieHit', {
-                        id: zombie.id,
-                        health: zombie.health
+                    io.emit('enemyHit', {
+                        id: enemy.id,
+                        health: enemy.health
                     });
                 }
             }
-        });*/
+        });
     });
-    
+    /*
     // プレイヤーがダメージを受けた時の処理
     socket.on('playerHit', (data) => {
         if (players[data.targetId]) {
@@ -346,7 +346,7 @@ io.on('connection', (socket) => {
                 });
             }
         }
-    });
+    });*/
     
     // プレイヤーがリスタートした時の処理
     socket.on('playerRestart', () => {

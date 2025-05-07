@@ -45,7 +45,7 @@ class Game {
         
         this.socket = io();
         this.players = new Map();
-        this.zombies = new Map();  // ゾンビを管理するMapを追加
+        this.enemies = new Map();  // 敵を管理するMapを追加
         this.bullets = [];
         this.moveSpeed = GameConfig.PLAYER.MOVE_SPEED;
         this.rotationSpeed = GameConfig.PLAYER.ROTATION_SPEED;
@@ -92,7 +92,6 @@ class Game {
         this.seed = null;
         this.gameStartTime = null;
         
-        this.enemies = new Map();
         this.enemyBullets = new Map();
         this.maxEnemies = GameConfig.ENEMY.MAX_COUNT;
         this.enemySpawnInterval = GameConfig.ENEMY.SPAWN_INTERVAL;
@@ -392,8 +391,8 @@ class Game {
             this.playerModel.setColor(color);
         }
         
-        // 安全なスポーン位置を取得
-        const spawnPosition = this.fieldMap.getSafeSpawnPosition();
+        // 他のプレイヤーの近くにスポーン
+        const spawnPosition = this.getNearbyPlayerPosition();
         this.playerModel.setPosition(spawnPosition.x, spawnPosition.y, spawnPosition.z);
     }
 
@@ -576,14 +575,14 @@ class Game {
             
             this.createBullet(position, direction, data.playerId,data.weponId);
         });
-        
+        /*
         // ダメージを受けた時のイベント
         this.socket.on('playerHit', (data) => {
             if (data.targetId === this.socket.id) {
                 this.takeDamage(data.damage);
             }
         });
-        
+        */
         // プレイヤーがリスタートした時のイベント
         this.socket.on('playerRestarted', (data) => {
             if (data.id === this.socket.id) {
@@ -623,22 +622,31 @@ class Game {
         });
 
         // 現在の敵の情報を受信
-        this.socket.on('currentZombies', (zombies) => {
-            zombies.forEach(zombie => this.spawnEnemy(zombie));
+        this.socket.on('currentEnemies', (enemies) => {
+            enemies.forEach(enemy => this.spawnEnemy(enemy));
         });
 
-        // 新しい敵の生成
-        this.socket.on('zombieSpawned', (zombie) => {
-            this.spawnEnemy(zombie);
+        this.socket.on('enemySpawned', (enemy) => {
+            this.spawnEnemy(enemy);
+        });
+
+        this.socket.on('enemiesKilled', (enemyIds) => {
+            enemyIds.forEach(enemyId => {
+                const enemy = this.enemies.get(enemyId);
+                if (enemy) {
+                    enemy.remove();
+                    this.enemies.delete(enemyId);
+                }
+            });
         });
 
         // 敵の移動
-        this.socket.on('zombieMoved', (data) => {
+        this.socket.on('enemyMoved', (data) => {
             this.updateEnemy(data.id, data.position);
         });
 
         // 敵の攻撃
-        this.socket.on('zombieAttack', (data) => {
+        this.socket.on('enemyAttack', (data) => {
             this.takeDamage(data.damage);
         });
 
@@ -802,15 +810,18 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             
             // 弾丸が寿命を迎えた場合は削除
             if (!isAlive) {
-                        this.bullets.splice(i, 1);
+                this.bullets.splice(i, 1);
                 continue;
             }
 
             // 敵との衝突判定
             this.enemies.forEach((enemy, enemyId) => {
+                // 敵が死亡している場合はスキップ
+                if (!enemy || enemy.isDead) return;
+                
                 if (enemy.checkBulletCollision(bullet.model.position)) {
                     // 敵にダメージを与える
-                    enemy.takeDamage(bullet.damage); // 1発で倒せるように大きなダメージを与える
+                    enemy.takeDamage(bullet.damage);
                     bullet.dispose();
                     this.bullets.splice(i, 1);
                 }
@@ -827,8 +838,8 @@ this.socket.on('zombiesKilled', (zombieIds) => {
                             damage: bullet.damage
                         });
                         bullet.dispose();
-                this.bullets.splice(i, 1);
-            }
+                        this.bullets.splice(i, 1);
+                    }
                 }
             });
         }
@@ -947,13 +958,14 @@ this.socket.on('zombiesKilled', (zombieIds) => {
 
     // ダメージを受ける処理
     takeDamage(damage) {
-        if (this.isGameOver) return;
         
-        this.currentHealth -= damage;
+        if (this.isGameOver) return;
+        console.log(damage);
+       this.currentHealth -= damage;
         this.playerStatus.health = this.currentHealth; // HPを同期
         
         // 出血を増加させる
-        //this.playerStatus.increaseBleeding(10);
+        this.playerStatus.increaseBleeding(damage);
         
         if (this.currentHealth < 0) {
             this.currentHealth = 0;
@@ -1055,9 +1067,9 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         
         // プレイヤーの周囲にランダムなオフセットを加える
         const offset = new THREE.Vector3(
-            (Math.random() - 0.5) * 10,
+            (Math.random() - 0.5) * 10, // -5から5の範囲でランダム
             0,
-            (Math.random() - 0.5) * 10
+            (Math.random() - 0.5) * 10  // -5から5の範囲でランダム
         );
         
         // 新しい位置を計算
@@ -1083,7 +1095,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             this.playerModel = null;
         }
         
-        // 新しいキャラクターを作成
+        // 新しいキャラクターを作成（他のプレイヤーの近くにスポーン）
         this.createPlayerModel();
         
         // サーバーにリスタートを通知
@@ -1152,7 +1164,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
                 const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
                 
                 const enemy = new Enemy(this.scene, spawnPosition, randomType);
-                this.enemies.push(enemy);
+                this.enemies.set(enemyData.id, enemy);  // enemiesにも追加
                 this.lastEnemySpawnTime = currentTime;
                 this.updateEnemyCount();
             }
@@ -1206,10 +1218,13 @@ this.socket.on('zombiesKilled', (zombieIds) => {
                 }
             }
             
+            /*
             // プレイヤーとの衝突判定
             if (distanceToPlayer < GameConfig.PLAYER.COLLISION_RADIUS) {
                 this.takeDamage(enemy.getDamage());
+                //console.log("xxxx");
             }
+                */
         }
     }
 
@@ -1235,9 +1250,9 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         
         this.updatePlayer(deltaTime);
         this.updateBullets(deltaTime);
-        this.updateEnemyBullets(deltaTime); // 敵の弾丸を更新
-        this.updateEnemies(deltaTime);
-        this.spawnEnemies();
+        //this.updateEnemyBullets(deltaTime); // 敵の弾丸を更新
+//this.updateEnemies(deltaTime);
+        //this.spawnEnemies();
         
         // オブジェクトの表示/非表示を更新
         this.updateObjectVisibility();
@@ -1829,7 +1844,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         }
         
         // 出血が多い場合
-        if (this.playerStatus.bleeding > 50) {
+        if (this.playerStatus.bleeding > 70) {
             damage += (this.playerStatus.bleeding - 50) * 0.1 * deltaTime;
         }
         
@@ -2228,7 +2243,6 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     spawnEnemy(enemyData) {
         const enemy = new Enemy(this.scene, enemyData, this);
         this.enemies.set(enemyData.id, enemy);
-        this.zombies.set(enemyData.id, enemy);  // zombiesにも追加
         this.updateEnemyCount();
     }
 

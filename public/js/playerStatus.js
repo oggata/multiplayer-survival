@@ -58,7 +58,7 @@ class PlayerStatus {
     update(deltaTime) {
         if (this.isGameOver) return;
         //console.log(this.health);
-        
+
         // 時間経過で空腹と喉の渇きが減少
         this.decreaseHunger(this.hungerDecreaseRate * deltaTime);
         this.decreaseThirst(this.thirstDecreaseRate * deltaTime);
@@ -67,10 +67,10 @@ class PlayerStatus {
         this.adjustTemperature(this.temperatureChangeRate * deltaTime);
         
         // 衛生の減少
-        this.decreaseHygiene(this.hygieneDecreaseRate * deltaTime);
+        //this.decreaseHygiene(this.hygieneDecreaseRate * deltaTime);
         
         // ステータスによるHP減少
-        this.updateHealthFromStatus(deltaTime);
+        //this.updateHealthFromStatus(deltaTime);
         
         // エフェクトの更新
         this.updateEffects(deltaTime);
@@ -82,11 +82,7 @@ class PlayerStatus {
         this.updateUI();
     }
 
-    takeDamage(damage) {
-        // 敵との接触で出血状態が悪化
-        this.bleeding = Math.min(100, this.bleeding + damage);
-        this.updateUI();
-    }
+
 
     takeBulletDamage(damage) {
         // 弾に当たった場合、衛生状態が悪化
@@ -140,7 +136,13 @@ class PlayerStatus {
         if (this.healthBar) this.healthBar.style.width = `${this.health}%`;
         if (this.hungerBar) this.hungerBar.style.width = `${this.hunger}%`;
         if (this.thirstBar) this.thirstBar.style.width = `${this.thirst}%`;
-        if (this.bleedingBar) this.bleedingBar.style.width = `${this.bleeding}%`;
+        
+        // 出血ゲージの更新
+        if (this.bleedingBar) {
+            const bleedingPercentage = (this.bleeding / this.maxBleeding) * 100;
+            this.bleedingBar.style.width = `${bleedingPercentage}%`;
+        }
+        
         if (this.temperatureBar) this.temperatureBar.style.width = `${Math.min(100, Math.max(0, ((this.temperature - 35) / 3) * 100))}%`;
         if (this.hygieneBar) this.hygieneBar.style.width = `${this.hygiene}%`;
         
@@ -193,6 +195,8 @@ class PlayerStatus {
 
     increaseBleeding(amount) {
         this.bleeding = Math.min(this.maxBleeding, this.bleeding + amount);
+
+        //console.log(this.bleeding);
         this.updateUI();
     }
 
@@ -223,15 +227,17 @@ class PlayerStatus {
         if (this.thirst < 20) {
             damage += (20 - this.thirst) * 0.08 * deltaTime;
         }
-        
+
         // 出血が70%を超えた場合
         if (this.bleeding > 70) {
-            damage += (this.bleeding - 70) * 0.1 * deltaTime;
+            damage += 1;
+            console.log("aaa"+damage)
         }
         
         // ダメージを適用
         if (damage > 0) {
-            this.takeDamage(damage);
+            this.health - damage
+            this.updateStatusDisplay();
         }
     }
 
