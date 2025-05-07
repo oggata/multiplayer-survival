@@ -187,7 +187,7 @@ class Game {
         document.addEventListener('enemyDied', this.handleEnemyDeath.bind(this));
         
         // 射撃関連の変数を追加
-        this.shootCooldown = 2.0; // クールダウン時間（秒）
+        this.shootCooldown = 0.8; // クールダウン時間（秒）
         this.shootTimer = 0; // 現在のクールダウンタイマー
         this.canShoot = true; // 射撃可能かどうか
         
