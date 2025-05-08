@@ -1085,13 +1085,23 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         gameOverElement.innerHTML = `
             <div>Game Over!!</div>
             <div>[ survival time ${survivalDays} day ${survivalHours} hour ${survivalMinutes} min ]</div>
-            <button id="restartButton">Restart</button>
+            <div class="share-buttons">
+                <button id="restartButton">Restart</button>
+                <button id="twitterShareButton" onclick="game.shareToTwitter()">
+                    <i class="fab fa-twitter"></i> Share on X
+                </button>
+                <button id="copyShareButton" onclick="game.copyShareText()">
+                    <i class="fas fa-copy"></i> Copy Text
+                </button>
+            </div>
+            <div id="copyMessage" style="display: none; color: #4CAF50; margin-top: 10px;">
+                Copied!
+            </div>
         `;
         gameOverElement.style.display = 'block';
         
         // リスタートボタンのイベントリスナーを設定
         document.getElementById('restartButton').addEventListener('click', () => {
-            //this.restart();
             this.restartGame();
         });
     }
@@ -2499,6 +2509,38 @@ console.log(effectConfig);
         // ゲームループを再開
         this.isGameOver = false;
         this.animate();
+    }
+
+    // Twitterでシェアするメソッド
+    shareToTwitter() {
+        const survivalTime = Date.now() - this.playerSpawnTime;
+        const gameDayLength = GameConfig.TIME.DAY_LENGTH;
+        const survivalDays = Math.floor(survivalTime / (gameDayLength * 1000));
+        const survivalHours = Math.floor((survivalTime % (gameDayLength * 1000)) / (gameDayLength * 1000 / 24));
+        const survivalMinutes = Math.floor((survivalTime % (gameDayLength * 1000 / 24)) / (gameDayLength * 1000 / 24 / 60));
+        
+        const text = `I survived ${survivalDays}days,${survivalHours}hours,${survivalMinutes}minutes.\n #bivouac #survivalgame \n https://bivouac.onrender.com \n`;
+        const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+    }
+
+    // シェアテキストをコピーするメソッド
+    copyShareText() {
+        const survivalTime = Date.now() - this.playerSpawnTime;
+        const gameDayLength = GameConfig.TIME.DAY_LENGTH;
+        const survivalDays = Math.floor(survivalTime / (gameDayLength * 1000));
+        const survivalHours = Math.floor((survivalTime % (gameDayLength * 1000)) / (gameDayLength * 1000 / 24));
+        const survivalMinutes = Math.floor((survivalTime % (gameDayLength * 1000 / 24)) / (gameDayLength * 1000 / 24 / 60));
+        
+        const text = `Bivouacで${survivalDays}日${survivalHours}時間${survivalMinutes}分生存しました！\nhttps://bivouac.onrender.com`;
+        
+        navigator.clipboard.writeText(text).then(() => {
+            const copyMessage = document.getElementById('copyMessage');
+            copyMessage.style.display = 'block';
+            setTimeout(() => {
+                copyMessage.style.display = 'none';
+            }, 2000);
+        });
     }
 }
 

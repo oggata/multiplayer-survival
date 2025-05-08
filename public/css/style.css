@@ -150,4 +150,64 @@
 .temperature .status-fill { background-color: #ff4444; }
 .bleeding .status-fill { background-color: #aa66cc; }
 .sleep .status-fill { background-color: #2BBBAD; }
-.sanity .status-fill { background-color: #ff8800; } 
+.sanity .status-fill { background-color: #ff8800; }
+
+.share-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    justify-content: center;
+}
+
+.share-buttons button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 0.3s;
+}
+
+#restartButton {
+    background-color: #4CAF50;
+    color: white;
+}
+
+#restartButton:hover {
+    background-color: #45a049;
+}
+
+#twitterShareButton {
+    background-color: #1DA1F2;
+    color: white;
+}
+
+#twitterShareButton:hover {
+    background-color: #1a8cd8;
+}
+
+#copyShareButton {
+    background-color: #607D8B;
+    color: white;
+}
+
+#copyShareButton:hover {
+    background-color: #546E7A;
+}
+
+#copyMessage {
+    text-align: center;
+    font-size: 14px;
+    margin-top: 10px;
+    animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+} 
