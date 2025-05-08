@@ -1905,7 +1905,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // 時間表示を更新
         const timeDisplay = document.getElementById('timeDisplay');
         if (timeDisplay) {
-            timeDisplay.innerHTML = `P: ${this.players.size} SV: ${survivalDays}D ${survivalHours.toString().padStart(2, '0')}H ${survivalMinutes.toString().padStart(2, '0')}M<br>W: ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
+            timeDisplay.innerHTML = `<i class="fas fa-user-alt"></i> ${this.players.size} <br><i class="fas fa-stopwatch"></i> ${survivalDays}D ${survivalHours.toString().padStart(2, '0')}H ${survivalMinutes.toString().padStart(2, '0')}M<br><i class="fas fa-clock"></i> ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
         }
 
 
