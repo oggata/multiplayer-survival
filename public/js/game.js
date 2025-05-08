@@ -1091,6 +1091,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         
         // リスタートボタンのイベントリスナーを設定
         document.getElementById('restartButton').addEventListener('click', () => {
+            //this.restart();
             this.restartGame();
         });
     }
@@ -1182,14 +1183,17 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         this.isGameOver = false;
         this.gameOverElement.style.display = 'none';
         
-        // 古いキャラクターを削除
+        /*
+        // 古いキャラクターを確実に削除
         if (this.playerModel) {
+            this.scene.remove(this.playerModel.character);
             this.playerModel.dispose();
             this.playerModel = null;
         }
+            */
         
         // 新しいキャラクターを作成（他のプレイヤーの近くにスポーン）
-        this.createPlayerModel();
+        //this.createPlayerModel();
         
         // サーバーにリスタートを通知
         this.socket.emit('playerRestart');
@@ -2434,6 +2438,67 @@ console.log(effectConfig);
                 this.enemies.delete(enemyId);
             }
         });
+    }
+
+    restart() {
+        // 古いキャラクターを確実に削除
+        if (this.character) {
+            this.scene.remove(this.character.mesh);
+            this.character = null;
+        }
+
+        // プレイヤーリストをクリア
+        this.players.forEach(player => {
+            if (player.mesh) {
+                this.scene.remove(player.mesh);
+            }
+        });
+        this.players.clear();
+
+        // 敵リストをクリア
+        this.enemies.forEach(enemy => {
+            if (enemy.mesh) {
+                this.scene.remove(enemy.mesh);
+            }
+        });
+        this.enemies.clear();
+/*
+        // 弾丸リストをクリア
+        this.bullets.forEach(bullet => {
+            if (bullet.mesh) {
+                this.scene.remove(bullet.mesh);
+            }
+        });
+        this.bullets.clear();
+
+        // アイテムリストをクリア
+        this.items.forEach(item => {
+            if (item.mesh) {
+                this.scene.remove(item.mesh);
+            }
+        });
+        this.items.clear();
+*/
+        // ゲームオーバー表示を非表示
+        document.getElementById('gameOver').style.display = 'none';
+
+        // 新しいキャラクターを作成
+        this.character = new Character(this.scene, this.fieldMap);
+        this.character.setPosition(0, 0, 0);
+
+        // プレイヤーステータスをリセット
+        this.playerStatus = new PlayerStatus();
+        this.playerStatus.reset();
+
+        // 敵を再生成
+        this.spawnEnemies();
+
+        // アイテムを再生成
+        this.spawnItems();
+
+        // ゲームループを再開
+        this.isGameOver = false;
+        this.animate();
     }
 }
 

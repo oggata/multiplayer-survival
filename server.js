@@ -377,9 +377,8 @@ io.on('connection', (socket) => {
     socket.on('playerRestart', () => {
         if (players[socket.id]) {
             players[socket.id].health = 100;
-            players[socket.id].position = { x: 0, y: 0, z: 0 };
-            players[socket.id].rotation = { y: 0 };
-            
+            //players[socket.id].position = { x: 0, y: 0, z: 0 };
+            //players[socket.id].rotation = { y: 0 };
             io.emit('playerRestarted', players[socket.id]);
         }
     });
