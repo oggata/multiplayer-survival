@@ -266,11 +266,70 @@ function updateEnemies() {
 // 敵の更新を定期的に実行
 setInterval(updateEnemies, 100);
 
+// プレイヤーのスポーン位置を取得する関数
+function getSpawnPosition() {
+    const players = Object.values(io.sockets.sockets).map(socket => socket.player);
+    if (players.length === 0) {
+        // 他のプレイヤーがいない場合はデフォルト位置
+        return { x: 0, y: 0, z: 0 };
+    }
+
+    // ランダムに他のプレイヤーを選択
+    const randomPlayer = players[Math.floor(Math.random() * players.length)];
+    
+    // 最大試行回数
+    const maxAttempts = 10;
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+        // プレイヤーの周囲にランダムなオフセットを加える
+        const offset = {
+            x: (Math.random() - 0.5) * 10, // -5から5の範囲でランダム
+            y: 0,
+            z: (Math.random() - 0.5) * 10  // -5から5の範囲でランダム
+        };
+        
+        // 新しい位置を計算
+        const newPosition = {
+            x: randomPlayer.position.x + offset.x,
+            y: 0,
+            z: randomPlayer.position.z + offset.z
+        };
+        
+        // マップの境界内に収める
+        newPosition.x = Math.max(-450, Math.min(450, newPosition.x));
+        newPosition.z = Math.max(-450, Math.min(450, newPosition.z));
+        
+        // 建物との衝突チェック（必要に応じて実装）
+        // if (!checkCollision(newPosition)) {
+        //     return newPosition;
+        // }
+        
+        attempts++;
+    }
+    
+    // 最大試行回数を超えた場合は、選択したプレイヤーの位置を返す
+    return randomPlayer.position;
+}
+
 io.on('connection', (socket) => {
     console.log('プレイヤーが接続しました:', socket.id);
     
-    // プレイヤーのハッシュを生成
-    const playerHash = generatePlayerHash();
+    // プレイヤーの色をランダムに生成
+    const playerColor = Math.floor(Math.random() * 0xffffff);
+    const playerHash = Math.random().toString(36).substring(2, 8);
+    
+    // スポーン位置を取得
+    const spawnPosition = getSpawnPosition();
+    
+    players[socket.id] = {
+        id: socket.id,
+        position: spawnPosition,
+        rotation: { y: 0 },
+        health: 100,
+        color: playerColor,
+        hash: playerHash
+    };
     
     // シード値とゲーム開始時間をクライアントに送信
     socket.emit('gameConfig', {
@@ -278,31 +337,6 @@ io.on('connection', (socket) => {
         gameStartTime: gameStartTime,
         playerHash: playerHash
     });
-    
-    // 使用されていない色を探す
-    let playerColor = null;
-    for (const color of playerColors) {
-        if (!usedColors.has(color)) {
-            playerColor = color;
-            usedColors.add(color);
-            break;
-        }
-    }
-    
-    // すべての色が使用されている場合はランダムに選択
-    if (!playerColor) {
-        playerColor = playerColors[Math.floor(Math.random() * playerColors.length)];
-    }
-    
-    // プレイヤー情報を初期化
-    players[socket.id] = {
-        id: socket.id,
-        position: { x: 0, y: 0, z: 0 },
-        rotation: { y: 0 },
-        health: 100,
-        color: playerColor,
-        hash: playerHash
-    };
     
     // 現在のプレイヤーと敵の情報を送信
     socket.emit('currentPlayers', Object.values(players));
