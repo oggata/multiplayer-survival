@@ -118,14 +118,15 @@ class Game {
         this.seed = null;
         this.gameStartTime = null;
         
+        /*
         this.enemyBullets = new Map();
-        this.maxEnemies = GameConfig.ENEMY.MAX_COUNT;
-        this.enemySpawnInterval = GameConfig.ENEMY.SPAWN_INTERVAL;
+        //this.maxEnemies = GameConfig.ENEMY.MAX_COUNT;
+        //this.enemySpawnInterval = GameConfig.ENEMY.SPAWN_INTERVAL;
         this.lastEnemySpawnTime = 0;
         this.enemySpawnRadius = GameConfig.ENEMY.SPAWN_RADIUS;
         this.enemyDespawnRadius = GameConfig.ENEMY.DESPAWN_RADIUS;
         this.killedEnemies = 0; // 倒した敵の数を追加
-        
+        */
         this.playerStatus = new PlayerStatus();
         this.playerStatus.health = this.currentHealth; // 初期HPを同期
         
@@ -239,6 +240,24 @@ class Game {
         this.updateEffectsDisplay();
 
         this.audioManager = new AudioManager();
+
+        // ゲーム開始時にランダムなアイテムを3つバックパックに入れる
+        const itemTypes = Object.entries(GameConfig.ITEMS)
+            .filter(([_, item]) => item.dropChance !== undefined)
+            .map(([type]) => type);
+        
+        for (let i = 0; i < 3; i++) {
+            const randomIndex = Math.floor(Math.random() * itemTypes.length);
+            const selectedType = itemTypes[randomIndex];
+            //const selectedType = itemTypes[0];
+            if (selectedType) {
+                this.inventory.push({
+                    id: Date.now() + i,
+                    type: selectedType
+                });
+            }
+        }
+        this.updateBackpackUI();
     }
 
     createMessageIndicatorContainer() {
@@ -421,7 +440,7 @@ class Game {
         // アイテムの生成
         this.spawnItems();
         
-        this.spawnEnemies();
+        //this.spawnEnemies();
         
         // 時間の初期化
         this.updateTimeOfDay();
@@ -945,7 +964,9 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         const currentPosition = this.playerModel.getPosition().clone();
         
         // プレイヤーモデルの移動
-        this.playerModel.move(moveDirection, isRunning ? this.moveSpeed * 3 : this.moveSpeed, deltaTime);
+        const moveSpeed2 = this.moveSpeed + this.playerStatus.moveSpeedMultiplier;
+        //console.log(moveSpeed2 + "+" + this.playerStatus.moveSpeedMultiplier);
+        this.playerModel.move(moveDirection, isRunning ?moveSpeed2 * 3 : moveSpeed2, deltaTime);
         this.playerModel.setRunning(isRunning);
         
         // 移動後の位置を取得
@@ -1012,7 +1033,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     takeDamage(damage) {
         
         if (this.isGameOver) return;
-       // console.log(damage);
+       console.log(damage);
        this.currentHealth -= damage;
         this.playerStatus.health = this.currentHealth; // HPを同期
         
@@ -1208,7 +1229,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // サーバーにリスタートを通知
         this.socket.emit('playerRestart');
     }
-
+/*
     // 敵のスポーン処理を修正
     spawnEnemies() {
         if (!this.playerModel || !this.playerModel.getPosition) return;
@@ -1325,15 +1346,10 @@ this.socket.on('zombiesKilled', (zombieIds) => {
                 }
             }
             
-            /*
-            // プレイヤーとの衝突判定
-            if (distanceToPlayer < GameConfig.PLAYER.COLLISION_RADIUS) {
-                this.takeDamage(enemy.getDamage());
-                //console.log("xxxx");
-            }
-                */
+
         }
     }
+*/
 
     // 敵の数を更新するメソッド
     updateEnemyCount() {
@@ -1454,13 +1470,14 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         this.weather.update(deltaTime, this.gameTime, this.timeOfDay);
 
         // ステータスによるHP減少の処理
-        this.updateHealthFromStatus(deltaTime);
+        //this.updateHealthFromStatus(deltaTime);
 
+        /*
         // 敵の弾丸の更新
         this.enemyBullets.forEach(bullet => {
             bullet.update(deltaTime);
         });
-
+*/
         // 敵の表示/非表示を更新
         this.enemies.forEach(enemy => {
             enemy.model.updateLimbAnimation2(deltaTime);
@@ -1564,9 +1581,10 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     }
     
     useItem(itemType) {
+        console.log(itemType);
         const itemConfig = GameConfig.ITEMS[itemType];
         if (!itemConfig) return;
-
+console.log(itemConfig);
         // 即時効果の適用
         if (itemConfig.effects?.immediate) {
             const effects = itemConfig.effects.immediate;
@@ -1584,6 +1602,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // 持続効果の適用
         if (itemConfig.effects?.duration) {
             const durationEffect = itemConfig.effects.duration;
+            console.log(durationEffect);
             this.playerStatus.addDurationEffect(durationEffect);
         }
 
@@ -1713,8 +1732,8 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             `;
             itemInfo.innerHTML = `
                 <span style="font-weight: bold; margin-right: 8px;">${itemConfig.name}</span>
-                <span style="color: #aaa; font-size: 11px;">${itemConfig.description}</span>
-                <span style="color: #8ff; font-size: 11px; margin-left: 8px;">Effect: ${this.formatItemEffects(itemConfig.effects)}</span>
+
+                <span style="color: #8ff; font-size: 11px; margin-left: 8px;">${itemConfig.description}</span>
             `;
             
             const actionDiv = document.createElement('div');
@@ -1940,42 +1959,6 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     updateItemCount() {
         if (this.itemCountElement) {
             this.itemCountElement.textContent = this.inventory.length;
-        }
-    }
-
-    // ステータスによるHP減少の処理
-    updateHealthFromStatus(deltaTime) {
-        let damage = 0;
-        
-        // 空腹が低い場合
-        if (this.playerStatus.hunger < 20) {
-            damage += (20 - this.playerStatus.hunger) * 0.05 * deltaTime;
-        }
-        
-        // 喉の渇きが低い場合
-        if (this.playerStatus.thirst < 20) {
-            damage += (20 - this.playerStatus.thirst) * 0.08 * deltaTime;
-        }
-        
-        // 出血が多い場合
-        if (this.playerStatus.bleeding > 70) {
-            damage += (this.playerStatus.bleeding - 50) * 0.1 * deltaTime;
-        }
-        
-        /*
-        // 体温が低い場合
-        if (this.playerStatus.temperature < 35) {
-            damage += (35 - this.playerStatus.temperature) * 0.5 * deltaTime;
-        }
-        */
-        // 衛生が低い場合
-        if (this.playerStatus.hygiene < 20) {
-            damage += (20 - this.playerStatus.hygiene) * 0.03 * deltaTime;
-        }
-        
-        // ダメージを適用
-        if (damage > 0) {
-            this.takeDamage(damage);
         }
     }
 
@@ -2268,7 +2251,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             if (distance) {
                 //console.log('プレイヤーにダメージ:', bullet.damage);
                 // プレイヤーにダメージを与える
-                this.takeDamage(bullet.damage);
+        this.takeDamage(bullet.damage);
                 bullet.dispose();
                 this.enemyBullets.splice(i, 1);
             }
@@ -2393,7 +2376,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         if (!this.effectsContainer) return;
         
         const effects = this.playerStatus.getCurrentEffects();
-        
+        //console.log(effects);
         // 効果がない場合はコンテナを非表示
         if (Object.keys(effects).length === 0) {
             this.effectsContainer.style.display = 'none';
@@ -2406,24 +2389,31 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         let html = '';
         
         for (const [effectId, effect] of Object.entries(effects)) {
+//console.log(effect);
             const remainingTime = Math.ceil(effect.remainingTime);
+//console.log(effect.type);
             const effectConfig = GameConfig.ITEMS[effect.type];
             if (effectConfig) {
                 // 効果の詳細を取得
                 const effectDetails = [];
+                /*
                 if (effectConfig.effects?.immediate) {
                     const imm = effectConfig.effects.immediate;
                     if (imm.health) effectDetails.push(`HP ${imm.health > 0 ? '+' : ''}${imm.health}`);
                     if (imm.hunger) effectDetails.push(`Hunger ${imm.hunger > 0 ? '+' : ''}${imm.hunger}`);
                     if (imm.thirst) effectDetails.push(`Thirst ${imm.thirst > 0 ? '+' : ''}${imm.thirst}`);
                 }
+                    */
+
+                /*
                 if (effectConfig.effects?.duration) {
                     const dur = effectConfig.effects.duration;
                     if (dur.health) effectDetails.push(`HP ${dur.health > 0 ? '+' : ''}${dur.health}/秒`);
                     if (dur.hunger) effectDetails.push(`Hunger ${dur.hunger > 0 ? '+' : ''}${dur.hunger}/秒`);
                     if (dur.thirst) effectDetails.push(`Thirst ${dur.thirst > 0 ? '+' : ''}${dur.thirst}/秒`);
                 }
-console.log(effectConfig);
+                    */
+//console.log(effectConfig);
                 html += `
                     <div style="margin: 2px 0; font-size: 8px;">
                         <div style="color: #4CAF50; font-weight: bold;">${effectConfig.name}</div>

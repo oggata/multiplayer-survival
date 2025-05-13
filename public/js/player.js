@@ -44,27 +44,7 @@ class PlayerStatus {
     
     // ステータスを更新する
     update(deltaTime) {
-        const currentTime = Date.now();
-        
-        // 一定間隔でステータスを更新
-        if (currentTime - this.lastUpdateTime > this.updateInterval) {
-            // 飢えと喉の渇きを減少
-            this.hunger = Math.max(0, this.hunger - this.hungerDecreaseRate);
-            this.thirst = Math.max(0, this.thirst - this.thirstDecreaseRate);
-            
-            // 衛生状態を減少
-            this.hygiene = Math.max(0, this.hygiene - this.hygieneDecreaseRate);
-            
-            // ステータスが低い場合、体力を減少
-            if (this.hunger < 20 || this.thirst < 20 || this.bleeding > 80 || this.hygiene < 20) {
-                this.health = Math.max(0, this.health - this.healthDecreaseRate);
-            }
-
-            // ゲージを更新
-            this.updateGauges();
-            
-            this.lastUpdateTime = currentTime;
-        }
+       
     }
     
     // アイテムの効果を適用する

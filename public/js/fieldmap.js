@@ -81,7 +81,7 @@ class FieldMap {
         const biomeTypes = ['urban', 'forest', 'ruins', 'industrial'];
         
         // マップの端から砂浜の幅を定義
-        const beachWidth = 30; // 砂浜の幅
+        const beachWidth = 15; // 砂浜の幅
         
         // バイオームの配置を決定
         for (let x = -this.mapSize/2; x < this.mapSize/2; x += 100) {
@@ -157,6 +157,9 @@ class FieldMap {
                     break;
                 case 'industrial':
                     color.setHex(0x696969);
+                    break;
+                case 'beach':
+                    color.setHex(0xff1493);
                     break;
             }
             
@@ -511,7 +514,7 @@ for(var i=0;i< GameConfig.MAP.BUILDINGS.COUNT;i++){
         }
     }
         // 車の生成
-        const carChance = 0.5; // 30%の確率で車を生成
+        const carChance = 1; // 30%の確率で車を生成
         for(var i=0;i<GameConfig.MAP.BUILDINGS.CAR_COUNT;i++){
         if (this.rng() < carChance) {
             const x = biome.x + (this.rng() - 0.5) * biome.size;
@@ -610,7 +613,7 @@ for(var i=0;i< GameConfig.MAP.BUILDINGS.COUNT;i++){
         const sand = new THREE.Mesh(sandGeometry, sandMaterial);
         sand.rotation.x = -Math.PI / 2;
         sand.position.set(biome.x, -0.05, biome.z);
-        this.scene.add(sand);
+        //this.scene.add(sand);
         this.objects.push(sand);
 
         // ヤシの木を生成
@@ -1480,12 +1483,12 @@ for(var i=0;i< GameConfig.MAP.BUILDINGS.COUNT;i++){
     
     createOcean() {
         // 海の平面を作成（マップの2倍の大きさ）
-        const oceanSize = this.mapSize * 2;
+        const oceanSize = this.mapSize * 3
         const oceanGeometry = new THREE.PlaneGeometry(oceanSize, oceanSize, 100, 100);
         
         // 海のマテリアルを作成
         const oceanMaterial = new THREE.MeshStandardMaterial({
-            color: 0x0077be, // 海の色
+            color: 0x296478, // 海の色 0x0077be
             transparent: true,
             opacity: 1,
             side: THREE.DoubleSide // 両面を表示
@@ -1541,7 +1544,7 @@ for(var i=0;i< GameConfig.MAP.BUILDINGS.COUNT;i++){
         
         // 海をシーンに追加
         this.scene.add(ocean);
-        this.objects.push(ocean);
+        //this.objects.push(ocean);
     }
     
     getBiomeAt(x, z) {

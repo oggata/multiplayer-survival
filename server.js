@@ -40,15 +40,17 @@ const enemyColor = 0x33aa33;
 const ENEMY_SPAWN_INTERVAL = 100;
 
 // 時間帯ごとの敵の最大数
+
 const MAX_ENEMIES = {
-    MORNING:        30,   // 朝（6:00-12:00）
-    DAY: 40,      // 昼（12:00-18:00）
-    EVENING: 200,  // 夕方（18:00-24:00）
-    NIGHT: 300     // 夜（0:00-6:00）
+    MORNING:        0,   // 朝（6:00-12:00）30
+    DAY: 0,      // 昼（12:00-18:00）40
+    EVENING: 0,  // 夕方（18:00-24:00） 200
+    NIGHT: 0     // 夜（0:00-6:00）300
 };
 
-// マップサイズ
-const MAP_SIZE = 400;
+
+// マップサイズ(クライアントと揃えてください)
+const MAP_SIZE = 500;
 
 // 時間設定
 const TIME = {

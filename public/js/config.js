@@ -8,38 +8,14 @@ const GameConfig = {
         ROTATION_SPEED: 0.05,
         MAX_HEALTH: 100,
         COLLISION_RADIUS: 2.0,
-        hungerDecreaseRate:0.003,
-        thirstDecreaseRate:0.005,
+        hungerDecreaseRate:0.006,
+        thirstDecreaseRate:0.01,
         hygieneDecreaseRate:0.1,
         healthDecreaseRate:0.001
     },
     
     // 敵設定
     ENEMY: {
-        MAX_COUNT:  300,
-        SPAWN_INTERVAL: 500, // ミリ秒
-        SPAWN_RADIUS: 50, // プレイヤーからの距離
-        DESPAWN_RADIUS: 300, // プレイヤーからの距離
-        CHASE_DISTANCE: 50, // プレイヤーを追跡する距離
-        DAMAGE: 10, // プレイヤーに与えるダメージ
-        MOVE_SPEED: 5,
-        VISION: {
-            DAY: {
-                CHASE_DISTANCE: 5, // 昼間の追跡距離
-                DETECTION_RADIUS: 5, // 昼間の検知範囲
-                MOVE_SPEED_MULTIPLIER: 0.2 // 昼間の移動速度倍率
-            },
-            NIGHT: {
-                CHASE_DISTANCE: 50, // 夜間の追跡距離
-                DETECTION_RADIUS: 50, // 夜間の検知範囲
-                MOVE_SPEED_MULTIPLIER: 1.1 // 夜間の移動速度倍率
-            }
-        },
-        SPAWN: {
-            BUILDING_RADIUS: 20, // 建物からのスポーン半径
-            BUILDING_CHANCE: 0.7, // 建物近くでのスポーン確率
-            EMPTY_CHANCE: 0.22 // 空き地でのスポーン確率
-        },
         TYPES: {
             NORMAL: {
                 name: 'normal',
@@ -210,8 +186,8 @@ const GameConfig = {
     // 視覚設定
     VISION: {
         FOV: 80,
-        MAX_DISTANCE: 160,  // 最大表示距離を50に増加
-        FADE_START: 165,    // フェード開始距離を40に増加
+        MAX_DISTANCE: 120,  // 最大表示距離を50に増加
+        FADE_START: 125,    // フェード開始距離を40に増加
         UPDATE_INTERVAL: 500
     },
     
@@ -229,10 +205,115 @@ const GameConfig = {
             THIRST: 0.4       // 停止時の喉の渇き減少率
         }
     },
+
+    ITEM_EFFECTS: {
+        //0
+        healthKit: {
+            name: 'Health Kit',
+            description: 'Restores 75 HP',
+            color: 0xff0000,
+            dropChance: 0.05,
+        }
+
+    },
     
     ITEMS: {
-        
-        // 医療アイテム
+        jacket: {
+            name: 'jacket',
+            description: 'The perceived temperature increases by 10 degrees',
+            color: 0x808080,
+            dropChance: 0.08,
+            effects: {
+                duration: {
+                    type: 'jacket',
+                    value: 10,
+                    duration: 60
+                }
+            }
+        },
+
+        boonieHat: {
+            name: 'BoonieHat',
+            description: 'The perceived temperature increases by 10 degrees',
+            color: 0x808080,
+            dropChance: 0.08,
+            effects: {
+                duration: {
+                    type: 'boonieHat',
+                    value: 10,
+                    duration: 60
+                }
+            }
+        },
+
+        tacticalVest: {
+            name: 'Tactical Vest',
+            description: 'The perceived temperature increases by 10 degrees',
+            color: 0x808080,
+            dropChance: 0.08,
+            effects: {
+                duration: {
+                    type: 'tacticalVest',
+                    value: 10,
+                    duration: 60
+                }
+            }
+        },
+
+        balaclava: {
+            name: 'Balaclava',
+            description: 'The perceived temperature increases by 10 degrees',
+            color: 0x808080,
+            dropChance: 0.08,
+            effects: {
+                duration: {
+                    type: 'balaclava',
+                    value: 10,
+                    duration: 60
+                }
+            }
+        },
+
+        adrenaline: {
+            name: 'Adrenaline',
+            description: 'Treats fracture and restores movement speed',
+            color: 0x808080,
+            dropChance: 0.08,
+            effects: {
+                duration: {
+                    type: 'adrenaline',
+                    value: 5,
+                    duration: 30
+                }
+            }
+        },
+        bandage: {
+            name: 'Bandage',
+            description: 'Recovers bleeding (30 seconds)',
+            color: 0xffffff,
+            dropChance: 0.1,
+            effects: {
+                duration: {
+                    type: 'bandage',
+                    value: 0.45,
+                    duration: 30
+                }
+            }
+        },
+        chocolateBar: {
+            name: 'Chocolate Bar',
+            description: 'Increases hunger recovery rate (60 seconds..)',
+            color: 0x8b4513,
+            dropChance: 0.1,
+            effects: {
+                duration: {
+                    type: 'chocolateBar',
+                    value: 0.1,
+                    duration: 60
+                }
+            }
+        },
+        //1
         healthKit: {
             name: 'Health Kit',
             description: 'Restores 75 HP',
@@ -244,61 +325,18 @@ const GameConfig = {
                 }
             }
         },
-        bandage: {
-            name: 'Bandage',
-            description: 'Stops bleeding (15 seconds)',
-            color: 0xffffff,
-            dropChance: 0.1,
-            effects: {
-                duration: {
-                    type: 'bandage',
-                    value: 0.45,
-                    duration: 15
-                }
-            }
-        },
-        painkiller: {
-            name: 'Painkiller',
-            description: 'Gradually reduces pain (20 seconds)',
-            color: 0xff00ff,
-            dropChance: 0.08,
-            effects: {
-                duration: {
-                    type: 'painkiller',
-                    value: 0.45,
-                    duration: 20
-                }
-            }
-        },
-        antibiotic: {
-            name: 'Antibiotic',
-            description: 'Gradually treats infection (40 seconds)',
-            color: 0x00ffff,
-            dropChance: 0.07,
-            effects: {
-                duration: {
-                    type: 'antibiotic',
-                    value: 0.3,
-                    duration: 40
-                }
-            }
-        },
         medicine: {
             name: 'Medicine',
-            description: 'Restores 30 HP and stops bleeding',
+            description: 'Restores 30 HP',
             color: 0x00ff00,
             dropChance: 0.06,
             effects: {
                 immediate: {
                     health: 30
-                },
-                duration: {
-                    type: 'bandage',
-                    value: 0.45,
-                    duration: 15
                 }
             }
         },
+        //6
         firstAidKit: {
             name: 'First Aid Kit',
             description: 'Restores 75 HP and completely stops bleeding',
@@ -312,35 +350,8 @@ const GameConfig = {
             }
         },
 
-        
-        vitaminPills: {
-            name: 'VitaminPills',
-            description: 'Increases natural HP regeneration rate (5 minutes)',
-            color: 0xffff00,
-            dropChance: 0.05,
-            effects: {
-                duration: {
-                    type: 'regeneration',
-                    value: 0.75,
-                    duration: 300
-                }
-            }
-        },
-        
-        disinfectant: {
-            name: 'Disinfectant',
-            description: 'Reduces infection risk (1 minute)',
-            color: 0x00ffff,
-            dropChance: 0.07,
-            effects: {
-                duration: {
-                    type: 'antibiotic',
-                    value: 0.6,
-                    duration: 60
-                }
-            }
-        },
-        
+
+        //9
         morphine: {
             name: 'Morphine',
             description: 'Completely eliminates pain and restores 15 HP',
@@ -353,19 +364,9 @@ const GameConfig = {
                 }
             }
         },
-        splint: {
-            name: 'Splint',
-            description: 'Treats fracture and restores movement speed',
-            color: 0x808080,
-            dropChance: 0.08,
-            effects: {
-                immediate: {
-                    moveSpeedMultiplier: 1.5
-                }
-            }
-        },
+        //10
 
-        // 食料アイテム
+        //11 食料アイテム
         food: {
             name: 'Food',
             description: 'Restores 45 hunger',
@@ -377,6 +378,7 @@ const GameConfig = {
                 }
             }
         },
+        //12
         dirtyFood: {
             name: 'Dirty Food',
             description: 'Restores 30 hunger but worsens hygiene',
@@ -389,6 +391,7 @@ const GameConfig = {
                 }
             }
         },
+        //13
         cannedSardines: {
             name: 'Canned Sardines',
             description: 'Restores 37 hunger and 7 HP',
@@ -401,6 +404,7 @@ const GameConfig = {
                 }
             }
         },
+        //14
         cannedBeans: {
             name: 'Canned Beans',
             description: 'Restores 30 hunger',
@@ -412,6 +416,7 @@ const GameConfig = {
                 }
             }
         },
+        //15
         cannedCorn: {
             name: 'Canned Corn',
             description: 'Restores 22 hunger',
@@ -423,6 +428,7 @@ const GameConfig = {
                 }
             }
         },
+        //16
         cannedTuna: {
             name: 'Canned Tuna',
             description: 'Restores 45 hunger and 4 HP',
@@ -435,6 +441,7 @@ const GameConfig = {
                 }
             }
         },
+        //17
         cannedSoup: {
             name: 'Canned Soup',
             description: 'Restores 22 hunger and 15 thirst',
@@ -447,6 +454,7 @@ const GameConfig = {
                 }
             }
         },
+        //18
         bread: {
             name: 'Bread',
             description: 'Restores 37 hunger',
@@ -458,6 +466,7 @@ const GameConfig = {
                 }
             }
         },
+        //19
         crackers: {
             name: 'Crackers',
             description: 'Restores 15 hunger',
@@ -469,39 +478,8 @@ const GameConfig = {
                 }
             }
         },
-        chocolateBar: {
-            name: 'Chocolate Bar',
-            description: 'Restores 22 hunger and increases stamina recovery rate (30 seconds)',
-            color: 0x8b4513,
-            dropChance: 0.1,
-            effects: {
-                immediate: {
-                    hunger: 22
-                },
-                duration: {
-                    type: 'energyDrink',
-                    value: 1.95,
-                    duration: 30
-                }
-            }
-        },
-        
-        proteinBar: {
-            name: 'Protein Bar',
-            description: 'Restores 30 hunger and increases max HP by 15 (3 minutes)',
-            color: 0x8b4513,
-            dropChance: 0.1,
-            effects: {
-                immediate: {
-                    hunger: 30
-                },
-                duration: {
-                    type: 'maxHealthBoost',
-                    value: 15,
-                    duration: 180
-                }
-            }
-        },
+
+
         apple: {
             name: 'Apple',
             description: 'Restores 15 hunger and 7 thirst',
@@ -526,22 +504,7 @@ const GameConfig = {
                 }
             }
         },
-        banana: {
-            name: 'Banana',
-            description: 'Restores 22 hunger and increases stamina recovery rate (20 seconds)',
-            color: 0xffff00,
-            dropChance: 0.15,
-            effects: {
-                immediate: {
-                    hunger: 22
-                },
-                duration: {
-                    type: 'energyDrink',
-                    value: 1.8,
-                    duration: 20
-                }
-            }
-        },
+
         blueberry: {
             name: 'Blueberry',
             description: 'Restores 7 hunger and 4 HP',
@@ -554,18 +517,7 @@ const GameConfig = {
                 }
             }
         },
-        strawberry: {
-            name: 'Strawberry',
-            description: 'Restores 7 hunger and 7 thirst',
-            color: 0xff0000,
-            dropChance: 0.15,
-            effects: {
-                immediate: {
-                    hunger: 7,
-                    thirst: 7
-                }
-            }
-        },
+
         mushroom: {
             name: 'Mushroom',
             description: 'Restores 15 hunger',
@@ -635,50 +587,8 @@ const GameConfig = {
                 }
             }
         },
-        rice: {
-            name: 'Rice',
-            description: 'Restores 37 hunger',
-            color: 0xffffff,
-            dropChance: 0.15,
-            effects: {
-                immediate: {
-                    hunger: 37
-                }
-            }
-        },
-        cookedRice: {
-            name: 'Cooked Rice',
-            description: 'Restores 52 hunger',
-            color: 0xffffff,
-            dropChance: 0.15,
-            effects: {
-                immediate: {
-                    hunger: 52
-                }
-            }
-        },
-        potato: {
-            name: 'Potato',
-            description: 'Restores 22 hunger',
-            color: 0x8b4513,
-            dropChance: 0.15,
-            effects: {
-                immediate: {
-                    hunger: 22
-                }
-            }
-        },
-        cookedPotato: {
-            name: 'Baked Potato',
-            description: 'Restores 37 hunger',
-            color: 0x8b4513,
-            dropChance: 0.15,
-            effects: {
-                immediate: {
-                    hunger: 37
-                }
-            }
-        },
+
+
         carrot: {
             name: 'Carrot',
             description: 'Restores 15 hunger and 3 HP',
@@ -691,32 +601,7 @@ const GameConfig = {
                 }
             }
         },
-        cookedCarrot: {
-            name: 'Cooked Carrot',
-            description: 'Restores 22 hunger and 7 HP',
-            color: 0xffa500,
-            dropChance: 0.15,
-            effects: {
-                immediate: {
-                    hunger: 22,
-                    health: 7
-                }
-            }
-        },
-        spoiledFood: {
-            name: 'Spoiled Food',
-            description: 'Restores 15 hunger but has high infection risk and worsens hygiene',
-            color: 0x8b4513,
-            dropChance: 0.2,
-            effects: {
-                immediate: {
-                    hunger: 15,
-                    hygiene: -25,
-                    infection: 15
-                }
-            }
-        },
-        
+
         // 飲料アイテム
         water: {
             name: 'Water',
@@ -755,36 +640,16 @@ const GameConfig = {
         },
         soda: {
             name: 'Soda',
-            description: 'Restores 45 thirst and increases stamina recovery rate (20 seconds)',
+            description: 'Restores 45 thirst',
             color: 0xff0000,
             dropChance: 0.1,
             effects: {
                 immediate: {
                     thirst: 45
-                },
-                duration: {
-                    type: 'energyDrink',
-                    value: 1.95,
-                    duration: 20
                 }
             }
         },
-        coffee: {
-            name: 'Coffee',
-            description: 'Restores 22 thirst and increases stamina recovery rate (1 minute)',
-            color: 0x8b4513,
-            dropChance: 0.1,
-            effects: {
-                immediate: {
-                    thirst: 22
-                },
-                duration: {
-                    type: 'energyDrink',
-                    value: 2.25,
-                    duration: 60
-                }
-            }
-        },
+
         tea: {
             name: 'Tea',
             description: 'Restores 30 thirst and 3 HP',
@@ -809,19 +674,7 @@ const GameConfig = {
                 }
             }
         },
-        milk: {
-            name: 'Milk',
-            description: 'Restores 30 thirst and 4 HP',
-            color: 0xffffff,
-            dropChance: 0.1,
-            effects: {
-                immediate: {
-                    thirst: 30,
-                    health: 4
-                }
-            }
-        },
-        
+
         energyDrink: {
             name: 'Energy Drink',
             description: 'Doubles stamina recovery rate (15 seconds)',
@@ -835,22 +688,7 @@ const GameConfig = {
                 }
             }
         },
-        sportsDrink: {
-            name: 'Sports Drink',
-            description: 'Restores 45 thirst and increases stamina recovery rate (30 seconds)',
-            color: 0xffa500,
-            dropChance: 0.1,
-            effects: {
-                immediate: {
-                    thirst: 45
-                },
-                duration: {
-                    type: 'energyDrink',
-                    value: 2.1,
-                    duration: 30
-                }
-            }
-        },
+
         beer: {
             name: 'Beer',
             description: 'Restores 30 thirst but causes blurred vision (30 seconds)',
@@ -868,40 +706,6 @@ const GameConfig = {
             }
         },
         
-        wine: {
-            name: 'Wine',
-            description: 'Restores 22 thirst and 7 HP but causes blurred vision (20 seconds)',
-            color: 0x800000,
-            dropChance: 0.1,
-            effects: {
-                immediate: {
-                    thirst: 22,
-                    health: 7
-                },
-                duration: {
-                    type: 'blurredVision',
-                    value: 0.8,
-                    duration: 20
-                }
-            }
-        },
-        whiskey: {
-            name: 'Whiskey',
-            description: 'Restores 15 thirst and reduces pain but causes blurred vision (40 seconds)',
-            color: 0x8b4513,
-            dropChance: 0.1,
-            effects: {
-                immediate: {
-                    thirst: 15,
-                    pain: -15
-                },
-                duration: {
-                    type: 'blurredVision',
-                    value: 0.6,
-                    duration: 40
-                }
-            }
-        },
         spoiledWater: {
             name: 'Spoiled Water',
             description: 'Restores 22 thirst but has high infection risk and worsens hygiene',

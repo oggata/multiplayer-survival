@@ -27,13 +27,13 @@ class Character {
         this.position = new THREE.Vector3();
         this.rotation = new THREE.Euler();
         this.velocity = new THREE.Vector3();
-        this.moveSpeed = 5.0;
-        this.runSpeed = 10.0;
-        this.rotationSpeed = 0.1;
+        //this.moveSpeed = 5.0;
+        //this.runSpeed = 10.0;
+        //this.rotationSpeed = 0.1;
         
         // 衝突判定用の変数
-        this.radius = 0.5;
-        this.height = 2.0;
+       //this.radius = 0.5;
+        //this.height = 2.0;
         
         // キャラクターの作成
         this.createCharacter();
@@ -208,7 +208,7 @@ class Character {
         }
         
         // 速度を設定
-        const currentSpeed = this.isRunning ? this.runSpeed : this.moveSpeed;
+        const currentSpeed = speed;
         
         // 移動ベクトルを計算
         this.velocity.copy(direction).multiplyScalar(currentSpeed * deltaTime);
