@@ -1,8 +1,9 @@
 // キャラクター作成用のクラス
 class Character {
-    constructor(scene,type) {
+    constructor(scene,type,game) {
         this.scene = scene;
         this.type = type;
+        this.game = game;
         this.character = new THREE.Group();
         this.scene.add(this.character);
 
@@ -27,14 +28,6 @@ class Character {
         this.position = new THREE.Vector3();
         this.rotation = new THREE.Euler();
         this.velocity = new THREE.Vector3();
-        //this.moveSpeed = 5.0;
-        //this.runSpeed = 10.0;
-        //this.rotationSpeed = 0.1;
-        
-        // 衝突判定用の変数
-       //this.radius = 0.5;
-        //this.height = 2.0;
-        
         // キャラクターの作成
         this.createCharacter();
     }
@@ -224,6 +217,14 @@ class Character {
         
         // 移動状態を更新
         this.isMoving = direction.length() > 0;
+
+        //高さを修正
+        var height = this.game.fieldMap.getHeightAt(this.position.x, this.position.z);
+        if (height != null) {
+            this.position.y = height + 0.5; // キャラクターの高さを考慮して位置を調整
+        }   
+        //this.character.position.y = this.position.y;
+        
     }
     
     setPosition(x, y, z) {

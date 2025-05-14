@@ -96,8 +96,8 @@ if(bulletType == "magnum"){
     // 弾丸のジオメトリとマテリアルを作成
     const geometry = new THREE.SphereGeometry(0.7, 12, 12);
     const material = new THREE.MeshPhongMaterial({ 
-        color: "0x00CCFF",//yellow
-        emissive: 0x00CCFF,
+        color: "efc400",//yellow
+        emissive: efc400,
         emissiveIntensity: 0.5
     });
     // メッシュを作成

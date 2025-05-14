@@ -59,9 +59,9 @@ const GameConfig = {
     
     // ライティング設定
     LIGHTING: {
-        AMBIENT_INTENSITY: 0.1,
+        AMBIENT_INTENSITY: 0.05,
         SUN_INTENSITY: 0.5,
-        SUN_INTENSITY_NIGHT: 0.03,
+        SUN_INTENSITY_NIGHT: 0.1,
         SUN_INTENSITY_DAWN_DUSK: 10
     },
     
@@ -73,7 +73,7 @@ const GameConfig = {
     
     // 霧設定
     FOG: {
-        DENSITY: 0.028
+        DENSITY: 0.028 // 0.028
     },
     
     // カメラ設定

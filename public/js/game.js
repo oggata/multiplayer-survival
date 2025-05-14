@@ -78,7 +78,7 @@ class Game {
         this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
         // プレイヤーモデル用の変数を追加
-        this.playerModel = new Character(this.scene);
+        this.playerModel = new Character(this.scene,"player",this);
         this.playerModel.setPosition(0, 0, 0);
         
         // 座標表示用の要素
@@ -425,6 +425,9 @@ class Game {
         this.sunLight.shadow.mapSize.height = 2048;
         this.scene.add(this.sunLight);
 
+                // 光の方向を更新
+                this.updateLightDirection();
+                
         // 霧の追加
         this.scene.fog = new THREE.FogExp2(0xcccccc, GameConfig.FOG.DENSITY);
 
@@ -439,18 +442,33 @@ class Game {
         
         // アイテムの生成
         this.spawnItems();
-        
-        //this.spawnEnemies();
-        
+                
         // 時間の初期化
         this.updateTimeOfDay();
+
+
         
         this.weather = new Weather(this.scene, this.camera);
+
+    }
+
+    updateLightDirection() {
+
+        if (!this.fieldMap || !this.fieldMap.terrainGeometry) {
+            console.warn('FieldMap または terrainGeometry が初期化されていません');
+            return;
+        }
+    
+        const directionalLight = this.scene.children.find(obj => obj.isDirectionalLight);
+        if (!directionalLight) return;
+    
+        const lightDirection = directionalLight.position.clone().normalize();
+        this.fieldMap.terrainGeometry.material.uniforms.lightDirection.value = lightDirection;
     }
     
     createPlayerModel() {
         // 新しいキャラクタークラスを使用してプレイヤーモデルを作成
-        this.playerModel = new Character(this.scene,"player");
+        this.playerModel = new Character(this.scene,"player",this);
         
         // プレイヤーの色を設定
         if (this.playerHash) {
@@ -993,6 +1011,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // 座標表示を更新
         this.updateCoordinatesDisplay();
 
+
         // サーバーに位置情報を送信
         this.socket.emit('playerMove', {
             position: this.playerModel.getPosition(),
@@ -1395,6 +1414,9 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // 霧の更新
         this.updateFog();
         
+        this.updateLightDirection();
+
+
         // プレイヤーモデルのアニメーション更新
         if (this.playerModel) {
             this.playerModel.updateLimbAnimation(deltaTime);
@@ -1428,6 +1450,9 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         const biome = this.fieldMap.getBiomeAt(this.playerModel.position.x, this.playerModel.position.z);
         //console.log('現在のバイオーム:', biome.type);
         
+
+this.updateLightDirection();
+
         // 射撃のクールダウンを更新
         if (!this.canShoot) {
             this.shootTimer += deltaTime;
@@ -1835,6 +1860,8 @@ console.log(itemConfig);
             // 夜間
             sunIntensity = GameConfig.LIGHTING.SUN_INTENSITY_NIGHT;
         }
+
+
         
         this.sunLight.intensity = sunIntensity;
     }
@@ -1865,7 +1892,8 @@ console.log(itemConfig);
             // 夜間 (18:00-4:59)
             skyColor = new THREE.Color(GameConfig.COLORS.SKY_NIGHT);
         }
-        
+                   // 昼間 (7:00-16:59)
+            //skyColor = new THREE.Color(GameConfig.COLORS.SKY_DAY); 
         this.scene.background = skyColor;
     }
     
@@ -2532,9 +2560,36 @@ console.log(itemConfig);
             }, 2000);
         });
     }
+
+    getHeightAt(x, z) {
+        const raycaster = new THREE.Raycaster();
+        const down = new THREE.Vector3(0, -1, 0); // Ray direction (downward)
+        raycaster.set(new THREE.Vector3(x, 100, z), down); // Start ray above the terrain
+
+        //const intersects = raycaster.intersectObject(this.terrain);
+        const intersects = this.fieldMap.getTerrain().intersectObject(this.terrain, true);
+        if (intersects.length > 0) {
+            return intersects[0].point.y; // Return the height of the terrain
+        }
+        return 0; // Default to ground level if no intersection
+    }
+
+    updatePlayerHeight(player) {
+        const position = player.getPosition();
+        const terrainHeight = this.getHeightAt(position.x, position.z);
+        console.log('Terrain height:', terrainHeight);
+        //const terrainHeight = this.fieldMap.getHeightAt(position.x, position.z);
+        player.setPosition(position.x, terrainHeight, position.z);
+    }
+
+    updateItemHeight(item) {
+        const position = item.position;
+        const terrainHeight = this.getHeightAt(position.x, position.z);
+        item.position.y = terrainHeight;
+    }
 }
 
 // ゲームの開始
 window.addEventListener('load', () => {
     window.game = new Game();
-}); 
+});

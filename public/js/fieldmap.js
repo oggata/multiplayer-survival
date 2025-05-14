@@ -7,7 +7,7 @@ class FieldMap {
         this.mapSize = GameConfig.MAP.SIZE;
         this.biomes = [];
         this.objects = [];
-        
+        this.terrainGeometry = null;
         // ビルタイプの定義
         this.buildingTypes = [
             { name: 'skyscraper', minHeight: 30, maxHeight: 100, color: 0x555555 },
@@ -113,30 +113,112 @@ class FieldMap {
             }
         }
     }
-    
+    getTerrain() {
+        return this.terrainGeometry;
+    }
     generateTerrain() {
-        // 地形の生成（高さマップ）
-        const terrainGeometry = new THREE.BoxGeometry(
-            GameConfig.MAP.SIZE, 
-            GameConfig.MAP.FLOOR.THICKNESS, 
-            GameConfig.MAP.SIZE, 
-            100, 1, 100
-        );
-        const terrainMaterial = new THREE.MeshStandardMaterial({
-            color: GameConfig.MAP.FLOOR.COLOR,
-            roughness: 0.8,
-            metalness: 0.2,
-            vertexColors: true
-        });
+
+// 地面の作成（起伏を追加）
+const size = GameConfig.MAP.SIZE; // マップのサイズ
+const segments = 64; // より高精細な地形
+const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+
+// テクスチャローダー
+const textureLoader = new THREE.TextureLoader();
+
+// 地形の高さによって色を変える
+const vertexShader = `
+    varying vec3 vPosition;
+    varying vec3 vNormal;
+
+    void main() {
+        vPosition = position;
+        vNormal = normal; // 法線をフラグメントシェーダーに渡す
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+`;
+
+const fragmentShader = `
+    varying vec3 vPosition;
+    varying vec3 vNormal;
+    uniform vec3 lightDirection;
+
+    void main() {
+        // 高さに基づく地形の色
+        float height = vPosition.z;
+        vec3 waterColor = vec3(0.0, 0.3, 0.7);
+        vec3 sandColor = vec3(0.76, 0.7, 0.5);
+        vec3 grassColor = vec3(0.0, 0.5, 0.0);
+        vec3 rockColor = vec3(0.5, 0.5, 0.5);
+        vec3 snowColor = vec3(1.0, 1.0, 1.0);
+
+        vec3 baseColor;
+        if (height < 0.5) {
+            baseColor = sandColor;
+        } else if (height < 1.0) {
+            float t = (height - 0.5) / 0.5;
+            baseColor = mix(sandColor, sandColor, t);
+        } else if (height < 4.0) {
+            float t = (height - 1.0) / 3.0;
+            baseColor = mix(sandColor, grassColor, t);
+        } else if (height < 8.0) {
+            float t = (height - 4.0) / 4.0;
+            baseColor = mix(grassColor, rockColor, t);
+        } else {
+            float t = min((height - 8.0) / 4.0, 1.0);
+            baseColor = mix(rockColor, snowColor, t);
+        }
+
+        // ライトの影響を計算
+        vec3 normalizedNormal = normalize(vNormal);
+        vec3 normalizedLightDirection = normalize(lightDirection);
+        float lightIntensity = max(dot(normalizedNormal, normalizedLightDirection), 0.0);
+
+        // 最終的な色を計算
+        vec3 finalColor = baseColor * lightIntensity;
+
+        gl_FragColor = vec4(finalColor, 1.0);
+    }
+`;
+    // ライトの方向を取得
+    const directionalLight = this.scene.children.find(obj => obj.isDirectionalLight);
+    const lightDirection = directionalLight ? directionalLight.position.clone().normalize() : new THREE.Vector3(1, 1, 1).normalize();
+    // ライトの方向を uniform に渡す
+    const material = new THREE.ShaderMaterial({
+        uniforms: {
+            lightDirection: { value: lightDirection }
+            //lightDirection: { value: new THREE.Vector3(0.1, 0.1, 0.1).normalize() } // ライトの方向
+        },
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+        side: THREE.DoubleSide
+    });
+
+    const terrainGeometry = new THREE.Mesh(geometry, material);
+    terrainGeometry.rotation.x = -Math.PI / 2;
+    terrainGeometry.receiveShadow = true;
+    this.terrainGeometry = terrainGeometry;
+
+    //const vertices = plane.geometry.attributes.position.array;
+    // 頂点の色を設定
+    const vertices = terrainGeometry.geometry.attributes.position.array;
+    const colors = new Float32Array(vertices.length);
+    
+    for (let i = 0; i < vertices.length; i += 3) {
+        const x = vertices[i];
+        const y = vertices[i + 1];
+        // よりリアルな地形ノイズ
+        const height = 
+                Math.sin(x * 0.1) * Math.cos(y * 0.1) * 3 + 
+                Math.sin(x * 0.3 + 0.5) * Math.cos(y * 0.3 + 0.5) * 2 +
+                Math.sin(x * 0.03) * Math.cos(y * 0.03) * 5;
         
-        const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
-        terrain.position.y = -GameConfig.MAP.FLOOR.THICKNESS / 2; // 床の位置を調整（高さの半分を下げる）
-        terrain.receiveShadow = true;
-        
-        // 頂点の色を設定
-        const vertices = terrainGeometry.attributes.position.array;
-        const colors = new Float32Array(vertices.length);
-        
+        vertices[i + 2] = Math.max(0, height); // 高さは0以上
+    }
+    //terrain.geometry.attributes.position.needsUpdate = true;
+    // terrain.geometry.computeVertexNormals();
+
+/*
         for (let i = 0; i < vertices.length; i += 3) {
             const x = vertices[i];
             const z = vertices[i + 2];
@@ -147,19 +229,24 @@ class FieldMap {
             
             switch (biome.type) {
                 case 'urban':
-                    color.setHex(0x808080);
+                    //aka
+                    color.setHex(0x0000FF);
                     break;
                 case 'forest':
-                    color.setHex(0x556B2F);
+                    //ao
+                    color.setHex(0xFF0000);
                     break;
                 case 'ruins':
-                    color.setHex(0xA0522D);
+                    //ki
+                    color.setHex(0x00FFFF);
                     break;
                 case 'industrial':
-                    color.setHex(0x696969);
+                    //orenji
+                    color.setHex(0x0099FF);
                     break;
                 case 'beach':
-                    color.setHex(0xff1493);
+                    //pinku
+                    color.setHex(0xCC99FF);
                     break;
             }
             
@@ -167,11 +254,19 @@ class FieldMap {
             colors[i + 1] = color.g;
             colors[i + 2] = color.b;
         }
+*/        
+
+terrainGeometry.geometry.attributes.position.needsUpdate = true;
+terrainGeometry.geometry.computeVertexNormals();
+        //terrainGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        this.scene.add(terrainGeometry);
         
-        terrainGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        this.scene.add(terrain);
+
+
+
         
         // 床のグリッドを追加（視覚的な補助）
+        /*
         const gridHelper = new THREE.GridHelper(
             GameConfig.MAP.SIZE, 
             GameConfig.MAP.FLOOR.GRID_SIZE, 
@@ -180,8 +275,24 @@ class FieldMap {
         );
         gridHelper.position.y = 0.01; // 床の上に少し浮かせる
         this.scene.add(gridHelper);
+        */
     }
     
+
+    getHeightAt(x, z) {
+        const raycaster = new THREE.Raycaster();
+        const down = new THREE.Vector3(0, -1, 0); // Ray direction (downward)
+        raycaster.set(new THREE.Vector3(x, 100, z), down); // Start ray above the terrain
+
+        const intersects = raycaster.intersectObject(this.terrainGeometry);
+        if (intersects.length > 0) {
+            return intersects[0].point.y; // Return the height of the terrain
+        }
+        return 0; // Default to ground level if no intersection
+    }
+
+
+
     generateObjects() {
         // バイオームごとのオブジェクト生成
         for (const biome of this.biomes) {
@@ -1451,7 +1562,7 @@ for(var i=0;i< GameConfig.MAP.BUILDINGS.COUNT;i++){
     
     createBoundaryWalls() {
         const wallHeight = 0;
-        const wallThickness = 1;
+        const wallThickness = 0;
         
         // 北の壁
         this.createWall(0, wallHeight/2, -this.mapSize/2, this.mapSize, wallThickness, wallHeight);
@@ -1483,7 +1594,7 @@ for(var i=0;i< GameConfig.MAP.BUILDINGS.COUNT;i++){
     
     createOcean() {
         // 海の平面を作成（マップの2倍の大きさ）
-        const oceanSize = this.mapSize * 3
+        const oceanSize = this.mapSize * 2
         const oceanGeometry = new THREE.PlaneGeometry(oceanSize, oceanSize, 100, 100);
         
         // 海のマテリアルを作成
@@ -1543,7 +1654,7 @@ for(var i=0;i< GameConfig.MAP.BUILDINGS.COUNT;i++){
         //animateOcean();
         
         // 海をシーンに追加
-        this.scene.add(ocean);
+        //this.scene.add(ocean);
         //this.objects.push(ocean);
     }
     

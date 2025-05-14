@@ -3,7 +3,8 @@ class Enemy {
         this.scene = scene;
         this.game = game;
         this.id = enemyData.id;
-        this.model = new Character(this.scene,"enemy");
+        this.model = new Character(this.scene,"enemy",game);
+        this.game = game;
         this.model.setPosition(
             enemyData.position.x,
             enemyData.position.y,
@@ -30,13 +31,15 @@ class Enemy {
         this.isMoving = false;
         
         // 衝突判定用の半径を設定
-        this.collisionRadius = 1.0;
+        this.collisionRadius = 2.0;
     }
 
     checkBulletCollision(bulletPosition) {
         if (this.isDead) return false;
         
         const distance = this.model.getPosition().distanceTo(bulletPosition);
+
+        //console.log("Bullet distance: ", distance);
         return distance < this.collisionRadius;
     }
 
@@ -283,10 +286,18 @@ class Enemy {
             // 前回の位置を保存
             this.lastPosition.copy(this.model.getPosition());
             
+
+
+            var height = this.game.fieldMap.getHeightAt(data.position.x, data.position.z);
+            if (height != null) {
+                var posy = height + 0.5; // キャラクターの高さを考慮して位置を調整
+            }   
+
+
             // 新しい位置を設定
             this.model.setPosition(
                 data.position.x,
-                data.position.y,
+                posy,
                 data.position.z
             );
             
@@ -349,6 +360,11 @@ class EnemyBullet {
 
     update(deltaTime) {
         this.model.position.add(this.direction.clone().multiplyScalar(this.speed * deltaTime));
+
+
+
+
+
     }
 
     dispose() {
