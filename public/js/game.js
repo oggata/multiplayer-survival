@@ -410,6 +410,8 @@ class Game {
     }
 
     setupScene(seed) {
+
+        
         // ライティング
         this.ambientLight = new THREE.AmbientLight(0xffffff, GameConfig.LIGHTING.AMBIENT_INTENSITY);
         this.scene.add(this.ambientLight);

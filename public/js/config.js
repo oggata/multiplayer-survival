@@ -59,9 +59,9 @@ const GameConfig = {
     
     // ライティング設定
     LIGHTING: {
-        AMBIENT_INTENSITY: 0.05,
-        SUN_INTENSITY: 0.5,
-        SUN_INTENSITY_NIGHT: 0.1,
+        AMBIENT_INTENSITY: 0.07,
+        SUN_INTENSITY: 2.5,
+        SUN_INTENSITY_NIGHT: 0.5,
         SUN_INTENSITY_DAWN_DUSK: 10
     },
     
@@ -78,11 +78,11 @@ const GameConfig = {
     
     // カメラ設定
     CAMERA: {
-        FOV: 75,
+        FOV: 50,
         NEAR: 0.1,
         FAR: 10000,
-        OFFSET_Y: 5,
-        OFFSET_Z: 10
+        OFFSET_Y: 4.5,
+        OFFSET_Z: 15
     },
     
     // マップ設定
