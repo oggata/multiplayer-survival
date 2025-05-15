@@ -515,20 +515,38 @@ updateLightDirection() {
     material.needsUpdate = true;
 }
     
-    createPlayerModel() {
-        // 新しいキャラクタークラスを使用してプレイヤーモデルを作成
-        this.playerModel = new Character(this.scene,"player",this);
-        
-        // プレイヤーの色を設定
-        if (this.playerHash) {
-            const color = this.generateColorFromHash(this.playerHash);
-            this.playerModel.setColor(color);
-        }
-        
-        // 他のプレイヤーの近くにスポーン
-        const spawnPosition = this.getNearbyPlayerPosition();
-        this.playerModel.setPosition(spawnPosition.x, spawnPosition.y, spawnPosition.z);
+createPlayerModel() {
+    // Create new character using the Character class
+    this.playerModel = new Character(this.scene, "player", this);
+    
+    // Set player color if available
+    if (this.playerHash) {
+        const color = this.generateColorFromHash(this.playerHash);
+        this.playerModel.setColor(color);
     }
+    
+    // Get initial position from server
+    const serverPosition = this.playerModel.getPosition();
+    
+    // Check if this position is safe (not colliding with buildings)
+    if (this.fieldMap && this.fieldMap.checkCollision(new THREE.Vector3(
+        serverPosition.x, serverPosition.y, serverPosition.z), 2)) {
+        
+        console.log("Initial position unsafe, finding safe spawn position...");
+        
+        // Find a safe spawn position
+        const safePosition = this.getSafeSpawnPosition();
+        this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
+        
+        // Immediately notify server of the corrected position
+        this.socket.emit('playerMove', {
+            position: this.playerModel.getPosition(),
+            rotation: { y: this.playerModel.getRotation().y },
+            isMoving: false,
+            isRunning: false
+        });
+    }
+}
 
     setupControls() {
         // キーボードコントロール
@@ -1310,29 +1328,78 @@ updatePlayerLight() {
         return this.getSafeSpawnPosition();
     }
 
-    getSafeSpawnPosition() {
-        const maxAttempts = 20;
-        let attempts = 0;
+getSafeSpawnPosition() {
+    const maxAttempts = 50; // Increase the number of attempts
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+        // Try larger areas of the map but avoid the center
+        // (buildings are often more concentrated in the center)
+        const section = Math.floor(Math.random() * 4); // 0-3 for four quadrants
+        let x, z;
         
-        while (attempts < maxAttempts) {
-            // マップ内のランダムな位置を生成
-            const position = new THREE.Vector3(
-                (Math.random() - 0.5) * 900, // -450から450の範囲
-                0,
-                (Math.random() - 0.5) * 900  // -450から450の範囲
-            );
-            
-            // 建物との衝突チェック
-            if (!this.fieldMap.checkCollision(position, 1)) {
-                return position;
-            }
-            
-            attempts++;
+        switch(section) {
+            case 0: // Northeast
+                x = Math.random() * 400 + 50;
+                z = Math.random() * 400 + 50;
+                break;
+            case 1: // Northwest
+                x = Math.random() * -400 - 50;
+                z = Math.random() * 400 + 50;
+                break;
+            case 2: // Southeast
+                x = Math.random() * 400 + 50;
+                z = Math.random() * -400 - 50;
+                break;
+            case 3: // Southwest
+                x = Math.random() * -400 - 50;
+                z = Math.random() * -400 - 50;
+                break;
         }
         
-        // デフォルトの位置（マップの中心付近）
-        return new THREE.Vector3(0, 0, 0);
+        const position = new THREE.Vector3(x, 0, z);
+        
+        // Use a larger radius for collision check
+        if (!this.fieldMap.checkCollision(position, 3)) {
+            // Confirm there's no building nearby by checking a few points around
+            let isSafe = true;
+            for (let dx = -5; dx <= 5; dx += 5) {
+                for (let dz = -5; dz <= 5; dz += 5) {
+                    const checkPos = new THREE.Vector3(x + dx, 0, z + dz);
+                    if (this.fieldMap.checkCollision(checkPos, 1)) {
+                        isSafe = false;
+                        break;
+                    }
+                }
+                if (!isSafe) break;
+            }
+            
+            if (isSafe) {
+                // We found a position that's safe and away from buildings
+                return position;
+            }
+        }
+        
+        attempts++;
     }
+    
+    // If all else fails, try some known likely-safe coordinates
+    const safeSpots = [
+        new THREE.Vector3(200, 0, 200),
+        new THREE.Vector3(-200, 0, 200),
+        new THREE.Vector3(200, 0, -200),
+        new THREE.Vector3(-200, 0, -200)
+    ];
+    
+    for (const spot of safeSpots) {
+        if (!this.fieldMap.checkCollision(spot, 3)) {
+            return spot;
+        }
+    }
+    
+    // Absolute fallback
+    return new THREE.Vector3(0, 5, 0); // Slightly elevated for safety
+}
 
     // ゲームをリスタートする処理
     restartGame() {

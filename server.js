@@ -320,6 +320,58 @@ function updateEnemies() {
 // 敵の更新を定期的に実行
 setInterval(updateEnemies, 100);
 
+function getSpawnPosition() {
+    // If no players are connected, return a safe default position
+    // Using (0,0,0) can be risky if buildings are generated there
+    if (Object.keys(players).length === 0) {
+        // Use a position that's likely to be in an open area
+        // Try several pre-defined safe areas
+        const safeAreas = [
+            { x: 100, y: 0, z: 100 },
+            { x: -100, y: 0, z: 100 },
+            { x: 100, y: 0, z: -100 },
+            { x: -100, y: 0, z: -100 }
+        ];
+        return safeAreas[Math.floor(Math.random() * safeAreas.length)];
+    }
+
+    // Get a random player as reference
+    const playerKeys = Object.keys(players);
+    const randomPlayer = players[playerKeys[Math.floor(Math.random() * playerKeys.length)]];
+    
+    // Use much larger offsets to avoid building clusters
+    const maxAttempts = 15; // Increase attempts
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+        // Use larger offsets to find open areas
+        const offset = {
+            x: (Math.random() - 0.5) * 60, // Increased from 10 to 60
+            y: 0,
+            z: (Math.random() - 0.5) * 60  // Increased from 10 to 60
+        };
+        
+        const newPosition = {
+            x: randomPlayer.position.x + offset.x,
+            y: 0,
+            z: randomPlayer.position.z + offset.z
+        };
+        
+        // Keep within map boundaries
+        newPosition.x = Math.max(-450, Math.min(450, newPosition.x));
+        newPosition.z = Math.max(-450, Math.min(450, newPosition.z));
+        
+        attempts++;
+        
+        // Return this position - client will check and correct if needed
+        return newPosition;
+    }
+    
+    // Return a fallback position away from the center
+    return { x: 200, y: 0, z: 200 };
+}
+
+
 // プレイヤーのスポーン位置を取得する関数
 function getSpawnPosition() {
     const players = Object.values(io.sockets.sockets).map(socket => socket.player);
