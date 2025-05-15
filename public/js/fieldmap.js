@@ -126,7 +126,6 @@ const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
 // テクスチャローダー
 const textureLoader = new THREE.TextureLoader();
 
-// 地形の高さによって色を変える
 const vertexShader = `
     varying vec3 vPosition;
     varying vec3 vNormal;
@@ -142,9 +141,13 @@ const fragmentShader = `
     varying vec3 vPosition;
     varying vec3 vNormal;
     uniform vec3 lightDirection;
+    uniform float lightIntensity; // ディレクショナルライトの強度を追加
+    uniform float ambientIntensity; // アンビエントライトの強度を追加
+    uniform vec3 lightColor; // ライトの色を追加
+    uniform vec3 ambientColor; // アンビエントカラーを追加
 
     void main() {
-        // 高さに基づく地形の色
+        // 高さに基づくテレインの色
         float height = vPosition.z;
         vec3 waterColor = vec3(0.0, 0.3, 0.7);
         vec3 sandColor = vec3(0.76, 0.7, 0.5);
@@ -157,7 +160,7 @@ const fragmentShader = `
             baseColor = sandColor;
         } else if (height < 1.0) {
             float t = (height - 0.5) / 0.5;
-            baseColor = mix(sandColor, sandColor, t);
+            baseColor = mix(sandColor, grassColor, t); // この行を修正
         } else if (height < 4.0) {
             float t = (height - 1.0) / 3.0;
             baseColor = mix(sandColor, grassColor, t);
@@ -169,25 +172,35 @@ const fragmentShader = `
             baseColor = mix(rockColor, snowColor, t);
         }
 
-        // ライトの影響を計算
+        // ディレクショナルライトの計算
         vec3 normalizedNormal = normalize(vNormal);
         vec3 normalizedLightDirection = normalize(lightDirection);
-        float lightIntensity = max(dot(normalizedNormal, normalizedLightDirection), 0.0);
+        float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
+        
+        // 最小照明レベルを設定（0.3が最低照明レベル）
+        directionalFactor = max(directionalFactor, 0.2);
 
-        // 最終的な色を計算
-        vec3 finalColor = baseColor * lightIntensity;
+        // アンビエントライトとディレクショナルライトを組み合わせる
+        vec3 directionalContribution = lightColor * directionalFactor;
+        vec3 ambientContribution = ambientColor * ambientIntensity;
+        
+        // 照明を含めた最終的な色
+        vec3 finalColor = baseColor * (directionalContribution + ambientContribution);
 
         gl_FragColor = vec4(finalColor, 1.0);
     }
 `;
-    // ライトの方向を取得
-    const directionalLight = this.scene.children.find(obj => obj.isDirectionalLight);
-    const lightDirection = directionalLight ? directionalLight.position.clone().normalize() : new THREE.Vector3(1, 1, 1).normalize();
-    // ライトの方向を uniform に渡す
+
+    const defaultLightDirection = new THREE.Vector3(1, 1, 1).normalize();
+
+    // 必要なuniformをすべて含むマテリアルを作成
     const material = new THREE.ShaderMaterial({
         uniforms: {
-            lightDirection: { value: lightDirection }
-            //lightDirection: { value: new THREE.Vector3(0.1, 0.1, 0.1).normalize() } // ライトの方向
+            lightDirection: { value: defaultLightDirection },
+            lightIntensity: { value: 1.0 },
+            ambientIntensity: { value: 0.2 },
+            lightColor: { value: new THREE.Color(0xffffff) },
+            ambientColor: { value: new THREE.Color(0xffffff) }
         },
         vertexShader: vertexShader,
         fragmentShader: fragmentShader,

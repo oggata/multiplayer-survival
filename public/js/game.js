@@ -436,6 +436,7 @@ class Game {
         // フィールドマップの作成（シード値を渡す）
         this.fieldMap = new FieldMap(this.scene, seed);
 
+        this.updateLightDirection();
         // プレイヤーモデルの作成
         this.createPlayerModel();
         
@@ -454,19 +455,40 @@ class Game {
 
     }
 
-    updateLightDirection() {
-
-        if (!this.fieldMap || !this.fieldMap.terrainGeometry) {
-            console.warn('FieldMap または terrainGeometry が初期化されていません');
-            return;
-        }
-    
-        const directionalLight = this.scene.children.find(obj => obj.isDirectionalLight);
-        if (!directionalLight) return;
-    
-        const lightDirection = directionalLight.position.clone().normalize();
-        this.fieldMap.terrainGeometry.material.uniforms.lightDirection.value = lightDirection;
+updateLightDirection() {
+    if (!this.fieldMap || !this.fieldMap.terrainGeometry) {
+        console.warn('FieldMap または terrainGeometry が初期化されていません');
+        return;
     }
+    
+// directionalLight が存在するか確認
+    const directionalLight = this.sunLight || this.scene.children.find(obj => obj.isDirectionalLight);
+    if (!directionalLight) {
+        console.warn('DirectionalLight が見つかりません');
+        return;
+    }
+
+
+    // テレインのマテリアルを取得
+    const material = this.fieldMap.terrainGeometry.material;
+    if (!material || !material.uniforms) return;
+    
+    // ディレクショナルライトのプロパティを更新
+    if (this.sunLight) {
+        material.uniforms.lightDirection.value.copy(this.sunLight.position).normalize();
+        material.uniforms.lightIntensity.value = this.sunLight.intensity;
+        material.uniforms.lightColor.value.copy(this.sunLight.color);
+    }
+    
+    // アンビエントライトのプロパティを更新
+    if (this.ambientLight) {
+        material.uniforms.ambientIntensity.value = this.ambientLight.intensity;
+        material.uniforms.ambientColor.value.copy(this.ambientLight.color);
+    }
+    
+    // 強制更新
+    material.needsUpdate = true;
+}
     
     createPlayerModel() {
         // 新しいキャラクタークラスを使用してプレイヤーモデルを作成
@@ -1866,6 +1888,9 @@ console.log(itemConfig);
 
         
         this.sunLight.intensity = sunIntensity;
+    
+        // 太陽が変化したときにシェーダーの照明を更新するためにこの行を追加
+        this.updateLightDirection();
     }
     
     // 空の色を更新
@@ -1926,6 +1951,7 @@ console.log(itemConfig);
         }
         
         this.scene.fog.color.setHex(fogColor);
+        this.updateLightDirection(); // この行を追加
     }
     
     // 時間表示を更新
