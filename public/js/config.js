@@ -87,7 +87,7 @@ const GameConfig = {
     
     // マップ設定
     MAP: {
-        SIZE:   500,
+        SIZE:   300,
         BOUNDARY_WALL_HEIGHT:  0,
         FLOOR: {
             THICKNESS: 1,

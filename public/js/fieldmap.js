@@ -133,7 +133,7 @@ this.fieldObject = new FieldObject(scene,seed,this);
 generateTerrain() {
     // 地面の作成（起伏を追加）
     const size = GameConfig.MAP.SIZE; // マップのサイズ
-    const segments = 128; // より高精細な地形
+    const segments = 32; // より高精細な地形
     const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
 
     // テクスチャローダー
@@ -208,8 +208,11 @@ generateTerrain() {
         vec3 directionalContribution = lightColor * directionalFactor;
         vec3 ambientContribution = ambientColor * ambientIntensity;
         
+        
         // スポットライトの計算（新しいコード）
         vec3 spotContribution = vec3(0.0);
+
+        /*
         if (spotLightEnabled) {
             // 現在の頂点からスポットライトへのベクトル
             vec3 surfaceToLight = spotLightPosition - vPosition;
@@ -244,6 +247,7 @@ generateTerrain() {
                 spotContribution = spotLightColor * spotEffect * spotLightIntensity;
             }
         }
+            */
         
         // すべての光源からの寄与を組み合わせる
         vec3 finalColor = baseColor * (directionalContribution + ambientContribution + spotContribution);

@@ -111,6 +111,7 @@ class Game {
         this.gameTime = 0; // ゲーム内時間（秒）
         this.dayLength = GameConfig.TIME.DAY_LENGTH; // 1日の長さ（秒）
         this.timeOfDay = 0; // 0-1の値（0: 夜明け, 0.25: 朝, 0.5: 昼, 0.75: 夕方, 1: 夜）
+        
         this.sunLight = null; // 太陽光
         this.ambientLight = null; // 環境光
         
@@ -1560,6 +1561,17 @@ updatePlayerLight() {
         const biome = this.fieldMap.getBiomeAt(this.playerModel.position.x, this.playerModel.position.z);
         //console.log('現在のバイオーム:', biome.type);
         
+    // 敵の表示/非表示を更新
+    this.enemies.forEach(enemy => {
+        // スキップフラグがある場合は更新しない
+        if (enemy.skipUpdate) return;
+        
+        // 更新優先度が低い敵は3フレームに1回だけ更新
+        if (enemy.updatePriority === 'low' && this.frameCount % 3 !== 0) return;
+        
+        // アニメーションの更新
+        enemy.model.updateLimbAnimation2(deltaTime);
+    });
 
 this.updateLightDirection();
 
@@ -2234,42 +2246,76 @@ updatePlayerLightIntensity() {
         const fadeStart = GameConfig.VISION.FADE_START;
         
         // 敵の表示/非表示を更新
-        this.enemies.forEach(enemy => {
-            if (!enemy || !enemy.model) return;
-
-            //enemy.model.updateLimbAnimation(deltaTime);
-            
-            const distance = enemy.model.position.distanceTo(playerPosition);
-            
-            if (distance > maxDistance) {
-                // 最大距離を超えている場合は非表示
-                enemy.model.visible = false;
-                if (this.visibleObjects && this.visibleObjects.has(enemy.model)) {
-                    this.visibleObjects.delete(enemy.model);
-                }
-            } else if (distance > fadeStart) {
-                // フェード開始距離を超えている場合は透明度を調整
-                const opacity = 1 - ((distance - fadeStart) / (maxDistance - fadeStart));
-                if (enemy.model.material) {
-                    enemy.model.material.opacity = opacity;
-                    enemy.model.material.transparent = true;
-                }
-                enemy.model.visible = true;
-                if (this.visibleObjects) {
-                    this.visibleObjects.add(enemy.model);
-                }
-            } else {
-                // 通常表示
-                enemy.model.visible = true;
-                if (enemy.model.material && enemy.model.material.opacity !== 1) {
-                    enemy.model.material.opacity = 1;
-                    enemy.model.material.transparent = false;
-                }
-                if (this.visibleObjects) {
-                    this.visibleObjects.add(enemy.model);
-                }
+    this.enemies.forEach((enemy, enemyId) => {
+        if (!enemy || !enemy.model) return;
+        
+        const distance = playerPosition.distanceTo(enemy.model.getPosition());
+        
+        // 視界内かどうかをチェック（カメラの視錐台内にいるか）
+        const isInViewFrustum = this.isInViewFrustum(enemy.model.getPosition());
+        
+        if (distance > maxDistance || !isInViewFrustum) {
+            // 最大距離を超えているか視界外の場合は非表示
+            if (enemy.model.character) {
+                enemy.model.character.visible = false;
             }
-        });
+            
+            // アニメーション更新もスキップするフラグを設定
+            enemy.skipUpdate = true;
+            
+        } else if (distance > fadeStart) {
+            // フェード開始距離を超えている場合は透明度を調整
+            if (enemy.model.character) {
+                enemy.model.character.visible = true;
+                
+                // キャラクター内の全てのメッシュの透明度を調整
+                const opacity = 1 - ((distance - fadeStart) / (maxDistance - fadeStart));
+                enemy.model.character.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        child.material.transparent = true;
+                        child.material.opacity = opacity;
+                    }
+                });
+            }
+            
+            // 更新頻度を下げるフラグを設定（遠くの敵は毎フレーム更新しない）
+            enemy.updatePriority = 'low';
+            
+        } else {
+            // 通常表示（近い敵）
+            if (enemy.model.character) {
+                enemy.model.character.visible = true;
+                
+                // 透明度をリセット
+                enemy.model.character.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        if (child.material.opacity !== 1) {
+                            child.material.opacity = 1;
+                            child.material.transparent = false;
+                        }
+                    }
+                });
+            }
+            
+            // 通常更新
+            enemy.skipUpdate = false;
+            enemy.updatePriority = 'high';
+        }
+    });
+}
+
+// 視錐台判定を行うヘルパーメソッド
+isInViewFrustum(position) {
+    // 簡易的な視錐台判定（カメラの向きと位置からオブジェクトが視界内かを判定）
+    const cameraDirection = new THREE.Vector3(0, 0, -1);
+    cameraDirection.applyQuaternion(this.camera.quaternion);
+    
+    const toObject = new THREE.Vector3().subVectors(position, this.camera.position).normalize();
+    const dot = toObject.dot(cameraDirection);
+    
+    // dot > 0.5 は約60度の視野角に相当
+    return dot > 0.5;
+
         
         // アイテムの表示/非表示を更新
         this.items.forEach(item => {

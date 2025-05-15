@@ -44,13 +44,13 @@ const ENEMY_SPAWN_INTERVAL = 100;
 const MAX_ENEMIES = {
     MORNING:  30,   // 朝（6:00-12:00）30
     DAY: 40,      // 昼（12:00-18:00）40
-    EVENING: 200,  // 夕方（18:00-24:00） 200
-    NIGHT: 300     // 夜（0:00-6:00）300
+    EVENING: 100,  // 夕方（18:00-24:00） 200
+    NIGHT: 150     // 夜（0:00-6:00）300
 };
 
 
 // マップサイズ(クライアントと揃えてください)
-const MAP_SIZE = 500;
+const MAP_SIZE = 300;
 
 // 時間設定
 const TIME = {
@@ -136,27 +136,69 @@ setInterval(() => {
 // 敵の生成
 function spawnEnemy() {
     const currentMaxEnemies = getMaxEnemies();
-    //console.log("e=" + Object.keys(enemies).length + "/" + currentMaxEnemies);
-
+    
     if (Object.keys(enemies).length >= currentMaxEnemies) return;
     
     const enemyId = 'enemy_' + Date.now();
-
-    // マップサイズ内にスポーン（端から10単位の余白を設ける）
-    const x = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
-    const z = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
     
-    enemies[enemyId] = {
-        id: enemyId,
-        position: { x, y: 0, z },
-        rotation: { y: Math.random() * Math.PI * 2 },
-        health: 20,
-        target: null,
-        state: 'wandering', // wandering, chasing
-        lastAttack: 0
-    };
+    // プレイヤー周辺にスポーンさせるように変更
+    let spawnX, spawnZ;
+    let isValidSpawn = false;
     
-    io.emit('enemySpawned', enemies[enemyId]);
+    // プレイヤーがいる場合は、プレイヤーの周囲にスポーン
+    if (Object.keys(players).length > 0) {
+        // ランダムなプレイヤーを選択
+        const playerIds = Object.keys(players);
+        const randomPlayerId = playerIds[Math.floor(Math.random() * playerIds.length)];
+        const randomPlayer = players[randomPlayerId];
+        
+        // スポーン距離の範囲（近すぎず、遠すぎない）
+        const minSpawnDistance = 50;
+        const maxSpawnDistance = 100;
+        
+        // プレイヤーの周囲にランダムな位置を決定
+        const angle = Math.random() * Math.PI * 2;
+        const distance = minSpawnDistance + Math.random() * (maxSpawnDistance - minSpawnDistance);
+        
+        spawnX = randomPlayer.position.x + Math.cos(angle) * distance;
+        spawnZ = randomPlayer.position.z + Math.sin(angle) * distance;
+        
+        // マップ境界内に収める
+        spawnX = Math.max(-MAP_SIZE/2 + 10, Math.min(MAP_SIZE/2 - 10, spawnX));
+        spawnZ = Math.max(-MAP_SIZE/2 + 10, Math.min(MAP_SIZE/2 - 10, spawnZ));
+        
+        isValidSpawn = true;
+    } else {
+        // プレイヤーがいない場合はマップのランダムな位置
+        spawnX = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
+        spawnZ = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
+        isValidSpawn = true;
+    }
+    
+    if (isValidSpawn) {
+        enemies[enemyId] = {
+            id: enemyId,
+            position: { x: spawnX, y: 0, z: spawnZ },
+            rotation: { y: Math.random() * Math.PI * 2 },
+            health: 20,
+            target: null,
+            state: 'wandering',
+            lastAttack: 0
+        };
+        
+        // 近くのプレイヤーにだけ通知（最適化）
+        Object.keys(players).forEach(playerId => {
+            const player = players[playerId];
+            const dx = player.position.x - spawnX;
+            const dz = player.position.z - spawnZ;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            
+            // プレイヤーから一定距離内にいる場合のみ通知
+            if (distance < 150) {
+                io.to(playerId).emit('enemySpawned', enemies[enemyId]);
+            }
+        });
+    }
 }
 
 // 定期的に敵を生成
@@ -191,6 +233,16 @@ function updateEnemies() {
         // 移動前の位置を保存
         const oldPosition = { ...enemy.position };
         
+        // 最も近いプレイヤーが一定距離以上離れている場合、更新頻度を下げる
+        const updateThreshold = 100; // この距離以上なら更新頻度を下げる
+        const shouldUpdate = minDistance < updateThreshold || Math.random() < 0.2;
+        
+        if (!shouldUpdate) {
+            return; // 遠くの敵の更新をスキップ
+        }
+
+
+
         // プレイヤーが近くにいる場合、追いかける
         if (closestPlayer && minDistance < 50) {
             enemy.state = 'chasing';
