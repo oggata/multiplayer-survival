@@ -52,14 +52,14 @@ const GameConfig = {
             BUILDING_RADIUS: 15, // 建物からのスポーン半径
             BUILDING_CHANCE: 0.8, // 建物近くでのスポーン確率
             EMPTY_CHANCE: 0.2, // 空き地でのスポーン確率
-            MIN_DISTANCE: 5, // 建物からの最小距離
-            MAX_DISTANCE: 30 // 建物からの最大距離
+            MIN_DISTANCE: 400, // 建物からの最小距離
+            MAX_DISTANCE: 500 // 建物からの最大距離
         }
     },
     
     // ライティング設定
     LIGHTING: {
-        AMBIENT_INTENSITY: 0.01,
+        AMBIENT_INTENSITY: 0.03,
         SUN_INTENSITY: 0.1,
         SUN_INTENSITY_NIGHT: 0.1,
         SUN_INTENSITY_DAWN_DUSK: 1

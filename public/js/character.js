@@ -33,9 +33,11 @@ class Character {
     }
     
     createCharacter() {
+
+
         // 頭
         const headGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-        const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+        const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac , emissive: 0xffdbac, emissiveIntensity: 0.5});
         this.head = new THREE.Mesh(headGeometry, headMaterial);
         this.head.position.y = 1.75;
         this.head.castShadow = true;
@@ -43,7 +45,7 @@ class Character {
         
         // 体
         const bodyGeometry = new THREE.BoxGeometry(0.6, 0.8, 0.4);
-        const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x3366ff });
+        const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x3366ff , emissive: 0x3366ff, emissiveIntensity: 0.5});
         this.body = new THREE.Mesh(bodyGeometry, bodyMaterial);
         this.body.position.y = 1.0;
         this.body.castShadow = true;
@@ -51,7 +53,7 @@ class Character {
         
         // 左腕
         const armGeometry = new THREE.BoxGeometry(0.2, 0.6, 0.2);
-        const armMaterial = new THREE.MeshStandardMaterial({ color: 0x3366ff });
+        const armMaterial = new THREE.MeshStandardMaterial({ color: 0x3366ff , emissive: 0x3366ff, emissiveIntensity: 0.5});
         this.leftArm = new THREE.Mesh(armGeometry, armMaterial);
         this.leftArm.position.set(-0.4, 1.0, 0);
         this.leftArm.castShadow = true;
@@ -65,7 +67,7 @@ class Character {
         
         // 左足
         const legGeometry = new THREE.BoxGeometry(0.2, 0.6, 0.2);
-        const legMaterial = new THREE.MeshStandardMaterial({ color: 0x000066 });
+        const legMaterial = new THREE.MeshStandardMaterial({ color: 0x000066 , emissive: 0x000066, emissiveIntensity: 0.5});
         this.leftLeg = new THREE.Mesh(legGeometry, legMaterial);
         this.leftLeg.position.set(-0.2, 0.3, 0);
         this.leftLeg.castShadow = true;
@@ -79,7 +81,7 @@ class Character {
         
         // 左靴
         const shoeGeometry = new THREE.BoxGeometry(0.25, 0.1, 0.3);
-        const shoeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+        const shoeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 , emissive: 0x000000, emissiveIntensity: 0.5});
         this.leftShoe = new THREE.Mesh(shoeGeometry, shoeMaterial);
         this.leftShoe.position.set(-0.2, 0.0, 0);
         this.leftShoe.castShadow = true;
@@ -97,21 +99,26 @@ class Character {
         // 服の色（上半身）
         if (this.body) {
             this.body.material.color.setHex(color);
+            this.body.material.emissive.setHex(color);
         }
         if (this.leftArm) {
             this.leftArm.material.color.setHex(color);
+            this.leftArm.material.emissive.setHex(color);
         }
         if (this.rightArm) {
             this.rightArm.material.color.setHex(color);
+            this.rightArm.material.emissive.setHex(color);
         }
         
         // ズボンの色（下半身）- 少し暗めの色を使用
         const darkerColor = color * 0.7;
         if (this.leftLeg) {
             this.leftLeg.material.color.setHex(darkerColor);
+            this.leftLeg.material.emissive.setHex(darkerColor);
         }
         if (this.rightLeg) {
             this.rightLeg.material.color.setHex(darkerColor);
+            this.rightLeg.material.emissive.setHex(darkerColor);
         }
         //this.head.material.color.setHex(color);
         if(this.type == "enemy"){
