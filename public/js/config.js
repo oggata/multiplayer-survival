@@ -59,9 +59,9 @@ const GameConfig = {
     
     // ライティング設定
     LIGHTING: {
-        AMBIENT_INTENSITY: 0.02,
-        SUN_INTENSITY: 0.3,
-        SUN_INTENSITY_NIGHT: 0.3,
+        AMBIENT_INTENSITY: 0.01,
+        SUN_INTENSITY: 0.1,
+        SUN_INTENSITY_NIGHT: 0.1,
         SUN_INTENSITY_DAWN_DUSK: 1
     },
     

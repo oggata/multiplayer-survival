@@ -427,6 +427,30 @@ class Game {
         this.sunLight.shadow.mapSize.height = 2048;
         this.scene.add(this.sunLight);
 
+// プレイヤー用のスポットライトを作成
+    this.playerLight = new THREE.SpotLight(0xffffff, 2.0); // 色と強度
+    this.playerLight.distance = 50; // 光の届く距離
+    this.playerLight.angle = Math.PI / 4; // 光の広がり角度（45度）
+    this.playerLight.penumbra = 0.2; // エッジの柔らかさ
+    this.playerLight.decay = 1.5; // 距離による減衰
+    
+    // 影の設定
+    this.playerLight.castShadow = true;
+    this.playerLight.shadow.mapSize.width = 512;
+    this.playerLight.shadow.mapSize.height = 512;
+    this.playerLight.shadow.camera.near = 0.5;
+    this.playerLight.shadow.camera.far = 50;
+    
+    // ライトのターゲットを作成（これがライトの向きを決める）
+    this.playerLightTarget = new THREE.Object3D();
+    this.scene.add(this.playerLightTarget);
+    this.playerLight.target = this.playerLightTarget;
+    
+    // シーンにライトを追加
+    this.scene.add(this.playerLight);
+
+
+
                 // 光の方向を更新
                 this.updateLightDirection();
                 
@@ -1035,7 +1059,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         // 座標表示を更新
         this.updateCoordinatesDisplay();
 
-
+this.updatePlayerLight();
         // サーバーに位置情報を送信
         this.socket.emit('playerMove', {
             position: this.playerModel.getPosition(),
@@ -1044,7 +1068,69 @@ this.socket.on('zombiesKilled', (zombieIds) => {
             isRunning: this.playerModel.isRunning
         });
     }
+    // プレイヤーライトを更新するための新しいメソッド
+updatePlayerLight() {
+    if (!this.playerLight || !this.playerLightTarget || !this.playerModel) return;
     
+    // プレイヤーの位置を取得
+    const playerPosition = this.playerModel.getPosition();
+    
+    // プレイヤーライトの位置を設定（プレイヤーの肩の高さくらいに配置）
+    this.playerLight.position.set(
+        playerPosition.x,
+        playerPosition.y + 1.2, // プレイヤーより少し上に配置
+        playerPosition.z
+    );
+    
+    // プレイヤーの向きを取得
+    const rotation = this.playerModel.getRotation();
+    
+    // プレイヤーの向きに基づいて前方向を計算
+    const forwardDirection = new THREE.Vector3(0, 0, -1);
+    forwardDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation.y);
+    
+    // ライトのターゲットをプレイヤーの前方に配置
+    this.playerLightTarget.position.copy(playerPosition);
+    this.playerLightTarget.position.add(forwardDirection.multiplyScalar(10)); // 10単位前方
+    this.playerLightTarget.position.y = playerPosition.y; // 同じ高さにする
+    
+    // 地形シェーダーのuniformsを更新
+    if (this.fieldMap && this.fieldMap.terrainGeometry && 
+        this.fieldMap.terrainGeometry.material && 
+        this.fieldMap.terrainGeometry.material.uniforms) {
+        
+        const uniforms = this.fieldMap.terrainGeometry.material.uniforms;
+        
+        // ライトが有効かどうか
+        uniforms.spotLightEnabled.value = this.playerLight.intensity > 0.1;
+        
+        // ライトが有効な場合、他のパラメータを更新
+        if (uniforms.spotLightEnabled.value) {
+            // ライトの位置
+            uniforms.spotLightPosition.value.copy(this.playerLight.position);
+            
+            // ライトの方向（ターゲットへのベクトル）
+            const direction = new THREE.Vector3().subVectors(
+                this.playerLightTarget.position,
+                this.playerLight.position
+            ).normalize();
+            uniforms.spotLightDirection.value.copy(direction);
+            
+            // ライトの色と強度
+            uniforms.spotLightColor.value.copy(this.playerLight.color);
+            uniforms.spotLightIntensity.value = this.playerLight.intensity;
+            
+            // その他のパラメータ
+            uniforms.spotLightDistance.value = this.playerLight.distance;
+            uniforms.spotLightAngle.value = this.playerLight.angle;
+            uniforms.spotLightPenumbra.value = this.playerLight.penumbra;
+        }
+        
+        // マテリアルの更新フラグをセット
+        this.fieldMap.terrainGeometry.material.needsUpdate = true;
+    }
+}
+
     // 座標表示を更新するメソッド
     updateCoordinatesDisplay() {
         if (this.coordinatesElement && this.playerModel) {
@@ -1853,8 +1939,34 @@ console.log(itemConfig);
         
         // 時間表示を更新
         this.updateTimeDisplay();
+
+        this.updatePlayerLightIntensity();
+    }
+    // プレイヤーライトの強度を調整するための新しいメソッド
+// プレイヤーライトの強度を調整するメソッド
+updatePlayerLightIntensity() {
+    if (!this.playerLight) return;
+    
+    // 時間帯に応じて強度を調整
+    let newIntensity = 0.1; // デフォルトは低強度
+    
+    // 夜間（timeOfDay が 0.8-0.2 の間）は最大強度
+    if (this.timeOfDay > 0.8 || this.timeOfDay < 0.2) {
+        newIntensity = 2.5;
+    } 
+    // 夕方と朝方（0.2-0.25 と 0.75-0.8）は中程度の強度
+    else if (this.timeOfDay > 0.75 || this.timeOfDay < 0.25) {
+        newIntensity = 1.5;
     }
     
+    // 変更があった場合のみ更新
+    if (this.playerLight.intensity !== newIntensity) {
+        this.playerLight.intensity = newIntensity;
+        
+        // プレイヤーライトの更新を呼び出して地形シェーダーのuniformsも更新
+        this.updatePlayerLight();
+    }
+}
     // 太陽の位置を更新
     updateSunPosition() {
         if (!this.sunLight) return;
