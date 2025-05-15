@@ -116,89 +116,90 @@ class FieldMap {
     getTerrain() {
         return this.terrainGeometry;
     }
-    generateTerrain() {
+generateTerrain() {
+    // 地面の作成（起伏を追加）
+    const size = GameConfig.MAP.SIZE; // マップのサイズ
+    const segments = 128; // より高精細な地形
+    const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
 
-// 地面の作成（起伏を追加）
-const size = GameConfig.MAP.SIZE; // マップのサイズ
-const segments = 64; // より高精細な地形
-const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+    // テクスチャローダー
+    const textureLoader = new THREE.TextureLoader();
 
-// テクスチャローダー
-const textureLoader = new THREE.TextureLoader();
+    // 地形の高さによって色を変える
+    const vertexShader = `
+        varying vec3 vPosition;
+        varying vec3 vNormal;
 
-const vertexShader = `
-    varying vec3 vPosition;
-    varying vec3 vNormal;
-
-    void main() {
-        vPosition = position;
-        vNormal = normal; // 法線をフラグメントシェーダーに渡す
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-`;
-
-const fragmentShader = `
-    varying vec3 vPosition;
-    varying vec3 vNormal;
-    uniform vec3 lightDirection;
-    uniform float lightIntensity; // ディレクショナルライトの強度を追加
-    uniform float ambientIntensity; // アンビエントライトの強度を追加
-    uniform vec3 lightColor; // ライトの色を追加
-    uniform vec3 ambientColor; // アンビエントカラーを追加
-
-    void main() {
-        // 高さに基づくテレインの色
-        float height = vPosition.z;
-        vec3 waterColor = vec3(0.0, 0.3, 0.7);
-        vec3 sandColor = vec3(0.76, 0.7, 0.5);
-        vec3 grassColor = vec3(0.0, 0.5, 0.0);
-        vec3 rockColor = vec3(0.5, 0.5, 0.5);
-        vec3 snowColor = vec3(1.0, 1.0, 1.0);
-
-        vec3 baseColor;
-        if (height < 0.5) {
-            baseColor = sandColor;
-        } else if (height < 1.0) {
-            float t = (height - 0.5) / 0.5;
-            baseColor = mix(sandColor, grassColor, t); // この行を修正
-        } else if (height < 4.0) {
-            float t = (height - 1.0) / 3.0;
-            baseColor = mix(sandColor, grassColor, t);
-        } else if (height < 8.0) {
-            float t = (height - 4.0) / 4.0;
-            baseColor = mix(grassColor, rockColor, t);
-        } else {
-            float t = min((height - 8.0) / 4.0, 1.0);
-            baseColor = mix(rockColor, snowColor, t);
+        void main() {
+            vPosition = position;
+            vNormal = normal; // 法線をフラグメントシェーダーに渡す
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
+    `;
 
-        // ディレクショナルライトの計算
-        vec3 normalizedNormal = normalize(vNormal);
-        vec3 normalizedLightDirection = normalize(lightDirection);
-        float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
-        
-        // 最小照明レベルを設定（0.3が最低照明レベル）
-        directionalFactor = max(directionalFactor, 0.2);
+    const fragmentShader = `
+        varying vec3 vPosition;
+        varying vec3 vNormal;
+        uniform vec3 lightDirection;
+        uniform float lightIntensity; // ディレクショナルライトの強度を追加
+        uniform float ambientIntensity; // アンビエントライトの強度を追加
+        uniform vec3 lightColor; // ライトの色を追加
+        uniform vec3 ambientColor; // アンビエントカラーを追加
 
-        // アンビエントライトとディレクショナルライトを組み合わせる
-        vec3 directionalContribution = lightColor * directionalFactor;
-        vec3 ambientContribution = ambientColor * ambientIntensity;
-        
-        // 照明を含めた最終的な色
-        vec3 finalColor = baseColor * (directionalContribution + ambientContribution);
+        void main() {
+            // 高さに基づく地形の色
+            float height = vPosition.z;
+            vec3 waterColor = vec3(0.0, 0.3, 0.7);
+            vec3 sandColor = vec3(0.76, 0.7, 0.5);
+            vec3 grassColor = vec3(0.0, 0.5, 0.0);
+            vec3 rockColor = vec3(0.5, 0.5, 0.5);
+            vec3 snowColor = vec3(1.0, 1.0, 1.0);
 
-        gl_FragColor = vec4(finalColor, 1.0);
-    }
-`;
+            vec3 baseColor;
+            if (height < 0.5) {
+                baseColor = waterColor;
+            } else if (height < 1.0) {
+                float t = (height - 0.5) / 0.5;
+                baseColor = mix(waterColor, sandColor, t);
+            } else if (height < 4.0) {
+                float t = (height - 1.0) / 3.0;
+                baseColor = mix(sandColor, grassColor, t);
+            } else if (height < 8.0) {
+                float t = (height - 4.0) / 4.0;
+                baseColor = mix(grassColor, rockColor, t);
+            } else {
+                float t = min((height - 8.0) / 4.0, 1.0);
+                baseColor = mix(rockColor, snowColor, t);
+            }
 
+            // ディレクショナルライトの計算
+            vec3 normalizedNormal = normalize(vNormal);
+            vec3 normalizedLightDirection = normalize(lightDirection);
+            float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
+            
+            // 最小照明レベルを設定（0.3が最低照明レベル）- これで暗すぎる部分を明るくします
+            directionalFactor = max(directionalFactor, 0.3);
+            
+            // アンビエントライトとディレクショナルライトを組み合わせる
+            vec3 directionalContribution = lightColor * directionalFactor;
+            vec3 ambientContribution = ambientColor * ambientIntensity;
+            
+            // 照明を含めた最終的な色
+            vec3 finalColor = baseColor * (directionalContribution + ambientContribution);
+
+            gl_FragColor = vec4(finalColor, 1.0);
+        }
+    `;
+
+    // デフォルトのライト方向を定義
     const defaultLightDirection = new THREE.Vector3(1, 1, 1).normalize();
 
-    // 必要なuniformをすべて含むマテリアルを作成
+    // ライトの方向を uniform に渡す
     const material = new THREE.ShaderMaterial({
         uniforms: {
             lightDirection: { value: defaultLightDirection },
-            lightIntensity: { value: 1.0 },
-            ambientIntensity: { value: 0.2 },
+            lightIntensity: { value: 1.5 }, // 明るさを上げるために値を大きくしました
+            ambientIntensity: { value: 0.4 }, // 環境光も明るくしました
             lightColor: { value: new THREE.Color(0xffffff) },
             ambientColor: { value: new THREE.Color(0xffffff) }
         },
@@ -212,84 +213,52 @@ const fragmentShader = `
     terrainGeometry.receiveShadow = true;
     this.terrainGeometry = terrainGeometry;
 
-    //const vertices = plane.geometry.attributes.position.array;
     // 頂点の色を設定
     const vertices = terrainGeometry.geometry.attributes.position.array;
-    const colors = new Float32Array(vertices.length);
+    
+    // マップのサイズの半分（中心からの最大距離）
+    const halfSize = size / 2;
+    // 端からどれくらい内側でフェードアウトを始めるか（例：20%のマージン）
+    const borderMargin = halfSize * 0.1;
+    // 実際の使用可能なサイズ（フェードアウトを考慮）
+    const usableSize = halfSize - borderMargin;
     
     for (let i = 0; i < vertices.length; i += 3) {
         const x = vertices[i];
         const y = vertices[i + 1];
-        // よりリアルな地形ノイズ
-        const height = 
-                Math.sin(x * 0.1) * Math.cos(y * 0.1) * 3 + 
-                Math.sin(x * 0.3 + 0.5) * Math.cos(y * 0.3 + 0.5) * 2 +
-                Math.sin(x * 0.03) * Math.cos(y * 0.03) * 5;
         
-        vertices[i + 2] = Math.max(0, height); // 高さは0以上
-    }
-    //terrain.geometry.attributes.position.needsUpdate = true;
-    // terrain.geometry.computeVertexNormals();
-
-/*
-        for (let i = 0; i < vertices.length; i += 3) {
-            const x = vertices[i];
-            const z = vertices[i + 2];
+        // 基本的な地形の起伏を計算
+        const baseHeight = 
+            Math.sin(x * 0.1) * Math.cos(y * 0.1) * 3 + 
+            Math.sin(x * 0.3 + 0.5) * Math.cos(y * 0.3 + 0.5) * 2 +
+            Math.sin(x * 0.03) * Math.cos(y * 0.03) * 5;
+        
+        // 中心からの距離を計算
+        const distanceFromCenter = Math.sqrt(x * x + y * y);
+        
+        // フェードアウト係数を計算（中心に近いほど1、端に近いほど0）
+        let fadeOutFactor = 1.0;
+        
+        if (distanceFromCenter > usableSize) {
+            // usableSizeを超えた場合、端に向かって徐々にフェードアウト
+            fadeOutFactor = Math.max(0, 1.0 - (distanceFromCenter - usableSize) / borderMargin);
             
-            // バイオームに基づいて色を設定
-            const biome = this.getBiomeAt(x, z);
-            const color = new THREE.Color();
-            
-            switch (biome.type) {
-                case 'urban':
-                    //aka
-                    color.setHex(0x0000FF);
-                    break;
-                case 'forest':
-                    //ao
-                    color.setHex(0xFF0000);
-                    break;
-                case 'ruins':
-                    //ki
-                    color.setHex(0x00FFFF);
-                    break;
-                case 'industrial':
-                    //orenji
-                    color.setHex(0x0099FF);
-                    break;
-                case 'beach':
-                    //pinku
-                    color.setHex(0xCC99FF);
-                    break;
-            }
-            
-            colors[i] = color.r;
-            colors[i + 1] = color.g;
-            colors[i + 2] = color.b;
+            // スムーズなフェードアウトのために、fadeOutFactorをイージング関数で調整
+            // 例: 二次関数で滑らかに減少（オプション）
+            fadeOutFactor = fadeOutFactor * fadeOutFactor;
         }
-*/        
-
-terrainGeometry.geometry.attributes.position.needsUpdate = true;
-terrainGeometry.geometry.computeVertexNormals();
-        //terrainGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        this.scene.add(terrainGeometry);
         
-
-
-
+        // 最終的な高さを計算（端に近づくにつれて0に近づく）
+        const finalHeight = Math.max(0, baseHeight * fadeOutFactor);
         
-        // 床のグリッドを追加（視覚的な補助）
-        /*
-        const gridHelper = new THREE.GridHelper(
-            GameConfig.MAP.SIZE, 
-            GameConfig.MAP.FLOOR.GRID_SIZE, 
-            GameConfig.MAP.FLOOR.GRID_COLOR, 
-            GameConfig.MAP.FLOOR.GRID_SECONDARY_COLOR
-        );
-        gridHelper.position.y = 0.01; // 床の上に少し浮かせる
-        this.scene.add(gridHelper);
-        */
+        vertices[i + 2] = finalHeight;
     }
+
+    terrainGeometry.geometry.attributes.position.needsUpdate = true;
+    terrainGeometry.geometry.computeVertexNormals();
+    
+    this.scene.add(terrainGeometry);
+}
     
 
     getHeightAt(x, z) {

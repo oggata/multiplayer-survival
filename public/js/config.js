@@ -73,7 +73,7 @@ const GameConfig = {
     
     // 霧設定
     FOG: {
-        DENSITY: 0.028 // 0.028
+        DENSITY: 0.005 // 0.028
     },
     
     // カメラ設定
