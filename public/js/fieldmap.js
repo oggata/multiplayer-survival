@@ -181,10 +181,10 @@ generateTerrain() {
 
         vec3 baseColor;
         if (height < 0.5) {
-            baseColor = waterColor;
+            baseColor = sandColor;
         } else if (height < 1.0) {
             float t = (height - 0.5) / 0.5;
-            baseColor = mix(waterColor, sandColor, t);
+            baseColor = mix(sandColor, sandColor, t);
         } else if (height < 4.0) {
             float t = (height - 1.0) / 3.0;
             baseColor = mix(sandColor, grassColor, t);
@@ -856,21 +856,21 @@ const material = new THREE.ShaderMaterial({
         
         // 海のマテリアルを作成
         const oceanMaterial = new THREE.MeshStandardMaterial({
-            color: 0x296478, // 海の色 0x0077be
+            color: 0x004DB3, 
             transparent: true,
-            opacity: 1,
+            //opacity: 1,
             side: THREE.DoubleSide // 両面を表示
         });
         
         // 海のメッシュを作成
         const ocean = new THREE.Mesh(oceanGeometry, oceanMaterial);
         ocean.rotation.x = -Math.PI / 2; // 平面を水平に
-        ocean.position.y = -0.1; // 地面より少し下に配置
+        ocean.position.y = 0.1; // 地面より少し下に配置
         
         // 波のアニメーション用の頂点を取得
-        const positions = oceanGeometry.attributes.position.array;
-        const originalPositions = new Float32Array(positions);
-        
+        //const positions = oceanGeometry.attributes.position.array;
+        //const originalPositions = new Float32Array(positions);
+        /*
         // アニメーション関数を定義
         const animateOcean = () => {
             const time = Date.now() * 0.001; // 秒単位の時間
@@ -906,12 +906,13 @@ const material = new THREE.ShaderMaterial({
             oceanGeometry.computeVertexNormals();
             requestAnimationFrame(animateOcean);
         };
+        */
         
         // アニメーションを開始
         //animateOcean();
         
         // 海をシーンに追加
-        //this.scene.add(ocean);
+        this.scene.add(ocean);
         //this.objects.push(ocean);
     }
     
