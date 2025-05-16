@@ -7,7 +7,7 @@ const GameConfig = {
         MOVE_SPEED: 5.0,
         ROTATION_SPEED: 0.05,
         MAX_HEALTH: 100,
-        COLLISION_RADIUS: 2.0,
+        COLLISION_RADIUS: 1.0,
         hungerDecreaseRate:0.006,
         thirstDecreaseRate:0.01,
         hygieneDecreaseRate:0.1,

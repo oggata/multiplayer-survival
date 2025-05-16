@@ -150,7 +150,7 @@ class HexapodCharacter {
     }
     
     // キャラクターの色を設定するメソッド
-    setColor(color) {
+    setEnemyColor(color) {
         // 頭と体の色を設定
         if (this.head && this.head.material) {
             this.head.material.color.setHex(color);

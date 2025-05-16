@@ -121,6 +121,18 @@ console.log("キャラクター作成");
         });
     }
 
+    setEnemyColor(color) {
+        const bodyParts = [
+            this.head, this.body, this.rightArm, this.leftArm,this.rightLeg, this.leftLeg
+        ];
+        bodyParts.forEach(part => {
+            if (part && part.material) {
+                part.material.color.setHex(color);
+                part.material.emissive.setHex(color);
+            }
+        });
+    }
+
     updateLimbAnimation(deltaTime) {
         this.animationTime += deltaTime * this.animationSpeed;
         
@@ -139,9 +151,11 @@ console.log("キャラクター作成");
             this.leftShoe.rotation.x = legAngle;
             this.rightShoe.rotation.x = -legAngle;
             
-            // 上下の動きを追加（振幅を0.15に増加）
-            const verticalOffset = Math.sin(this.animationTime * 15) * 0.15;
-            this.character.position.y = this.position.y + verticalOffset;
+            if(this.type == "player"){
+                // 上下の動きを追加（振幅を0.15に増加）
+                const verticalOffset = Math.sin(this.animationTime * 15) * 0.15;
+                this.character.position.y = this.position.y + verticalOffset;
+            }
         } else {
             // アイドルアニメーション（速度を調整）
             const idleAngle = Math.sin(this.animationTime * 3) * 0.1;

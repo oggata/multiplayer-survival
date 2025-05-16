@@ -32,7 +32,7 @@ class EnhancedEnemy {
         
         // 敵の色を設定
         if (enemyTypeConfig) {
-            this.model.setColor(enemyTypeConfig.color);
+            this.model.setEnemyColor(enemyTypeConfig.color);
             this.color = enemyTypeConfig.color; // 色を保存
             this.moveSpeed = enemyTypeConfig.moveSpeed;
             this.damage = enemyTypeConfig.damage;
@@ -81,11 +81,11 @@ class EnhancedEnemy {
     getCollisionRadius() {
         switch (this.enemyType) {
             case 'quadruped':
-                return 2.5; // 四足歩行は少し大きめ
+                return 1.5; // 四足歩行は少し大きめ
             case 'hexapod':
-                return 2.2; // 六足歩行も少し大きめ
+                return 1.2; // 六足歩行も少し大きめ
             default:
-                return 2.0; // 人型はデフォルト
+                return 1.0; // 人型はデフォルト
         }
     }
 
@@ -114,12 +114,12 @@ class EnhancedEnemy {
         const originalColor = this.color;
         
         // 白く光らせる
-        this.model.setColor(0xffffff);
+        this.model.setEnemyColor(0xffffff);
         
         // 0.1秒後に元の色に戻す
         setTimeout(() => {
             if (this.model) {
-                this.model.setColor(originalColor);
+                this.model.setEnemyColor(originalColor);
             }
         }, 100);
     }

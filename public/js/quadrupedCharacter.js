@@ -112,7 +112,7 @@ class QuadrupedCharacter {
     }
     
     // キャラクターの色を設定するメソッド
-    setColor(color) {
+    setEnemyColor(color) {
         const bodyParts = [
             this.head, this.body, this.frontLeftLeg, this.frontRightLeg, 
             this.rearLeftLeg, this.rearRightLeg

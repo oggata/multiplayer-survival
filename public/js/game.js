@@ -221,7 +221,7 @@ class Game {
         this.effectsContainer.id = 'effectsContainer';
         this.effectsContainer.style.cssText = `
             position: fixed;
-            top: 20px;
+            top: 30px;
             right: 20px;
             background: rgba(0, 0, 0, 0.7);
             padding: 10px;
@@ -229,7 +229,7 @@ class Game {
             color: white;
             font-size: 14px;
             z-index: 1000;
-            min-width: 200px;
+            min-width: 300px;
         `;
         document.body.appendChild(this.effectsContainer);
         
@@ -243,7 +243,7 @@ class Game {
             .filter(([_, item]) => item.dropChance !== undefined)
             .map(([type]) => type);
         
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 1; i++) {
             const randomIndex = Math.floor(Math.random() * itemTypes.length);
             const selectedType = itemTypes[randomIndex];
             //const selectedType = itemTypes[0];
@@ -1243,6 +1243,9 @@ updatePlayerLight() {
         // 生存時間を計算
         const survivalTime = Date.now() - this.playerSpawnTime;
         const gameDayLength = GameConfig.TIME.DAY_LENGTH;
+
+
+        this.playerSpawnTime = Date.now();
         
         // 生存時間をゲーム内の日数、時間、分に変換
         const survivalDays = Math.floor(survivalTime / (gameDayLength * 1000));
@@ -1516,7 +1519,7 @@ getSafeSpawnPosition() {
         if (enemy.updatePriority === 'low' && this.frameCount % 3 !== 0) return;
         
         // アニメーションの更新
-        enemy.model.updateLimbAnimation2(deltaTime);
+        enemy.model.updateLimbAnimation(deltaTime);
     });
 
 this.updateLightDirection();
@@ -1562,9 +1565,6 @@ this.updateLightDirection();
         // 天気の更新
         this.weather.update(deltaTime, this.gameTime, this.timeOfDay);
 
-        // ステータスによるHP減少の処理
-        //this.updateHealthFromStatus(deltaTime);
-
         /*
         // 敵の弾丸の更新
         this.enemyBullets.forEach(bullet => {
@@ -1572,9 +1572,7 @@ this.updateLightDirection();
         });
 */
         // 敵の表示/非表示を更新
-        this.enemies.forEach(enemy => {
-            enemy.model.updateLimbAnimation2(deltaTime);
-        });
+
 
         //itemの更新
         this.items.forEach(item => {
@@ -1828,7 +1826,7 @@ console.log(itemConfig);
                 margin: 2px 0;
                 background: rgba(0, 0, 0, 0.5);
                 border-radius: 4px;
-                font-size: 12px;
+                font-size: 14px;
             `;
             
             const useButton = document.createElement('button');
@@ -1836,7 +1834,7 @@ console.log(itemConfig);
             useButton.style.cssText = `
                 padding: 2px 8px;
                 margin: 0 4px;
-                font-size: 11px;
+                font-size: 14px;
                 background: #4CAF50;
                 border: none;
                 border-radius: 3px;
@@ -1850,7 +1848,7 @@ console.log(itemConfig);
             dropButton.style.cssText = `
                 padding: 2px 8px;
                 margin: 0 4px;
-                font-size: 11px;
+                font-size: 14px;
                 background: #f44336;
                 border: none;
                 border-radius: 3px;
@@ -2607,37 +2605,16 @@ spawnEnemy(enemyData) {
         let html = '';
         
         for (const [effectId, effect] of Object.entries(effects)) {
-//console.log(effect);
             const remainingTime = Math.ceil(effect.remainingTime);
-//console.log(effect.type);
             const effectConfig = GameConfig.ITEMS[effect.type];
             if (effectConfig) {
                 // 効果の詳細を取得
                 const effectDetails = [];
-                /*
-                if (effectConfig.effects?.immediate) {
-                    const imm = effectConfig.effects.immediate;
-                    if (imm.health) effectDetails.push(`HP ${imm.health > 0 ? '+' : ''}${imm.health}`);
-                    if (imm.hunger) effectDetails.push(`Hunger ${imm.hunger > 0 ? '+' : ''}${imm.hunger}`);
-                    if (imm.thirst) effectDetails.push(`Thirst ${imm.thirst > 0 ? '+' : ''}${imm.thirst}`);
-                }
-                    */
-
-                /*
-                if (effectConfig.effects?.duration) {
-                    const dur = effectConfig.effects.duration;
-                    if (dur.health) effectDetails.push(`HP ${dur.health > 0 ? '+' : ''}${dur.health}/秒`);
-                    if (dur.hunger) effectDetails.push(`Hunger ${dur.hunger > 0 ? '+' : ''}${dur.hunger}/秒`);
-                    if (dur.thirst) effectDetails.push(`Thirst ${dur.thirst > 0 ? '+' : ''}${dur.thirst}/秒`);
-                }
-                    */
-//console.log(effectConfig);
                 html += `
-                    <div style="margin: 2px 0; font-size: 8px;">
-                        <div style="color: #4CAF50; font-weight: bold;">${effectConfig.name}</div>
+                    <div style="margin: 5px 0;">
+                        <div style="color: #4CAF50; font-weight: bold;">[${effectConfig.name}]</div>
                         <div style="color: #4CAF50; font-weight: bold;">${effectConfig.description}</div>
                         <div style="color: #FFD700; margin-left: 5px;">${remainingTime}sec</div>
-                        <div style="color: #aaa; margin-left: 5px; font-size: 8px;">${effectDetails.join(', ')}</div>
                     </div>
                 `;
             }

@@ -122,6 +122,9 @@ class PlayerStatus {
         this.temperature = 37;
         this.hygiene = 100;
         this.isGameOver = false;
+//this.survivalTime = 0;
+
+
         document.getElementById('gameOver').style.display = 'none';
         this.updateUI();
     }
