@@ -42,10 +42,10 @@ const ENEMY_SPAWN_INTERVAL = 100;
 // 時間帯ごとの敵の最大数
 
 const MAX_ENEMIES = {
-    MORNING:  30,   // 朝（6:00-12:00）30
-    DAY: 40,      // 昼（12:00-18:00）40
-    EVENING: 100,  // 夕方（18:00-24:00） 200
-    NIGHT: 150     // 夜（0:00-6:00）300
+    MORNING:  0,   // 朝（6:00-12:00）30
+    DAY: 0,      // 昼（12:00-18:00）40
+    EVENING: 30,  // 夕方（18:00-24:00） 100
+    NIGHT: 70     // 夜（0:00-6:00）150
 };
 
 
@@ -134,73 +134,63 @@ setInterval(() => {
 }, TIME_CHECK_INTERVAL);
 
 // 敵の生成
+// server.js の spawnEnemy 関数を修正
+
 function spawnEnemy() {
     const currentMaxEnemies = getMaxEnemies();
     
     if (Object.keys(enemies).length >= currentMaxEnemies) return;
     
     const enemyId = 'enemy_' + Date.now();
-    
-    // プレイヤー周辺にスポーンさせるように変更
-    let spawnX, spawnZ;
-    let isValidSpawn = false;
-    
-    // プレイヤーがいる場合は、プレイヤーの周囲にスポーン
-    if (Object.keys(players).length > 0) {
-        // ランダムなプレイヤーを選択
-        const playerIds = Object.keys(players);
-        const randomPlayerId = playerIds[Math.floor(Math.random() * playerIds.length)];
-        const randomPlayer = players[randomPlayerId];
-        
-        // スポーン距離の範囲（近すぎず、遠すぎない）
-        const minSpawnDistance = 50;
-        const maxSpawnDistance = 100;
-        
-        // プレイヤーの周囲にランダムな位置を決定
-        const angle = Math.random() * Math.PI * 2;
-        const distance = minSpawnDistance + Math.random() * (maxSpawnDistance - minSpawnDistance);
-        
-        spawnX = randomPlayer.position.x + Math.cos(angle) * distance;
-        spawnZ = randomPlayer.position.z + Math.sin(angle) * distance;
-        
-        // マップ境界内に収める
-        spawnX = Math.max(-MAP_SIZE/2 + 10, Math.min(MAP_SIZE/2 - 10, spawnX));
-        spawnZ = Math.max(-MAP_SIZE/2 + 10, Math.min(MAP_SIZE/2 - 10, spawnZ));
-        
-        isValidSpawn = true;
-    } else {
-        // プレイヤーがいない場合はマップのランダムな位置
-        spawnX = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
-        spawnZ = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
-        isValidSpawn = true;
-    }
-    
-    if (isValidSpawn) {
-        enemies[enemyId] = {
-            id: enemyId,
-            position: { x: spawnX, y: 0, z: spawnZ },
-            rotation: { y: Math.random() * Math.PI * 2 },
-            health: 20,
-            target: null,
-            state: 'wandering',
-            lastAttack: 0
-        };
-        
-        // 近くのプレイヤーにだけ通知（最適化）
-        Object.keys(players).forEach(playerId => {
-            const player = players[playerId];
-            const dx = player.position.x - spawnX;
-            const dz = player.position.z - spawnZ;
-            const distance = Math.sqrt(dx * dx + dz * dz);
-            
-            // プレイヤーから一定距離内にいる場合のみ通知
-            if (distance < 150) {
-                io.to(playerId).emit('enemySpawned', enemies[enemyId]);
-            }
-        });
-    }
-}
 
+    // マップサイズ内にスポーン（端から10単位の余白を設ける）
+    const x = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
+    const z = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
+    
+    // ランダムに敵のタイプを選択（基本タイプ）
+    const enemyTypes = ['NORMAL', 'FAST', 'SHOOTER'];
+    const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+    
+    // ランダムにキャラクターモデルタイプを選択
+    const characterModels = ['humanoid', 'quadruped', 'hexapod'];
+    const modelWeights = [0.6, 0.25, 0.15]; // 出現確率（人型60%、四足25%、六足15%）
+    
+    // 重み付き抽選
+    let randomValue = Math.random();
+    let cumulativeWeight = 0;
+    let selectedModel = characterModels[0]; // デフォルト
+    
+    for (let i = 0; i < characterModels.length; i++) {
+        cumulativeWeight += modelWeights[i];
+        if (randomValue <= cumulativeWeight) {
+            selectedModel = characterModels[i];
+            break;
+        }
+    }
+    
+    // 異なる種類の敵ごとにHPを調整
+    let enemyHealth = 20; // デフォルト
+    
+    if (selectedModel === 'quadruped') {
+        enemyHealth = 30; // 四足歩行は強い
+    } else if (selectedModel === 'hexapod') {
+        enemyHealth = 25; // 六足歩行はやや強い
+    }
+    
+    enemies[enemyId] = {
+        id: enemyId,
+        position: { x, y: 0, z },
+        rotation: { y: Math.random() * Math.PI * 2 },
+        health: enemyHealth,
+        type: randomType,
+        enemyType: selectedModel, // キャラクターモデルタイプを追加
+        target: null,
+        state: 'wandering', // wandering, chasing
+        lastAttack: 0
+    };
+    
+    io.emit('enemySpawned', enemies[enemyId]);
+}
 // 定期的に敵を生成
 setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
 
@@ -376,8 +366,9 @@ function getSpawnPosition() {
 function getSpawnPosition() {
     const players = Object.values(io.sockets.sockets).map(socket => socket.player);
     if (players.length === 0) {
+        console.log('他のプレイヤーがいないため、デフォルト位置を使用します');
         // 他のプレイヤーがいない場合はデフォルト位置
-        return { x: 0, y: 0, z: 0 };
+        return { x: 9, y: 0, z: 0 };
     }
 
     // ランダムに他のプレイヤーを選択
@@ -387,6 +378,7 @@ function getSpawnPosition() {
     const maxAttempts = 10;
     let attempts = 0;
     
+    /*
     while (attempts < maxAttempts) {
         // プレイヤーの周囲にランダムなオフセットを加える
         const offset = {
@@ -413,7 +405,7 @@ function getSpawnPosition() {
         
         attempts++;
     }
-    
+    */
     // 最大試行回数を超えた場合は、選択したプレイヤーの位置を返す
     return randomPlayer.position;
 }

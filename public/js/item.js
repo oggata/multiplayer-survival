@@ -8,11 +8,11 @@ class Item {
         }
 
         // アイテムのメッシュを作成
-        const geometry = new THREE.SphereGeometry(0.2, 3, 3);
+        const geometry = new THREE.SphereGeometry(0.5, 3, 3);
         const material = new THREE.MeshStandardMaterial({
             color: this.itemConfig.color,
             emissive: this.itemConfig.color,
-            emissiveIntensity: 0.5
+            emissiveIntensity: 2.5
         });
         
         this.mesh = new THREE.Mesh(geometry, material);

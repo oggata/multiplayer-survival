@@ -74,38 +74,7 @@
             background: rgba(255, 255, 255, 0.3);
             border-radius: 50px;
         }
-        #shootButton {
-            position: fixed;
-            bottom: 20px;
-            right: 90px;
-            width: 60px;
-            height: 60px;
-            background-color: #ff0000;
-            border-radius: 50%;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 1000;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
-            transition: transform 0.1s ease, background-color 0.1s ease;
-        }
 
-        #shootButton:active::before {
-            opacity: 0.5;
-        }
-        #shootButton i {
-            color: white;
-            font-size: 24px;
-            transition: transform 0.1s ease;
-        }
-        #shootButton:active i {
-            transform: scale(0.6);
-        }
         #messageButton {
             position: fixed;
             right: 160px;
@@ -245,23 +214,15 @@
                 top: 25px;
                 left: 25px;
             }
-            #shootButton {
-                width: 50px;
-                height: 50px;
-                bottom: 10px;
-                right: 70px;
-            }
-            #shootButton i {
-                font-size: 18px;
-            }
+
             #messageButton {
-                width: 50px;
+                width: 100px;
                 height: 50px;
                 bottom: 10px;
                 right: 130px;
             }
             #backpackButton {
-                width: 50px;
+                width: 100px;
                 height: 50px;
                 bottom: 10px;
                 right: 10px;
@@ -455,7 +416,7 @@
         <div id="leftJoystick">
             <div id="joystickKnob"></div>
         </div>
-        <button id="shootButton"><i class="fas fa-crosshairs"></i></button>
+
         <button id="messageButton"><i class="fas fa-comment"></i></button>
         <button id="backpackButton"><i class="fas fa-briefcase"></i></button>
     </div>
@@ -514,8 +475,11 @@
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/seedrandom@3.0.5/seedrandom.min.js"></script>
     <script src="js/config.js"></script>
-    <script src="js/fieldmap.js"></script>
     <script src="js/character.js"></script>
+    <script src="js/quadrupedCharacter.js"></script>
+    <script src="js/hexapodCharacter.js"></script>
+    <script src="js/enhancedEnemy.js"></script>
+    <script src="js/fieldmap.js"></script>
     <script src="js/playerStatus.js"></script>
     <script src="js/item.js"></script>
     <script src="js/enemy.js"></script>
@@ -523,6 +487,7 @@
     <script src="js/bullet.js"></script>
     <script src="js/fieldobject.js"></script>
     <script src="js/game.js"></script>
+
 
 <script>
 // ジョイスティックの制御

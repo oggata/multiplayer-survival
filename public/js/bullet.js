@@ -7,6 +7,8 @@ class Bullet {
         this.lifetime = 3.0; // 5秒後に消える
         this.damage = 10;
 
+        this.color = 0xfbff00;
+
         if(bulletType == "bullet001"){
             //normal
             this.speed =    15;
@@ -61,13 +63,13 @@ class Bullet {
     }
     
     createModel(bulletType) {
-console.log(bulletType);
+        //console.log(bulletType);
         if(bulletType == "shotgun"){
             // 弾丸のジオメトリとマテリアルを作成
             const geometry = new THREE.SphereGeometry(0.3, 12, 12);
             const material = new THREE.MeshPhongMaterial({ 
-                color: "0x0066FF",//yellow
-                emissive: 0x0066FF,
+                color: "0xfbff00",//yellow
+                emissive: 0xfbff00,
                 emissiveIntensity: 0.8
             });
             // メッシュを作成
@@ -81,9 +83,9 @@ console.log(bulletType);
         // 弾丸のジオメトリとマテリアルを作成
         const geometry = new THREE.SphereGeometry(0.05, 12, 12);
         const material = new THREE.MeshPhongMaterial({ 
-            color: "0x969696",//yellow
-            emissive: 0x969696,
-            emissiveIntensity: 0.5
+            color:this.color,//yellow
+            emissive:this.color,
+            emissiveIntensity: 0.8
         });
         // メッシュを作成
         const model = new THREE.Mesh(geometry, material);
@@ -96,9 +98,9 @@ if(bulletType == "magnum"){
     // 弾丸のジオメトリとマテリアルを作成
     const geometry = new THREE.SphereGeometry(0.7, 12, 12);
     const material = new THREE.MeshPhongMaterial({ 
-        color: "efc400",//yellow
-        emissive: efc400,
-        emissiveIntensity: 0.5
+            color:this.color,//yellow
+            emissive:this.color,
+            emissiveIntensity: 0.8
     });
     // メッシュを作成
     const model = new THREE.Mesh(geometry, material);
@@ -111,9 +113,9 @@ if(bulletType == "sniperrifle"){
     // 弾丸のジオメトリとマテリアルを作成
     const geometry = new THREE.SphereGeometry(0.4, 12, 12);
     const material = new THREE.MeshPhongMaterial({ 
-        color: "0xFFFF00",//yellow
-        emissive: 0xFFFF00,
-        emissiveIntensity: 0.5
+            color:this.color,//yellow
+            emissive:this.color,
+            emissiveIntensity: 0.8
     });
     // メッシュを作成
     const model = new THREE.Mesh(geometry, material);
@@ -126,9 +128,9 @@ if(bulletType == "rocketlauncher"){
     // 弾丸のジオメトリとマテリアルを作成
     const geometry = new THREE.SphereGeometry(0.5, 12, 12);
     const material = new THREE.MeshPhongMaterial({ 
-        color: "0x0000FF",//yellow
-        emissive: 0x0000FF,
-        emissiveIntensity: 0.5
+            color:this.color,//yellow
+            emissive:this.color,
+            emissiveIntensity: 0.8
     });
     // メッシュを作成
     const model = new THREE.Mesh(geometry, material);
@@ -141,9 +143,9 @@ if(bulletType == "bullet001"){
     // 弾丸のジオメトリとマテリアルを作成
     const geometry = new THREE.SphereGeometry(0.1, 8, 8);
     const material = new THREE.MeshPhongMaterial({ 
-        color: "0x00CCFF",//yellow
-        emissive: 0x00CCFF,
-        emissiveIntensity: 0.5
+            color:this.color,//yellow
+            emissive:this.color,
+            emissiveIntensity: 0.8
     });
     // メッシュを作成
     const model = new THREE.Mesh(geometry, material);

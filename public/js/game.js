@@ -78,8 +78,9 @@ class Game {
         this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         
         // プレイヤーモデル用の変数を追加
-        this.playerModel = new Character(this.scene,"player",this);
-        this.playerModel.setPosition(0, 0, 0);
+        //this.playerModel = new Character(this.scene,"player",this);
+        //this.playerModel.setPosition(0, 0, 0);
+        this.playerModel = null; // プレイヤーモデルの初期化を遅延させる
         
         // 座標表示用の要素
         this.coordinatesElement = document.getElementById('coordinates');
@@ -118,16 +119,11 @@ class Game {
         // シード値とゲーム開始時間の初期化
         this.seed = null;
         this.gameStartTime = null;
-        
-        /*
-        this.enemyBullets = new Map();
-        //this.maxEnemies = GameConfig.ENEMY.MAX_COUNT;
-        //this.enemySpawnInterval = GameConfig.ENEMY.SPAWN_INTERVAL;
-        this.lastEnemySpawnTime = 0;
-        this.enemySpawnRadius = GameConfig.ENEMY.SPAWN_RADIUS;
-        this.enemyDespawnRadius = GameConfig.ENEMY.DESPAWN_RADIUS;
-        this.killedEnemies = 0; // 倒した敵の数を追加
-        */
+
+        // 自動射撃の設定
+        this.autoShootEnabled = true; // 自動射撃の有効/無効
+        this.autoShootRadius = 30; // 自動射撃の検出半径
+
         this.playerStatus = new PlayerStatus();
         this.playerStatus.health = this.currentHealth; // 初期HPを同期
         
@@ -427,34 +423,31 @@ class Game {
         this.sunLight.shadow.mapSize.width = 2048;
         this.sunLight.shadow.mapSize.height = 2048;
         this.scene.add(this.sunLight);
+        // プレイヤーモデルの作成
+        this.createPlayerModel();
+        // プレイヤー用のスポットライトを作成
+        this.playerLight = new THREE.SpotLight(0xffffff, 2.0); // 色と強度
+        this.playerLight.distance = 50; // 光の届く距離
+        this.playerLight.angle = Math.PI / 4; // 光の広がり角度（45度）
+        this.playerLight.penumbra = 0.2; // エッジの柔らかさ
+        this.playerLight.decay = 1.5; // 距離による減衰
+        
+        // 影の設定
+        this.playerLight.castShadow = true;
+        this.playerLight.shadow.mapSize.width = 512;
+        this.playerLight.shadow.mapSize.height = 512;
+        this.playerLight.shadow.camera.near = 0.5;
+        this.playerLight.shadow.camera.far = 50;
+        
+        // ライトのターゲットを作成（これがライトの向きを決める）
+        this.playerLightTarget = new THREE.Object3D();
+        this.scene.add(this.playerLightTarget);
+        this.playerLight.target = this.playerLightTarget;
+        
+        // シーンにライトを追加
+        this.scene.add(this.playerLight);
 
-// プレイヤー用のスポットライトを作成
-    this.playerLight = new THREE.SpotLight(0xffffff, 2.0); // 色と強度
-    this.playerLight.distance = 50; // 光の届く距離
-    this.playerLight.angle = Math.PI / 4; // 光の広がり角度（45度）
-    this.playerLight.penumbra = 0.2; // エッジの柔らかさ
-    this.playerLight.decay = 1.5; // 距離による減衰
-    
-    // 影の設定
-    this.playerLight.castShadow = true;
-    this.playerLight.shadow.mapSize.width = 512;
-    this.playerLight.shadow.mapSize.height = 512;
-    this.playerLight.shadow.camera.near = 0.5;
-    this.playerLight.shadow.camera.far = 50;
-    
-    // ライトのターゲットを作成（これがライトの向きを決める）
-    this.playerLightTarget = new THREE.Object3D();
-    this.scene.add(this.playerLightTarget);
-    this.playerLight.target = this.playerLightTarget;
-    
-    // シーンにライトを追加
-    this.scene.add(this.playerLight);
-
-
-
-                // 光の方向を更新
-                this.updateLightDirection();
-                
+ 
         // 霧の追加
         this.scene.fog = new THREE.FogExp2(0xcccccc, GameConfig.FOG.DENSITY);
 
@@ -462,8 +455,7 @@ class Game {
         this.fieldMap = new FieldMap(this.scene, seed);
 
         this.updateLightDirection();
-        // プレイヤーモデルの作成
-        this.createPlayerModel();
+
         
         // カメラの初期位置（プレイヤーの背後）
         this.updateCameraPosition();
@@ -474,79 +466,84 @@ class Game {
         // 時間の初期化
         this.updateTimeOfDay();
 
-
-        
         this.weather = new Weather(this.scene, this.camera);
 
     }
 
-updateLightDirection() {
-    if (!this.fieldMap || !this.fieldMap.terrainGeometry) {
-        console.warn('FieldMap または terrainGeometry が初期化されていません');
-        return;
-    }
-    
-// directionalLight が存在するか確認
-    const directionalLight = this.sunLight || this.scene.children.find(obj => obj.isDirectionalLight);
-    if (!directionalLight) {
-        console.warn('DirectionalLight が見つかりません');
-        return;
-    }
+    updateLightDirection() {
+        if (!this.fieldMap || !this.fieldMap.terrainGeometry) {
+            console.warn('FieldMap または terrainGeometry が初期化されていません');
+            return;
+        }
+        
+    // directionalLight が存在するか確認
+        const directionalLight = this.sunLight || this.scene.children.find(obj => obj.isDirectionalLight);
+        if (!directionalLight) {
+            console.warn('DirectionalLight が見つかりません');
+            return;
+        }
 
 
-    // テレインのマテリアルを取得
-    const material = this.fieldMap.terrainGeometry.material;
-    if (!material || !material.uniforms) return;
-    
-    // ディレクショナルライトのプロパティを更新
-    if (this.sunLight) {
-        material.uniforms.lightDirection.value.copy(this.sunLight.position).normalize();
-        material.uniforms.lightIntensity.value = this.sunLight.intensity;
-        material.uniforms.lightColor.value.copy(this.sunLight.color);
-    }
-    
-    // アンビエントライトのプロパティを更新
-    if (this.ambientLight) {
-        material.uniforms.ambientIntensity.value = this.ambientLight.intensity;
-        material.uniforms.ambientColor.value.copy(this.ambientLight.color);
-    }
-    
-    // 強制更新
-    material.needsUpdate = true;
-}
-    
-createPlayerModel() {
-    // Create new character using the Character class
-    this.playerModel = new Character(this.scene, "player", this);
-    
-    // Set player color if available
-    if (this.playerHash) {
-        const color = this.generateColorFromHash(this.playerHash);
-        this.playerModel.setColor(color);
-    }
-    
-    // Get initial position from server
-    const serverPosition = this.playerModel.getPosition();
-    
-    // Check if this position is safe (not colliding with buildings)
-    if (this.fieldMap && this.fieldMap.checkCollision(new THREE.Vector3(
-        serverPosition.x, serverPosition.y, serverPosition.z), 2)) {
+        // テレインのマテリアルを取得
+        const material = this.fieldMap.terrainGeometry.material;
+        if (!material || !material.uniforms) return;
         
-        console.log("Initial position unsafe, finding safe spawn position...");
+        // ディレクショナルライトのプロパティを更新
+        if (this.sunLight) {
+            material.uniforms.lightDirection.value.copy(this.sunLight.position).normalize();
+            material.uniforms.lightIntensity.value = this.sunLight.intensity;
+            material.uniforms.lightColor.value.copy(this.sunLight.color);
+        }
         
-        // Find a safe spawn position
-        const safePosition = this.getSafeSpawnPosition();
-        this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
+        // アンビエントライトのプロパティを更新
+        if (this.ambientLight) {
+            material.uniforms.ambientIntensity.value = this.ambientLight.intensity;
+            material.uniforms.ambientColor.value.copy(this.ambientLight.color);
+        }
         
-        // Immediately notify server of the corrected position
-        this.socket.emit('playerMove', {
-            position: this.playerModel.getPosition(),
-            rotation: { y: this.playerModel.getRotation().y },
-            isMoving: false,
-            isRunning: false
-        });
+        // 強制更新
+        material.needsUpdate = true;
     }
-}
+        
+    createPlayerModel() {
+
+        if(this.playerModel){
+            this.scene.remove(this.playerModel.getMesh());
+            this.playerModel.dispose();
+        }
+
+
+        // Create new character using the Character class
+        this.playerModel = new Character(this.scene, "player", this);
+        
+        // Set player color if available
+        if (this.playerHash) {
+            const color = this.generateColorFromHash(this.playerHash);
+            this.playerModel.setColor(color);
+        }
+        
+        // Get initial position from server
+        const serverPosition = this.playerModel.getPosition();
+        
+        // Check if this position is safe (not colliding with buildings)
+        if (this.fieldMap && this.fieldMap.checkCollision(new THREE.Vector3(
+            serverPosition.x, serverPosition.y, serverPosition.z), 2)) {
+            
+            console.log("Initial position unsafe, finding safe spawn position...");
+            
+            // Find a safe spawn position
+            const safePosition = this.getSafeSpawnPosition();
+            this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
+            
+            // Immediately notify server of the corrected position
+            this.socket.emit('playerMove', {
+                position: this.playerModel.getPosition(),
+                rotation: { y: this.playerModel.getRotation().y },
+                isMoving: false,
+                isRunning: false
+            });
+        }
+    }
 
     setupControls() {
         // キーボードコントロール
@@ -573,24 +570,17 @@ createPlayerModel() {
             this.playerModel.setRotation(currentRotation - movementX * this.rotationSpeed);
         });
 
-        // 発射ボタン
-        const shootButton = document.getElementById('shootButton');
-        shootButton.addEventListener('click', () => this.shoot());
-
-        // モバイルコントロール
-        //if (this.isMobile) {
-            this.setupMobileControls();
-        //}
+        this.setupMobileControls();
     }
 
     setupMobileControls() {
         // DOM要素の取得を確実にする
         const leftJoystick = document.getElementById('leftJoystick');
-        const shootButton = document.getElementById('shootButton');
+        //const shootButton = document.getElementById('shootButton');
         const messageButton = document.getElementById('messageButton');
         const backpackButton = document.getElementById('backpackButton');
 
-        if (!leftJoystick || !shootButton || !messageButton || !backpackButton) {
+        if (!leftJoystick  || !messageButton || !backpackButton) {
             console.warn('モバイルコントロールの要素が見つかりません');
             return;
         }
@@ -606,7 +596,7 @@ createPlayerModel() {
         gauge.style.zIndex = '10';
         gauge.id = 'shootGauge';
         gauge.style = 'pointer-events: none';
-        shootButton.appendChild(gauge);
+
         
         // 左ジョイスティック（移動と回転用）
         this.leftJoystick = {
@@ -642,7 +632,7 @@ createPlayerModel() {
             this.leftJoystick.x = 0;
             this.leftJoystick.y = 0;
         }, { passive: false });
-
+/*
         // 射撃ボタンのタッチイベント
         shootButton.addEventListener('touchstart', (e) => {
             //e.preventDefault();
@@ -654,7 +644,7 @@ createPlayerModel() {
                 shootButton.style.backgroundColor = '#ff0000'; // 射撃後は赤に戻す
             }
         }, { passive: false });
-
+*/
         // メッセージボタンのタッチイベント
         messageButton.addEventListener('touchstart', (e) => {
             e.preventDefault(); // デフォルトの動作を防止
@@ -681,11 +671,13 @@ createPlayerModel() {
         });
 
         this.socket.on('currentPlayers', (players) => {
+            //console.log('現在のプレイヤー:', players);
             players.forEach(player => this.addPlayer(player));
             this.updatePlayerCount();
         });
 
         this.socket.on('newPlayer', (player) => {
+            //console.log('新規のプレイヤー:', player);
             this.addPlayer(player);
             this.updatePlayerCount();
         });
@@ -832,6 +824,14 @@ this.socket.on('zombiesKilled', (zombieIds) => {
     }
 
     addPlayer(playerData) {
+console.log('プレイヤーを追加:', playerData);
+        // プレイヤーがすでに存在する場合は何もしない
+        if (this.players.has(playerData.id)) {
+            console.log('プレイヤーはすでに存在します:', playerData.id);
+            return;
+        }
+
+
         // 他のプレイヤーを追加
         const character = new Character(this.scene);
         character.setPosition(
@@ -865,7 +865,7 @@ this.socket.on('zombiesKilled', (zombieIds) => {
         if (this.isGameOver || !this.canShoot) return;
         
         // 音を再生
-        this.audioManager.play('gunShot');
+        //this.audioManager.play('gunShot');
         
         // 現在の武器タイプを取得
         const currentWeponTypes = this.playerStatus.getCurrentWeponType();
@@ -1418,135 +1418,14 @@ getSafeSpawnPosition() {
             this.playerModel.dispose();
             this.playerModel = null;
         }
-            */
+        */
         
         // 新しいキャラクターを作成（他のプレイヤーの近くにスポーン）
-        //this.createPlayerModel();
+        this.createPlayerModel();
         
         // サーバーにリスタートを通知
         this.socket.emit('playerRestart');
     }
-/*
-    // 敵のスポーン処理を修正
-    spawnEnemies() {
-        if (!this.playerModel || !this.playerModel.getPosition) return;
-        
-        const playerPosition = this.playerModel.getPosition();
-        if (!playerPosition) return;
-        
-        const currentTime = Date.now();
-        if (currentTime - this.lastEnemySpawnTime > this.enemySpawnInterval && this.enemies.length < this.maxEnemies) {
-            // 建物の位置を取得
-            const buildings = this.fieldMap.objects.filter(obj => obj.userData && obj.userData.type === 'building');
-            
-            // スポーン位置を決定
-            let spawnPosition;
-            const random = Math.random();
-            
-            if (random < GameConfig.ENEMY.SPAWN.BUILDING_CHANCE && buildings.length > 0) {
-                // 建物の近くにスポーン
-                const randomBuilding = buildings[Math.floor(Math.random() * buildings.length)];
-                const angle = Math.random() * Math.PI * 2;
-                const distance = Math.random() * GameConfig.ENEMY.SPAWN.BUILDING_RADIUS;
-                
-                spawnPosition = new THREE.Vector3(
-                    randomBuilding.position.x + Math.cos(angle) * distance,
-                    0,
-                    randomBuilding.position.z + Math.sin(angle) * distance
-                );
-            } else {
-                // 空き地にスポーン
-                const minSpawnDistance = 50;
-                const maxSpawnDistance = this.enemySpawnRadius;
-                const distance = minSpawnDistance + Math.random() * (maxSpawnDistance - minSpawnDistance);
-                const angle = Math.random() * Math.PI * 2;
-                
-                spawnPosition = new THREE.Vector3(
-                    playerPosition.x + Math.cos(angle) * distance,
-                    0,
-                    playerPosition.z + Math.sin(angle) * distance
-                );
-            }
-            
-            // スポーン位置がマップの境界内かチェック
-            if (Math.abs(spawnPosition.x) > 450 || Math.abs(spawnPosition.z) > 450) {
-                return;
-            }
-            
-            // 他の敵との距離をチェック
-            let isSafePosition = true;
-            for (const enemy of this.enemies) {
-                const distanceToEnemy = spawnPosition.distanceTo(enemy.model.position);
-                if (distanceToEnemy < 10) {
-                    isSafePosition = false;
-                    break;
-                }
-            }
-            
-            // 安全な位置なら敵をスポーン
-            if (isSafePosition) {
-                const enemyTypes = ['NORMAL', 'FAST', 'SHOOTER'];
-                const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-                
-                const enemy = new Enemy(this.scene, spawnPosition, randomType);
-                this.enemies.set(enemyData.id, enemy);  // enemiesにも追加
-                this.lastEnemySpawnTime = currentTime;
-                this.updateEnemyCount();
-            }
-        }
-    }
-    
-    // 敵の更新処理を修正
-    updateEnemies(deltaTime) {
-        if (!this.playerModel || !this.playerModel.getPosition) return;
-        
-        const playerPosition = this.playerModel.getPosition();
-        if (!playerPosition) return;
-        
-        // 時間帯に応じた視界設定を取得
-        const isNight = this.timeOfDay < 0.25 || this.timeOfDay > 0.75;
-        const visionConfig = isNight ? GameConfig.ENEMY.VISION.NIGHT : GameConfig.ENEMY.VISION.DAY;
-        
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
-            const enemy = this.enemies[i];
-            
-            // 敵が死亡している場合は削除
-            if (enemy.isDead) {
-                this.enemies.splice(i, 1);
-                this.updateEnemyCount();
-                continue;
-            }
-            
-            // プレイヤーとの距離を計算
-            const distanceToPlayer = enemy.model.position.distanceTo(playerPosition);
-            
-            // プレイヤーから一定距離以上離れた敵をデスポーン
-            if (distanceToPlayer > this.enemyDespawnRadius) {
-                this.scene.remove(enemy.model);
-                this.enemies.splice(i, 1);
-                this.updateEnemyCount();
-                continue;
-            }
-            
-            enemy.updateAnimation(deltaTime);
-            
-            // プレイヤーが視界内にいる場合、追跡する
-            if (distanceToPlayer < visionConfig.CHASE_DISTANCE) {
-                const direction = new THREE.Vector3().subVectors(playerPosition, enemy.model.position).normalize();
-                const moveSpeed = enemy.getMoveSpeed() * visionConfig.MOVE_SPEED_MULTIPLIER;
-                enemy.model.position.add(direction.multiplyScalar(moveSpeed * deltaTime));
-                enemy.model.lookAt(playerPosition);
-                
-                // 弾丸を発射する敵の場合、一定距離を保ちながら弾丸を発射
-                if (enemy.enemyType.shootBullets && distanceToPlayer > 10) {
-                    enemy.shoot(playerPosition);
-                }
-            }
-            
-
-        }
-    }
-*/
 
     // 敵の数を更新するメソッド
     updateEnemyCount() {
@@ -1646,20 +1525,20 @@ this.updateLightDirection();
         if (!this.canShoot) {
             this.shootTimer += deltaTime;
             const gauge = document.getElementById('shootGauge');
-            const shootButton = document.getElementById('shootButton');
+            //const shootButton = document.getElementById('shootButton');
             
-            if (gauge && shootButton) {
-                const progress = (this.shootTimer / this.shootCooldown) * 100;
-                gauge.style.height = `${progress}%`;
+            //if (gauge && shootButton) {
+               // const progress = (this.shootTimer / this.shootCooldown) * 100;
+               // gauge.style.height = `${progress}%`;
                 
                 // ゲージの進行に応じてボタンの色を変更
-                if (progress >= 100) {
-                    shootButton.style.backgroundColor = '#00ff00'; // 射撃可能時は緑
-                } else {
-                    shootButton.style.backgroundColor = '#ff0000'; // クールダウン中は赤
-                }
+                //if (progress >= 100) {
+//shootButton.style.backgroundColor = '#00ff00'; // 射撃可能時は緑
+               // } else {
+                   // shootButton.style.backgroundColor = '#ff0000'; // クールダウン中は赤
+               // }
                     
-            }
+            //}
             
             if (this.shootTimer >= this.shootCooldown) {
                 this.canShoot = true;
@@ -1689,7 +1568,7 @@ this.updateLightDirection();
         /*
         // 敵の弾丸の更新
         this.enemyBullets.forEach(bullet => {
-            bullet.update(deltaTime);
+            bullet.update(deltaTime);3
         });
 */
         // 敵の表示/非表示を更新
@@ -1704,6 +1583,47 @@ this.updateLightDirection();
         
         // アイテム効果の表示を更新
         this.updateEffectsDisplay();
+
+// 自動射撃の処理
+if (this.autoShootEnabled && !this.isGameOver && this.canShoot) {
+    const playerPosition = this.playerModel.getPosition();
+    let nearestEnemy = null;
+    let minDistance = Infinity;
+    
+    // 最も近い敵を探す
+    this.enemies.forEach((enemy) => {
+        if (!enemy.isDead) {
+            const enemyPosition = enemy.model.getPosition();
+            const distance = playerPosition.distanceTo(enemyPosition);
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestEnemy = {
+                    enemy: enemy,
+                    distance: distance,
+                    position: enemyPosition
+                };
+            }
+        }
+    });
+    
+    // 最も近い敵が検出半径内にいれば自動射撃
+    if (nearestEnemy && nearestEnemy.distance < this.autoShootRadius) {
+        /*
+        // 敵の方向を向く
+        const direction = new THREE.Vector3()
+            .subVectors(nearestEnemy.position, playerPosition)
+            .normalize();
+        const angle = Math.atan2(direction.x, direction.z);
+        this.playerModel.setRotation(angle);
+        */
+        // 自動射撃
+        this.shoot();
+    }
+}
+
+
+
     }
 
     updateStatusDisplay() {
@@ -2620,11 +2540,28 @@ isInViewFrustum(position) {
         });
     }
 
-    spawnEnemy(enemyData) {
+    
+spawnEnemy(enemyData) {
+    // EnhancedEnemy が定義されていない場合は従来の Enemy クラスを使用
+    try {
+        // 新しいクラスが利用可能ならそれを使用
+        if (typeof EnhancedEnemy === 'function') {
+            const enemy = new EnhancedEnemy(this.scene, enemyData, this);
+            this.enemies.set(enemyData.id, enemy);
+        } else {
+            // 従来のクラスにフォールバック
+            const enemy = new Enemy(this.scene, enemyData, this);
+            this.enemies.set(enemyData.id, enemy);
+        }
+    } catch (e) {
+        console.error("Error spawning enemy:", e);
+        // エラーが発生した場合は従来のクラスを使用
         const enemy = new Enemy(this.scene, enemyData, this);
         this.enemies.set(enemyData.id, enemy);
-        this.updateEnemyCount();
     }
+    
+    this.updateEnemyCount();
+}
 
     updateEnemy(enemyId, position) {
         const enemy = this.enemies.get(enemyId);
@@ -2723,10 +2660,10 @@ isInViewFrustum(position) {
 
     restart() {
         // 古いキャラクターを確実に削除
-        if (this.character) {
-            this.scene.remove(this.character.mesh);
-            this.character = null;
-        }
+        //if (this.character) {
+        //    this.scene.remove(this.character.mesh);
+        //    this.character = null;
+        //}
 
         // プレイヤーリストをクリア
         this.players.forEach(player => {
@@ -2764,8 +2701,8 @@ isInViewFrustum(position) {
         document.getElementById('gameOver').style.display = 'none';
 
         // 新しいキャラクターを作成
-        this.character = new Character(this.scene, this.fieldMap);
-        this.character.setPosition(0, 0, 0);
+        //this.character = new Character(this.scene, this.fieldMap);
+        //this.character.setPosition(0, 0, 0);
 
         // プレイヤーステータスをリセット
         this.playerStatus = new PlayerStatus();

@@ -202,7 +202,7 @@ generateTerrain() {
         float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
         
         // 最小照明レベルを設定（これは既存のコードに基づいています）
-        directionalFactor = max(directionalFactor, 0.1);
+        directionalFactor = max(directionalFactor, 0.24);
         
         // 太陽光と環境光
         vec3 directionalContribution = lightColor * directionalFactor;

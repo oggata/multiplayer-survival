@@ -292,7 +292,7 @@ class PlayerStatus {
                 this.clothingBonus = effect.value;
                 break;
             default:
-                console.warn(`未知の効果タイプ: ${effect.type}`);
+                //console.warn(`未知の効果タイプ: ${effect.type}`);
         }
     }
 
