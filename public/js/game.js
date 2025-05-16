@@ -61,7 +61,14 @@ class Game {
                 }
             `
         };
-        
+// leftJoystick をクラスのプロパティとして初期化
+    this.leftJoystick = {
+        element: null,
+        active: false,
+        x: 0,
+        y: 0,
+        isRunning: false
+    };
         this.composer = new THREE.EffectComposer(this.renderer);
         this.renderPass = new THREE.RenderPass(this.scene, this.camera);
         this.composer.addPass(this.renderPass);
@@ -573,94 +580,164 @@ class Game {
         this.setupMobileControls();
     }
 
-    setupMobileControls() {
-        // DOM要素の取得を確実にする
-        const leftJoystick = document.getElementById('leftJoystick');
-        //const shootButton = document.getElementById('shootButton');
-        const messageButton = document.getElementById('messageButton');
-        const backpackButton = document.getElementById('backpackButton');
+setupMobileControls() {
+    // DOM要素の取得を確実にする
+    const leftJoystickElement = document.getElementById('leftJoystick');
+    const joystickKnob = document.getElementById('joystickKnob');
+    const shootButton = document.getElementById('shootButton');
+    const messageButton = document.getElementById('messageButton');
+    const backpackButton = document.getElementById('backpackButton');
 
-        if (!leftJoystick  || !messageButton || !backpackButton) {
-            console.warn('モバイルコントロールの要素が見つかりません');
-            return;
-        }
-
-        const gauge = document.createElement('div');
-        gauge.style.position = 'absolute';
-        gauge.style.bottom = '0';
-        gauge.style.left = '0';
-        gauge.style.width = '100%';
-        gauge.style.height = '100%';
-        gauge.style.backgroundColor = '#00ff00';
-        gauge.style.transition = 'height 0.1s linear';
-        gauge.style.zIndex = '10';
-        gauge.id = 'shootGauge';
-        gauge.style = 'pointer-events: none';
-
-        
-        // 左ジョイスティック（移動と回転用）
-        this.leftJoystick = {
-            element: leftJoystick,
-            active: false,
-            x: 0,
-            y: 0
-        };
-
-        // タッチイベントの設定
-        this.leftJoystick.element.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // デフォルトの動作を防止
-            this.leftJoystick.active = true;
-                const touch = e.touches[0];
-            const rect = this.leftJoystick.element.getBoundingClientRect();
-            this.leftJoystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
-            this.leftJoystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
-        }, { passive: false });
-
-        this.leftJoystick.element.addEventListener('touchmove', (e) => {
-            e.preventDefault(); // デフォルトの動作を防止
-            if (this.leftJoystick.active) {
-                    const touch = e.touches[0];
-                const rect = this.leftJoystick.element.getBoundingClientRect();
-                this.leftJoystick.x = (touch.clientX - rect.left - rect.width/2) / (rect.width/2);
-                this.leftJoystick.y = (touch.clientY - rect.top - rect.height/2) / (rect.height/2);
-            }
-        }, { passive: false });
-
-        this.leftJoystick.element.addEventListener('touchend', (e) => {
-            e.preventDefault(); // デフォルトの動作を防止
-            this.leftJoystick.active = false;
-            this.leftJoystick.x = 0;
-            this.leftJoystick.y = 0;
-        }, { passive: false });
-/*
-        // 射撃ボタンのタッチイベント
-        shootButton.addEventListener('touchstart', (e) => {
-            //e.preventDefault();
-            if (this.canShoot) {
-                this.shoot();
-                this.canShoot = false;
-                this.shootTimer = 0;
-                gauge.style.height = '100%';
-                shootButton.style.backgroundColor = '#ff0000'; // 射撃後は赤に戻す
-            }
-        }, { passive: false });
-*/
-        // メッセージボタンのタッチイベント
-        messageButton.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // デフォルトの動作を防止
-            this.socket.emit('playerMessage', {
-                position: this.playerModel.getPosition()
-            });
-            this.showMessagePopup();
-        }, { passive: false });
-
-        // バックパックボタンのタッチイベント
-        backpackButton.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // デフォルトの動作を防止
-            this.toggleBackpack();
-        }, { passive: false });
+    if (!leftJoystickElement) {
+        console.error('左ジョイスティック要素が見つかりません');
+        return;
     }
 
+    // leftJoystick を初期化
+    this.leftJoystick = {
+        element: leftJoystickElement,
+        knob: joystickKnob,
+        active: false,
+        x: 0,
+        y: 0,
+        isRunning: false
+    };
+
+    console.log('ジョイスティックを初期化しました:', this.leftJoystick);
+
+    // 走り状態のインジケーターを追加
+    const runIndicator = document.createElement('div');
+    runIndicator.id = 'runIndicator';
+    runIndicator.style.cssText = `
+        position: fixed;
+        bottom: 120px;
+        left: 20px;
+        background-color: rgba(255, 165, 0, 0.7);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        display: none;
+    `;
+    runIndicator.textContent = 'RUNNING';
+    document.body.appendChild(runIndicator);
+
+    // 以下、this のバインディングに注意
+    const self = this; // this を保持
+    
+    // タッチイベントの設定
+    this.leftJoystick.element.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        self.leftJoystick.active = true;
+        const touch = e.touches[0];
+        const rect = self.leftJoystick.element.getBoundingClientRect();
+        
+        // ジョイスティックの中心からの相対位置を計算
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const touchX = touch.clientX - rect.left;
+        const touchY = touch.clientY - rect.top;
+        
+        // -1から1の範囲に正規化
+        self.leftJoystick.x = (touchX - centerX) / centerX;
+        self.leftJoystick.y = (touchY - centerY) / centerY;
+        
+        // ジョイスティックの傾き具合を計算
+        const magnitude = Math.sqrt(
+            self.leftJoystick.x * self.leftJoystick.x + 
+            self.leftJoystick.y * self.leftJoystick.y
+        );
+        
+        // 走り状態の判定（magnitude > 0.7 で走る）
+        self.leftJoystick.isRunning = magnitude > 0.7;
+        runIndicator.style.display = self.leftJoystick.isRunning ? 'block' : 'none';
+        
+        // ノブの位置を更新
+        self.updateJoystickKnob();
+    }, { passive: false });
+
+    this.leftJoystick.element.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        if (self.leftJoystick.active) {
+            const touch = e.touches[0];
+            const rect = self.leftJoystick.element.getBoundingClientRect();
+            
+            // 中心からの相対位置を計算
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const touchX = touch.clientX - rect.left;
+            const touchY = touch.clientY - rect.top;
+            
+            // -1から1の範囲に正規化
+            self.leftJoystick.x = (touchX - centerX) / centerX;
+            self.leftJoystick.y = (touchY - centerY) / centerY;
+            
+            // 傾き具合を計算
+            const magnitude = Math.sqrt(
+                self.leftJoystick.x * self.leftJoystick.x + 
+                self.leftJoystick.y * self.leftJoystick.y
+            );
+            
+            // 走り状態の判定
+            self.leftJoystick.isRunning = magnitude > 0.7;
+            runIndicator.style.display = self.leftJoystick.isRunning ? 'block' : 'none';
+            
+            // ノブの位置を更新
+            self.updateJoystickKnob();
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchend', function(e) {
+        if (!self.leftJoystick.active) return;
+        
+        self.leftJoystick.active = false;
+        self.leftJoystick.x = 0;
+        self.leftJoystick.y = 0;
+        self.leftJoystick.isRunning = false;
+        runIndicator.style.display = 'none';
+        
+        // ノブを中央に戻す
+        if (self.leftJoystick.knob) {
+            self.leftJoystick.knob.style.transform = 'translate(0, 0)';
+        }
+    }, { passive: false });
+
+    // 既存の他のモバイルコントロール設定...
+}
+
+// ジョイスティックのノブ位置を更新するヘルパーメソッド
+updateJoystickKnob() {
+    if (!this.leftJoystick || !this.leftJoystick.knob) {
+        console.error('ジョイスティックまたはノブが初期化されていません');
+        return;
+    }
+    
+    // ジョイスティックのサイズを取得
+    const joystickRect = this.leftJoystick.element.getBoundingClientRect();
+    const radius = Math.min(joystickRect.width, joystickRect.height) / 2;
+    
+    // 入力値からノブの位置を計算
+    let knobX = this.leftJoystick.x * radius;
+    let knobY = this.leftJoystick.y * radius;
+    
+    // 距離を制限（円の範囲内に収める）
+    const distance = Math.sqrt(knobX * knobX + knobY * knobY);
+    if (distance > radius) {
+        const scale = radius / distance;
+        knobX *= scale;
+        knobY *= scale;
+    }
+    
+    // ノブの位置を更新
+    this.leftJoystick.knob.style.transform = `translate(${knobX}px, ${knobY}px)`;
+    
+    // 走り状態に応じてノブの色を変更
+    if (this.leftJoystick.isRunning) {
+        this.leftJoystick.knob.style.backgroundColor = 'rgba(255, 165, 0, 0.8)'; // オレンジ色
+    } else {
+        this.leftJoystick.knob.style.backgroundColor = 'rgba(255, 255, 255, 0.5)'; // 通常の白色
+    }
+}
     setupSocketEvents() {
         // ゲーム設定の受信
         this.socket.on('gameConfig', (config) => {
@@ -1012,16 +1089,19 @@ console.log('プレイヤーを追加:', playerData);
 
         if (this.isMobile) {
             if (this.leftJoystick.active) {
-                // 上下で前後移動（方向を反転）
-                moveZ = this.leftJoystick.y * this.moveSpeed;
-                // 左右で回転
-                rotateY = -this.leftJoystick.x * this.rotationSpeed;
-                
-                // 移動中かどうかを判定
-                if (Math.abs(this.leftJoystick.y) > 0.1) {
-                    isMoving = true;
-                }
+            // 上下で前後移動（方向を反転）
+            moveZ = this.leftJoystick.y * this.moveSpeed;
+            // 左右で回転
+            rotateY = -this.leftJoystick.x * this.rotationSpeed;
+            
+            // 走り状態の設定
+            isRunning = this.leftJoystick.isRunning;
+            
+            // 移動中かどうかを判定
+            if (Math.abs(this.leftJoystick.y) > 0.1) {
+                isMoving = true;
             }
+        }
         } else {
             // キーボードコントロール（AとDの方向を反転）
             if (this.keys['w']) moveZ = -this.moveSpeed;
