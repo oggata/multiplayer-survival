@@ -283,7 +283,7 @@ class HexapodCharacter {
         this.animationSpeed = isRunning ? 3.5 : 2.0; // 六足歩行は走る時かなり速い
     }
     updateLimbAnimation(deltaTime) {}
-    updateLimbAnimation2(deltaTime) {}
+
     dispose() {
         // キャラクターを削除
         this.scene.remove(this.character);

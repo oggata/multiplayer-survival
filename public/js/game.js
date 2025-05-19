@@ -192,7 +192,7 @@ class Game {
         document.addEventListener('enemyDied', this.handleEnemyDeath.bind(this));
         
         // 射撃関連の変数を追加
-        this.shootCooldown = 0.8; // クールダウン時間（秒）
+        this.shootCooldown = 3; // クールダウン時間（秒）
         this.shootTimer = 0; // 現在のクールダウンタイマー
         this.canShoot = true; // 射撃可能かどうか
         
@@ -781,9 +781,7 @@ updateJoystickKnob() {
             this.updatePlayerCount();
         });
 
-        this.socket.on('bulletFired', (data) => {
-            // console.log('弾が発射されました:', data);
-            
+        this.socket.on('bulletFired', (data) => {            
             // 方向ベクトルを正しく再構築
             const direction = new THREE.Vector3(
                 data.direction.x,
@@ -794,11 +792,10 @@ updateJoystickKnob() {
             // 位置ベクトルを正しく再構築
             const position = new THREE.Vector3(
                 data.position.x,
-                data.position.y,
-                data.position.z
+                data.position.y ,
+                data.position.z + 5.2 //前方に少しずらす
             );
 
-            
             this.createBullet(position, direction, data.playerId,data.weponId);
         });
         /*
@@ -1053,6 +1050,14 @@ console.log('プレイヤーを追加:', playerData);
                 if (!enemy || enemy.isDead) return;
                 
                 if (enemy.checkBulletCollision(bullet.model.position)) {
+                    var age = bullet.getAge();
+                    if(age>0.2){
+                        // ダメージを送信
+                        this.socket.emit('enemyHit', { 
+                            targetId: enemyId,
+                            damage: bullet.damage
+                        });
+                    }
                     // 敵にダメージを与える
                     enemy.takeDamage(bullet.damage);
                     bullet.dispose();

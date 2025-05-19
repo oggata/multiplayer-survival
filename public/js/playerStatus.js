@@ -56,15 +56,10 @@ class PlayerStatus {
 
     update(deltaTime) {
         if (this.isGameOver) return;
-        //console.log(this.health);
-
-
-        
-        
-            // 飢えと喉の渇きを減少
-            this.hunger = Math.max(0, this.hunger - this.hungerDecreaseRate);
-            this.thirst = Math.max(0, this.thirst - this.thirstDecreaseRate);
-
+ 
+        // 飢えと喉の渇きを減少
+        this.hunger = Math.max(0, this.hunger - this.hungerDecreaseRate);
+        this.thirst = Math.max(0, this.thirst - this.thirstDecreaseRate);
 
         // エフェクトの更新
         this.updateEffects(deltaTime);
@@ -72,6 +67,8 @@ class PlayerStatus {
         // 気温の更新
         this.updateTemperature();
         
+        this.updateHealthFromStatus(deltaTime);
+
         // UIの更新
         this.updateUI();
     }
@@ -194,7 +191,6 @@ class PlayerStatus {
         // 出血が70%を超えた場合
         if (this.bleeding < 20) {
             damage += 1;
-            console.log("aaa"+damage)
         }
         
         // ダメージを適用

@@ -81,11 +81,11 @@ class EnhancedEnemy {
     getCollisionRadius() {
         switch (this.enemyType) {
             case 'quadruped':
-                return 1.5; // 四足歩行は少し大きめ
+                return 0.6; // 四足歩行は少し大きめ
             case 'hexapod':
-                return 1.2; // 六足歩行も少し大きめ
+                return 0.6; // 六足歩行も少し大きめ
             default:
-                return 1.0; // 人型はデフォルト
+                return 0.6; // 人型はデフォルト
         }
     }
 

@@ -225,7 +225,7 @@ class QuadrupedCharacter {
         this.animationSpeed = isRunning ? 3.0 : 2.0;
     }
     updateLimbAnimation(deltaTime) {}
-    updateLimbAnimation2(deltaTime) {}
+
     dispose() {
         // キャラクターを削除
         this.scene.remove(this.character);
