@@ -81,17 +81,16 @@ class EnhancedEnemy {
     getCollisionRadius() {
         switch (this.enemyType) {
             case 'quadruped':
-                return 0.6; // 四足歩行は少し大きめ
+                return 1.2; // 四足歩行は少し大きめ
             case 'hexapod':
-                return 0.6; // 六足歩行も少し大きめ
+                return 1.2; // 六足歩行も少し大きめ
             default:
-                return 0.6; // 人型はデフォルト
+                return 1.2; // 人型はデフォルト
         }
     }
 
     checkBulletCollision(bulletPosition) {
         if (this.isDead) return false;
-        
         const distance = this.model.getPosition().distanceTo(bulletPosition);
         return distance < this.collisionRadius;
     }
@@ -159,7 +158,8 @@ class EnhancedEnemy {
         }, 100); // 0.1秒後に削除
     }
 
-    die2() {
+
+    forcedDieByServer() {
         if (this.isDead) return;
         
         this.isDead = true;

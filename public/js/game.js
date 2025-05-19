@@ -195,7 +195,7 @@ this.devMode = true;
         document.addEventListener('enemyDied', this.handleEnemyDeath.bind(this));
         
         // 射撃関連の変数を追加
-        this.shootCooldown = 3; // クールダウン時間（秒）
+        this.shootCooldown = 0.7; // クールダウン時間（秒）
         this.shootTimer = 0; // 現在のクールダウンタイマー
         this.canShoot = true; // 射撃可能かどうか
         
@@ -253,10 +253,10 @@ this.devMode = true;
             .filter(([_, item]) => item.dropChance !== undefined)
             .map(([type]) => type);
         
-        for (let i = 0; i < 1; i++) {
+        for (let i = 0; i < 3; i++) {
             const randomIndex = Math.floor(Math.random() * itemTypes.length);
-            const selectedType = itemTypes[randomIndex];
-            //const selectedType = itemTypes[0];
+           const selectedType = itemTypes[randomIndex];
+                //const selectedType = itemTypes[0];
             if (selectedType) {
                 this.inventory.push({
                     id: Date.now() + i,
@@ -856,13 +856,15 @@ updateJoystickKnob() {
             this.spawnEnemy(enemy);
         });
 
+        
         this.socket.on('enemiesKilled', (enemyIds) => {
             enemyIds.forEach(enemyId => {
                 const enemy = this.enemies.get(enemyId);
                 if (enemy) {
                     // 敵のモデルをシーンから削除
-                    enemy.die2();
+                    enemy.forcedDieByServer();
                     // 敵をMapから削除
+                    console.log('敵を削除:', enemyId);
                     this.enemies.delete(enemyId);
                 }
             });
@@ -1052,13 +1054,13 @@ updateJoystickKnob() {
                 
                 if (enemy.checkBulletCollision(bullet.model.position)) {
                     var age = bullet.getAge();
-                    if(age>0.2){
+                    //if(age>0.2){
                         // ダメージを送信
                         this.socket.emit('enemyHit', { 
                             targetId: enemyId,
                             damage: bullet.damage
                         });
-                    }
+                    //}
                     // 敵にダメージを与える
                     enemy.takeDamage(bullet.damage);
                     bullet.dispose();
@@ -2319,7 +2321,6 @@ this.updateLightDirection();
                 break;
             }
         }
-
         if (selectedItem) {
             this.spawnItem(selectedItem, position);
         }
@@ -2330,7 +2331,6 @@ this.updateLightDirection();
             console.error('無効なアイテムタイプです:', itemType);
             return;
         }
-
         const item = new Item(itemType, position);
         this.scene.add(item.mesh);
         this.items.push(item);
@@ -2593,7 +2593,7 @@ isInViewFrustum(position) {
             });
         }
     }
-
+/*
     // 敵の弾丸を更新するメソッド
     updateEnemyBullets(deltaTime) {
         for (let i = this.enemyBullets.length - 1; i >= 0; i--) {
@@ -2626,7 +2626,7 @@ isInViewFrustum(position) {
             }
         }
     }
-
+*/
     collectItem(itemType) {
         if (!itemType) {
             console.error('無効なアイテムタイプです:', itemType);

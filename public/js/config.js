@@ -218,6 +218,111 @@ const GameConfig = {
     },
     
     ITEMS: {
+// 攻撃武器
+shotgun: {
+    name: 'shotgun',
+    description: '４方向に弾丸を発射',
+    color: 0x666666,
+    dropChance: 0.05,
+    effects: {                
+        duration: {
+            type: 'wepon',
+            value: 0.6,
+            duration: 40,
+            attack: {
+                type: 'shotgun',
+                damage: 10,
+                speed: 0.1,
+                diameter:1,
+                reload:1
+            }
+        }
+    }
+},
+machinegun: {
+    name: 'machinegun',
+    description: '５連続で弾丸を発射',
+    color: 0x666666,
+    dropChance: 0.05,
+    effects: {                
+        duration: {
+            type: 'wepon',
+            value: 0.6,
+            duration: 40,
+            attack: {
+                type: 'machinegun',
+                damage: 10,
+                speed: 0.1,
+                diameter:1,
+                reload:1
+            }
+        }
+    }
+},
+machinegun: {
+    name: 'magnum',
+    description: '威力のある弾丸を発射',
+    color: 0x666666,
+    dropChance: 0.05,
+    effects: {                
+        duration: {
+            type: 'wepon',
+            value: 0.6,
+            duration: 40,
+            attack: {
+                type: 'magnum',
+                damage: 20,
+                speed: 0.1,
+                diameter:1,
+                reload:1
+            }
+        }
+    }
+},
+sniperrifle: {
+    name: 'sniperrifle',
+    description: '威力のある弾丸を発射',
+    color: 0x666666,
+    dropChance: 0.05,
+    effects: {                
+        duration: {
+            type: 'wepon',
+            value: 0.6,
+            duration: 40,
+            attack: {
+                type: 'sniperrifle',
+                damage: 20,
+                speed: 0.1,
+                diameter:1,
+                reload:1
+            }
+        }
+    }
+},
+rocketlauncher: {
+    name: 'rocketlauncher',
+    description: '威力のある弾丸を発射',
+    color: 0x666666,
+    dropChance: 0.05,
+    effects: {                
+        duration: {
+            type: 'wepon',
+            value: 0.6,
+            duration: 40,
+            attack: {
+                type: 'rocketlauncher',
+                damage: 20,
+                speed: 0.1,
+                diameter:1,
+                reload:1
+            }
+        }
+    }
+},
+
+
+
+
         jacket: {
             name: 'jacket',
             description: 'The perceived temperature increases by 10 degrees',
@@ -718,109 +823,8 @@ const GameConfig = {
                     infection: 20
                 }
             }
-        },
+        }
         
-// 攻撃武器
-shotgun: {
-    name: 'shotgun',
-    description: '４方向に弾丸を発射',
-    color: 0x666666,
-    dropChance: 0.05,
-    effects: {                
-        duration: {
-            type: 'wepon',
-            value: 0.6,
-            duration: 40,
-            attack: {
-                type: 'shotgun',
-                damage: 10,
-                speed: 0.1,
-                diameter:1,
-                reload:1
-            }
-        }
-    }
-},
-machinegun: {
-    name: 'machinegun',
-    description: '５連続で弾丸を発射',
-    color: 0x666666,
-    dropChance: 0.05,
-    effects: {                
-        duration: {
-            type: 'wepon',
-            value: 0.6,
-            duration: 40,
-            attack: {
-                type: 'machinegun',
-                damage: 10,
-                speed: 0.1,
-                diameter:1,
-                reload:1
-            }
-        }
-    }
-},
-machinegun: {
-    name: 'magnum',
-    description: '威力のある弾丸を発射',
-    color: 0x666666,
-    dropChance: 0.05,
-    effects: {                
-        duration: {
-            type: 'wepon',
-            value: 0.6,
-            duration: 40,
-            attack: {
-                type: 'magnum',
-                damage: 20,
-                speed: 0.1,
-                diameter:1,
-                reload:1
-            }
-        }
-    }
-},
-sniperrifle: {
-    name: 'sniperrifle',
-    description: '威力のある弾丸を発射',
-    color: 0x666666,
-    dropChance: 0.05,
-    effects: {                
-        duration: {
-            type: 'wepon',
-            value: 0.6,
-            duration: 40,
-            attack: {
-                type: 'sniperrifle',
-                damage: 20,
-                speed: 0.1,
-                diameter:1,
-                reload:1
-            }
-        }
-    }
-},
-rocketlauncher: {
-    name: 'rocketlauncher',
-    description: '威力のある弾丸を発射',
-    color: 0x666666,
-    dropChance: 0.05,
-    effects: {                
-        duration: {
-            type: 'wepon',
-            value: 0.6,
-            duration: 40,
-            attack: {
-                type: 'rocketlauncher',
-                damage: 20,
-                speed: 0.1,
-                diameter:1,
-                reload:1
-            }
-        }
-    }
-}
 
 
 

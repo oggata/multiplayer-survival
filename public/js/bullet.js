@@ -68,98 +68,6 @@ class Bullet {
 	}
 
 	createModel(bulletType) {
-
-		//console.log(bulletType);
-		if(bulletType=="shotgun") {
-			// 弾丸のジオメトリとマテリアルを作成
-			const geometry=new THREE.SphereGeometry(0.3, 12, 12);
-
-			const material=new THREE.MeshPhongMaterial( {
-					color: "0xfbff00", //yellow
-					emissive: 0xfbff00,
-					emissiveIntensity: 0.8
-				}
-
-			);
-			// メッシュを作成
-			const model=new THREE.Mesh(geometry, material);
-			// 影を設定
-			model.castShadow=true;
-			return model;
-		}
-
-		if(bulletType=="machinegun") {
-			// 弾丸のジオメトリとマテリアルを作成
-			const geometry=new THREE.SphereGeometry(0.05, 12, 12);
-
-			const material=new THREE.MeshPhongMaterial( {
-					color:this.color, //yellow
-					emissive:this.color,
-					emissiveIntensity: 0.8
-				}
-
-			);
-			// メッシュを作成
-			const model=new THREE.Mesh(geometry, material);
-			// 影を設定
-			model.castShadow=true;
-			return model;
-		}
-
-		if(bulletType=="magnum") {
-			// 弾丸のジオメトリとマテリアルを作成
-			const geometry=new THREE.SphereGeometry(0.7, 12, 12);
-
-			const material=new THREE.MeshPhongMaterial( {
-					color:this.color, //yellow
-					emissive:this.color,
-					emissiveIntensity: 0.8
-				}
-
-			);
-			// メッシュを作成
-			const model=new THREE.Mesh(geometry, material);
-			// 影を設定
-			model.castShadow=true;
-			return model;
-		}
-
-		if(bulletType=="sniperrifle") {
-			// 弾丸のジオメトリとマテリアルを作成
-			const geometry=new THREE.SphereGeometry(0.4, 12, 12);
-
-			const material=new THREE.MeshPhongMaterial( {
-					color:this.color, //yellow
-					emissive:this.color,
-					emissiveIntensity: 0.8
-				}
-
-			);
-			// メッシュを作成
-			const model=new THREE.Mesh(geometry, material);
-			// 影を設定
-			model.castShadow=true;
-			return model;
-		}
-
-		if(bulletType=="rocketlauncher") {
-			// 弾丸のジオメトリとマテリアルを作成
-			const geometry=new THREE.SphereGeometry(0.5, 12, 12);
-
-			const material=new THREE.MeshPhongMaterial( {
-					color:this.color, //yellow
-					emissive:this.color,
-					emissiveIntensity: 0.8
-				}
-
-			);
-			// メッシュを作成
-			const model=new THREE.Mesh(geometry, material);
-			// 影を設定
-			model.castShadow=true;
-			return model;
-		}
-
 		if(bulletType=="bullet001") {
 			// 弾丸のジオメトリとマテリアルを作成
 			const geometry=new THREE.SphereGeometry(0.1, 8, 8);
@@ -177,6 +85,97 @@ class Bullet {
 			model.castShadow=true;
 			return model;
 		}
+		if(bulletType=="shotgun") {
+			// 弾丸のジオメトリとマテリアルを作成
+			const geometry=new THREE.SphereGeometry(0.13, 12, 12);
+
+			const material=new THREE.MeshPhongMaterial( {
+					color: "0xfbff00", //yellow
+					emissive: 0xfbff00,
+					emissiveIntensity: 0.8
+				}
+
+			);
+			// メッシュを作成
+			const model=new THREE.Mesh(geometry, material);
+			// 影を設定
+			model.castShadow=true;
+			return model;
+		}
+
+		if(bulletType=="machinegun") {
+			// 弾丸のジオメトリとマテリアルを作成
+			const geometry=new THREE.SphereGeometry(0.1, 12, 12);
+
+			const material=new THREE.MeshPhongMaterial( {
+					color:this.color, //yellow
+					emissive:this.color,
+					emissiveIntensity: 0.8
+				}
+
+			);
+			// メッシュを作成
+			const model=new THREE.Mesh(geometry, material);
+			// 影を設定
+			model.castShadow=true;
+			return model;
+		}
+
+		if(bulletType=="magnum") {
+			// 弾丸のジオメトリとマテリアルを作成
+			const geometry=new THREE.SphereGeometry(0.16, 12, 12);
+
+			const material=new THREE.MeshPhongMaterial( {
+					color:this.color, //yellow
+					emissive:this.color,
+					emissiveIntensity: 0.8
+				}
+
+			);
+			// メッシュを作成
+			const model=new THREE.Mesh(geometry, material);
+			// 影を設定
+			model.castShadow=true;
+			return model;
+		}
+
+		if(bulletType=="sniperrifle") {
+			// 弾丸のジオメトリとマテリアルを作成
+			const geometry=new THREE.SphereGeometry(0.18, 12, 12);
+
+			const material=new THREE.MeshPhongMaterial( {
+					color:this.color, //yellow
+					emissive:this.color,
+					emissiveIntensity: 0.8
+				}
+
+			);
+			// メッシュを作成
+			const model=new THREE.Mesh(geometry, material);
+			// 影を設定
+			model.castShadow=true;
+			return model;
+		}
+
+		if(bulletType=="rocketlauncher") {
+			// 弾丸のジオメトリとマテリアルを作成
+			const geometry=new THREE.SphereGeometry(0.21, 12, 12);
+
+			const material=new THREE.MeshPhongMaterial( {
+					color:this.color, //yellow
+					emissive:this.color,
+					emissiveIntensity: 0.8
+				}
+
+			);
+			// メッシュを作成
+			const model=new THREE.Mesh(geometry, material);
+			// 影を設定
+			model.castShadow=true;
+			return model;
+		}
+
+
 		return model;
 	}
 

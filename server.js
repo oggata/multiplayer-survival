@@ -42,10 +42,10 @@ const ENEMY_SPAWN_INTERVAL = 100;
 // 時間帯ごとの敵の最大数
 
 const MAX_ENEMIES = {
-    MORNING:  300,   // 朝（6:00-12:00）0
-    DAY: 300,      // 昼（12:00-18:00）0
-    EVENING: 300,  // 夕方（18:00-24:00） 30
-    NIGHT: 300     // 夜（0:00-6:00）70
+    MORNING:  0,   // 朝（6:00-12:00）0
+    DAY: 0,      // 昼（12:00-18:00）0
+    EVENING: 50,  // 夕方（18:00-24:00） 30
+    NIGHT: 200     // 夜（0:00-6:00）70
 };
 
 
@@ -705,7 +705,7 @@ io.on('connection', (socket) => {
             weponId: data.weponId,
             bulletDamage:data.bulletDamage
         });
-        
+        /*
         // 敵との衝突判定
         Object.values(enemies).forEach(enemy => {
             const dx = enemy.position.x - data.position.x;
@@ -733,6 +733,7 @@ io.on('connection', (socket) => {
                 }
             }
         });
+        */
     });
 
     // 敵の死亡イベントを処理
