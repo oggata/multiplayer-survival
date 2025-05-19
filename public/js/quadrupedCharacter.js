@@ -26,10 +26,66 @@ class QuadrupedCharacter {
         this.rotation = new THREE.Euler();
         this.velocity = new THREE.Vector3();
         
+        // 攻撃アニメーション用の変数
+        this.isAttacking = false;
+        this.attackTime = 0;
+        this.attackDuration = 0.4; // 攻撃モーションの持続時間（秒）
+
         // キャラクターの作成
         this.createCharacter();
     }
-    
+        // 攻撃モーションを開始
+    startAttack() {
+        this.isAttacking = true;
+        this.attackTime = 0;
+    }
+    // 攻撃モーションをアップデート
+    updateAttackAnimation(deltaTime) {
+        if (!this.isAttacking) return;
+        
+        this.attackTime += deltaTime;
+        
+        // 攻撃モーションの進行度（0から1）
+        const progress = Math.min(this.attackTime / this.attackDuration, 1);
+        
+        if (progress < 0.5) {
+            // 攻撃モーションの前半：頭を上げ、前脚を上げる準備
+            const upProgress = progress * 2;
+            
+            // 頭を上げる
+            this.head.rotation.x = -upProgress * Math.PI / 4; // 最大45度上げる
+            
+            // 前脚を少し持ち上げる
+            this.frontLeftLeg.rotation.x = -0.2 - upProgress * 0.4;
+            this.frontRightLeg.rotation.x = -0.2 - upProgress * 0.4;
+            
+            // 身体を少し後ろに傾ける
+            this.body.rotation.x = upProgress * 0.2;
+        } else {
+            // 攻撃モーションの後半：頭を下げ、前脚で地面を叩く
+            const downProgress = (progress - 0.5) * 2;
+            
+            // 頭を下げる
+            this.head.rotation.x = -(Math.PI / 4) + downProgress * Math.PI / 3;
+            
+            // 前脚を下げる（叩きつける）
+            this.frontLeftLeg.rotation.x = -0.6 + downProgress * 0.8;
+            this.frontRightLeg.rotation.x = -0.6 + downProgress * 0.8;
+            
+            // 身体を前に傾ける
+            this.body.rotation.x = 0.2 - downProgress * 0.3;
+        }
+        
+        // 攻撃モーションが完了したら終了
+        if (progress >= 1) {
+            this.isAttacking = false;
+            // 位置をリセット
+            this.head.rotation.x = 0;
+            this.frontLeftLeg.rotation.x = -0.2;
+            this.frontRightLeg.rotation.x = -0.2;
+            this.body.rotation.x = 0;
+        }
+    }
     createCharacter() {
         // 頭部
         const headGeometry = new THREE.BoxGeometry(0.8, 0.6, 1.0);
@@ -131,7 +187,11 @@ class QuadrupedCharacter {
     // 四足歩行の特徴的なアニメーション
     updateLimbAnimation(deltaTime) {
         this.animationTime += deltaTime * this.animationSpeed;
-        
+          // 攻撃中なら攻撃アニメーションを優先
+        if (this.isAttacking) {
+            this.updateAttackAnimation(deltaTime);
+            return;
+        }
         if (this.isMoving) {
             // 四足歩行のアニメーション（対角の足が同時に動く）
             const frontLeftAngle = Math.sin(this.animationTime * 10) * 0.4;

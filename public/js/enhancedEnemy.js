@@ -269,6 +269,12 @@ class EnhancedEnemy {
     update(data) {
         if (this.isDead) return;
         
+        if (data.state) {
+            console.log(data.state);
+        }
+
+
+
         if (data.position) {
             // 前回の位置を保存
             this.lastPosition.copy(this.model.getPosition());
@@ -296,6 +302,19 @@ class EnhancedEnemy {
             this.isMoving = direction.length() > 0.01;
             
             // 移動している場合は歩行アニメーションを再生
+
+        //console.log(data.state)
+        if (data.state) {
+            this.state = data.state;
+            // 攻撃状態に入った場合
+            if (this.state == 'attacking' && this.model.startAttack) {
+                this.model.startAttack();
+            }
+        }else 
+
+
+
+
             if (this.isMoving) {
                 this.model.isMoving = true;
                 
@@ -315,12 +334,9 @@ class EnhancedEnemy {
             this.model.setRotation(data.rotation.y);
         }
         
-        if (data.state) {
-            this.state = data.state;
-        }
+
     }
-updateLimbAnimation(deltaTime) {}
-    updateLimbAnimation2(deltaTime) {}
+
     dispose() {
         this.model.dispose();
     }

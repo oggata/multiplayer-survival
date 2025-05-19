@@ -1,10 +1,7 @@
 // キャラクター作成用のクラス
 class Character {
 	constructor(scene, type, game) {
-
-
-		console.log("キャラクター作成");
-
+		//console.log("キャラクター作成");
 		this.scene=scene;
 		this.type=type;
 		this.game=game;
@@ -32,6 +29,12 @@ class Character {
 		this.position=new THREE.Vector3();
 		this.rotation=new THREE.Euler();
 		this.velocity=new THREE.Vector3();
+
+// 攻撃アニメーション用の変数
+        this.isAttacking = false;
+        this.attackTime = 0;
+        this.attackDuration = 0.5; // 攻撃モーションの持続時間（
+
 		// キャラクターの作成
 		this.createCharacter();
 	}
@@ -173,6 +176,13 @@ class Character {
 	updateLimbAnimation(deltaTime) {
 		this.animationTime+=deltaTime * this.animationSpeed;
 
+  // 攻撃中なら攻撃アニメーションを優先
+        if (this.isAttacking) {
+            this.updateAttackAnimation(deltaTime);
+            return;
+        }else 
+
+
 		if (this.isMoving) {
 			// 腕のアニメーション（速度を3倍に）
 			const armAngle=Math.sin(this.animationTime * 15) * 0.5;
@@ -210,43 +220,6 @@ class Character {
 		}
 	}
 
-	/*
-    updateLimbAnimation2(deltaTime) {
-        this.animationTime += deltaTime * this.animationSpeed;
-        
-        if (this.isMoving) {
-            // 腕のアニメーション（速度を3倍に）
-            const armAngle = Math.sin(this.animationTime * 15) * 0.5;
-            this.leftArm.rotation.x = armAngle;
-            this.rightArm.rotation.x = -armAngle;
-            
-            // 足のアニメーション（速度を3倍に）
-            const legAngle = Math.sin(this.animationTime * 15) * 0.5;
-            this.leftLeg.rotation.x = legAngle;
-            this.rightLeg.rotation.x = -legAngle;
-            
-            // 靴のアニメーション
-            this.leftShoe.rotation.x = legAngle;
-            this.rightShoe.rotation.x = -legAngle;
-            
-            // 上下の動きを追加（振幅を0.15に増加）
-            //const verticalOffset = Math.sin(this.animationTime * 15) * 0.15;
-            //this.character.position.y = this.position.y + verticalOffset;
-        } else {
-            // アイドルアニメーション（速度を調整）
-            const idleAngle = Math.sin(this.animationTime * 3) * 0.1;
-            this.leftArm.rotation.x = idleAngle;
-            this.rightArm.rotation.x = idleAngle;
-            this.leftLeg.rotation.x = idleAngle;
-            this.rightLeg.rotation.x = idleAngle;
-            this.leftShoe.rotation.x = idleAngle;
-            this.rightShoe.rotation.x = idleAngle;
-            
-            // アイドル時は元の位置に戻す
-            this.character.position.y = this.position.y;
-        }
-    }
-*/
 	move(direction, speed, deltaTime) {
 
 		// 移動方向を正規化
@@ -305,6 +278,46 @@ class Character {
 		this.isRunning=isRunning;
 		this.animationSpeed=isRunning ? 2.0: 1.0;
 	}
+
+// 攻撃モーションを開始
+    startAttack() {
+        this.isAttacking = true;
+        this.attackTime = 0;
+    }
+    
+    // 攻撃モーションをアップデート
+    updateAttackAnimation(deltaTime) {
+        if (!this.isAttacking) return;
+        
+        this.attackTime += deltaTime;
+        
+        // 攻撃モーションの進行度（0から1）
+        const progress = Math.min(this.attackTime / this.attackDuration, 1);
+        
+        if (progress < 0.5) {
+            // 攻撃モーションの前半：腕を振り上げる
+            const upProgress = progress * 2; // 0から1にスケール
+            const armAngle = upProgress * Math.PI / 2; // 最大90度まで上げる
+            
+            this.leftArm.rotation.x = -armAngle;
+            this.rightArm.rotation.x = -armAngle;
+        } else {
+            // 攻撃モーションの後半：腕を振り下ろす
+            const downProgress = (progress - 0.5) * 2; // 0から1にスケール
+            const armAngle = Math.PI / 2 - (downProgress * Math.PI / 2); // 90度から0度に戻す
+            
+            this.leftArm.rotation.x = -armAngle;
+            this.rightArm.rotation.x = -armAngle;
+        }
+        
+        // 攻撃モーションが完了したら終了
+        if (progress >= 1) {
+            this.isAttacking = false;
+            // 腕の位置をリセット
+            this.leftArm.rotation.x = 0;
+            this.rightArm.rotation.x = 0;
+        }
+    }
 
 	dispose() {
 		// キャラクターを削除

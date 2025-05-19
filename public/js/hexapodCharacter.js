@@ -21,9 +21,95 @@ class HexapodCharacter {
         this.position = new THREE.Vector3();
         this.rotation = new THREE.Euler();
         this.velocity = new THREE.Vector3();
-        
+         // 攻撃アニメーション用の変数
+        this.isAttacking = false;
+        this.attackTime = 0;
+        this.attackDuration = 0.5; // 攻撃モーションの持続時間（秒）
         // キャラクターの作成
         this.createCharacter();
+    }
+    // 攻撃モーションを開始
+    startAttack() {
+        this.isAttacking = true;
+        this.attackTime = 0;
+    }  // 攻撃モーションをアップデート
+    updateAttackAnimation(deltaTime) {
+        if (!this.isAttacking) return;
+        
+        this.attackTime += deltaTime;
+        
+        // 攻撃モーションの進行度（0から1）
+        const progress = Math.min(this.attackTime / this.attackDuration, 1);
+        
+        if (progress < 0.4) {
+            // 攻撃モーションの前半：身体を後ろに傾け、前脚を上げる
+            const prepProgress = progress / 0.4;
+            
+            // 頭を上げる
+            this.head.rotation.x = -prepProgress * Math.PI / 3;
+            
+            // 前方の脚を上げる（六足の前方2対の脚）
+            this.legs[0].userData.knee.rotation.x = prepProgress * Math.PI / 2;
+            this.legs[1].userData.knee.rotation.x = prepProgress * Math.PI / 2;
+            this.legs[2].userData.knee.rotation.x = prepProgress * Math.PI / 3;
+            this.legs[3].userData.knee.rotation.x = prepProgress * Math.PI / 3;
+            
+            // 身体を少し後ろに傾ける
+            this.body.rotation.x = prepProgress * 0.3;
+            
+        } else if (progress < 0.7) {
+            // 攻撃モーションの中盤：前脚を前方に伸ばす
+            const stretchProgress = (progress - 0.4) / 0.3;
+            
+            // 頭を素早く前に出す
+            this.head.rotation.x = -Math.PI / 3 + stretchProgress * Math.PI / 2;
+            
+            // 前方の脚を前に伸ばす
+            this.legs[0].rotation.z = Math.PI / 4 - stretchProgress * Math.PI / 3;
+            this.legs[1].rotation.z = -Math.PI / 4 + stretchProgress * Math.PI / 3;
+            this.legs[0].userData.knee.rotation.x = Math.PI / 2 - stretchProgress * Math.PI / 4;
+            this.legs[1].userData.knee.rotation.x = Math.PI / 2 - stretchProgress * Math.PI / 4;
+            
+            // 2番目の脚も少し動かす
+            this.legs[2].userData.knee.rotation.x = Math.PI / 3;
+            this.legs[3].userData.knee.rotation.x = Math.PI / 3;
+            
+            // 身体を前に傾ける
+            this.body.rotation.x = 0.3 - stretchProgress * 0.4;
+            
+        } else {
+            // 攻撃モーションの終盤：元の位置に戻す
+            const resetProgress = (progress - 0.7) / 0.3;
+            
+            // 頭を通常位置に戻す
+            this.head.rotation.x = Math.PI / 6 - resetProgress * Math.PI / 6;
+            
+            // 脚を通常位置に戻す
+            this.legs[0].rotation.z = Math.PI / 4 * (1 - resetProgress);
+            this.legs[1].rotation.z = -Math.PI / 4 * (1 - resetProgress);
+            this.legs[0].userData.knee.rotation.x = Math.PI / 4 * (1 - resetProgress);
+            this.legs[1].userData.knee.rotation.x = Math.PI / 4 * (1 - resetProgress);
+            this.legs[2].userData.knee.rotation.x = Math.PI / 3 * (1 - resetProgress);
+            this.legs[3].userData.knee.rotation.x = Math.PI / 3 * (1 - resetProgress);
+            
+            // 身体を通常位置に戻す
+            this.body.rotation.x = -0.1 * (1 - resetProgress);
+        }
+        
+        // 攻撃モーションが完了したら終了
+        if (progress >= 1) {
+            this.isAttacking = false;
+            // 位置をリセット
+            this.head.rotation.x = 0;
+            this.body.rotation.x = 0;
+            
+            // 脚の位置をリセット
+            for (let i = 0; i < this.legs.length; i++) {
+                const leg = this.legs[i];
+                leg.rotation.z = (i % 2 === 0) ? Math.PI / 4 : -Math.PI / 4;
+                leg.userData.knee.rotation.x = 0;
+            }
+        }
     }
     
     createCharacter() {
@@ -182,6 +268,11 @@ class HexapodCharacter {
     // 六足歩行のアニメーション
     updateLimbAnimation(deltaTime) {
         this.animationTime += deltaTime * this.animationSpeed;
+        // 攻撃中なら攻撃アニメーションを優先
+        if (this.isAttacking) {
+            this.updateAttackAnimation(deltaTime);
+            return;
+        }
         
         if (this.isMoving) {
             // 三歩行のパターン（三角歩行：対角の3本の足が同時に動く）

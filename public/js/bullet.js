@@ -177,13 +177,6 @@ class Bullet {
 			model.castShadow=true;
 			return model;
 		}
-
-
-
-
-
-
-
 		return model;
 	}
 

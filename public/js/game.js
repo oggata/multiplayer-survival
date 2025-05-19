@@ -26,6 +26,9 @@ class AudioManager {
 
 class Game {
     constructor() {
+
+this.devMode = true;
+
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(
             GameConfig.VISION.FOV, 
@@ -793,7 +796,7 @@ updateJoystickKnob() {
             const position = new THREE.Vector3(
                 data.position.x,
                 data.position.y ,
-                data.position.z + 5.2 //前方に少しずらす
+                data.position.z  //前方に少しずらす
             );
 
             this.createBullet(position, direction, data.playerId,data.weponId);
@@ -870,43 +873,37 @@ updateJoystickKnob() {
             this.updateEnemy(data.id, data.position);
         });
 
-        // 敵の攻撃
-        this.socket.on('enemyAttack', (data) => {
-           // console.log("enemyattac");
-            this.takeDamage(data.damage);
+        // 敵の状態変更イベントを処理
+        this.socket.on('enemyStateChanged', (data) => {
+            //console.log('Enemy state changed:', data.id, data.state); // デバッグ用
+            const enemy = this.enemies.get(data.id);
+            if (enemy) {
+                // 敵の状態を更新
+                enemy.state = data.state;
+                // 攻撃状態になった場合に攻撃モーションを開始
+                if (data.state === 'attacking' && enemy.model && enemy.model.startAttack) {
+                    //console.log('Starting attack animation for enemy:', data.id);
+                    enemy.model.startAttack();
+                }
+            }
         });
 
-/*
-        // ゾンビの削除イベントを処理
-this.socket.on('zombiesKilled', (zombieIds) => {
-    zombieIds.forEach(zombieId => {
-        const zombie = this.zombies.get(zombieId);
-        if (zombie) {
-            // ゾンビのモデルをシーンから削除
-            if (zombie.model) {
-                zombie.model.dispose();
-            }
-            zombie.die2();
-            // ゾンビを削除
-            //this.zombies.delete(zombieId);
-            this.enemies.delete(zombieId);  // enemiesからも削除
-            this.updateEnemyCount();
-        }
-    });
-}); 
-*/
+        // 敵の攻撃
+        this.socket.on('enemyAttack', (data) => {
+            this.takeDamage(data.damage);
+        });
     }
 
     addPlayer(playerData) {
-console.log('プレイヤーを追加:', playerData);
+        //console.log('プレイヤーを追加:', playerData);
         // プレイヤーがすでに存在する場合は何もしない
         if (this.players.has(playerData.id)) {
-            console.log('プレイヤーはすでに存在します:', playerData.id);
+            //console.log('プレイヤーはすでに存在します:', playerData.id);
             return;
         }
 
 
-        // 他のプレイヤーを追加
+        // 他のプレイヤーを 追加
         const character = new Character(this.scene);
         character.setPosition(
             playerData.position.x,
@@ -936,37 +933,41 @@ console.log('プレイヤーを追加:', playerData);
     }
 
     shoot() {
-        if (this.isGameOver || !this.canShoot) return;
-        
-        // 音を再生
-        //this.audioManager.play('gunShot');
-        
-        // 現在の武器タイプを取得
-        const currentWeponTypes = this.playerStatus.getCurrentWeponType();
-        const weponId = currentWeponTypes.length > 0 ? currentWeponTypes[0] : "wepon001";
-        
-        // プレイヤーの向きに基づいて弾を発射
-        const direction = new THREE.Vector3(0, 0, -1);
-        direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerModel.getRotation().y);
-        
-        // プレイヤーの位置から少し上に弾を発射
-        const bulletPosition = this.playerModel.getPosition().clone();
-        bulletPosition.y += 0.5; // プレイヤーの目の高さ
-        console.log(weponId);
-        this.socket.emit('shoot', {
-            weponId: weponId,
-            position: bulletPosition,
-            direction: direction,
-            bulletDamage:10
-        });
-        
-        this.createBullet(bulletPosition, direction, this.socket.id, weponId);
-        
-        // 射撃後はクールダウンを開始
-        this.canShoot = false;
-        this.shootTimer = 0;
-    }
-
+    if (this.isGameOver || !this.canShoot) return;
+    
+    // 音を再生
+    //this.audioManager.play('gunShot');
+    
+    // 現在の武器タイプを取得
+    const currentWeponTypes = this.playerStatus.getCurrentWeponType();
+    const weponId = currentWeponTypes.length > 0 ? currentWeponTypes[0] : "wepon001";
+    
+    // プレイヤーの向きに基づいて弾を発射
+    const direction = new THREE.Vector3(0, 0, -1);
+    direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerModel.getRotation().y);
+    
+    // プレイヤーの位置から少し前方に弾を発射
+    const bulletPosition = this.playerModel.getPosition().clone();
+    bulletPosition.y += 0.5; // プレイヤーの目の高さ
+    
+    // プレイヤーの前方に弾丸の位置をずらす（方向に基づいて計算）
+    const offset = 1.5; // 前方へのオフセット距離
+    bulletPosition.add(direction.clone().multiplyScalar(offset));
+    
+    //console.log(weponId);
+    this.socket.emit('shoot', {
+        weponId: weponId,
+        position: bulletPosition,
+        direction: direction,
+        bulletDamage:10
+    });
+    
+    this.createBullet(bulletPosition, direction, this.socket.id, weponId);
+    
+    // 射撃後はクールダウンを開始
+    this.canShoot = false;
+    this.shootTimer = 0;
+}
     createBullet(position, direction, playerId, weponId) {
 
         if(weponId=="wepon001"){
@@ -1122,40 +1123,62 @@ console.log('プレイヤーを追加:', playerData);
             }
         }
         
-        // 移動方向ベクトルを作成
-        const moveDirection = new THREE.Vector3(moveX, 0, moveZ);
+         // 移動方向ベクトルを作成
+    const moveDirection = new THREE.Vector3(moveX, 0, moveZ);
+    
+    // キャラクターの回転を更新
+    if (rotateY !== 0) {
+        this.playerModel.setRotation(this.playerModel.getRotation().y + rotateY);
+    }
+    
+    // 現在の位置を保存
+    const currentPosition = this.playerModel.getPosition().clone();
+    
+    // プレイヤーモデルの移動
+    const moveSpeed2 = this.moveSpeed + this.playerStatus.moveSpeedMultiplier;
+    this.playerModel.move(moveDirection, isRunning ? moveSpeed2 * 3 : moveSpeed2, deltaTime);
+    this.playerModel.setRunning(isRunning);
+    
+    // 移動後の位置を取得
+    const newPosition = this.playerModel.getPosition();
+    
+    // マップオブジェクトとの衝突判定
+    let hasCollision = false;
+    
+    // 建物との衝突判定
+    if (this.fieldMap && this.fieldMap.checkCollision(newPosition, 1)) {
+        hasCollision = true;
+    }
+    
+    // 敵との衝突判定を追加
+    const playerCollisionRadius = 0.8; // プレイヤーの衝突半径
+    const enemyCollisionRadius = 0.8; // 敵の衝突半径
+    const minDistance = playerCollisionRadius + enemyCollisionRadius;
+    
+    this.enemies.forEach(enemy => {
+        if (enemy.isDead) return; // 死亡している敵はスキップ
         
-        // キャラクターの回転を更新
-        if (rotateY !== 0) {
-            this.playerModel.setRotation(this.playerModel.getRotation().y + rotateY);
+        const enemyPosition = enemy.model.getPosition();
+        const distance = newPosition.distanceTo(enemyPosition);
+        
+        if (distance < minDistance) {
+            hasCollision = true;
         }
-        
-        // 現在の位置を保存
-        const currentPosition = this.playerModel.getPosition().clone();
-        
-        // プレイヤーモデルの移動
-        const moveSpeed2 = this.moveSpeed + this.playerStatus.moveSpeedMultiplier;
-        //console.log(moveSpeed2 + "+" + this.playerStatus.moveSpeedMultiplier);
-        this.playerModel.move(moveDirection, isRunning ?moveSpeed2 * 3 : moveSpeed2, deltaTime);
-        this.playerModel.setRunning(isRunning);
-        
-        // 移動後の位置を取得
-        const newPosition = this.playerModel.getPosition();
-        
-        // マップオブジェクトとの衝突判定
-        if (this.fieldMap && this.fieldMap.checkCollision(newPosition, 1)) {
-            // 衝突した場合は元の位置に戻す
-            this.playerModel.setPosition(currentPosition.x, currentPosition.y, currentPosition.z);
-        } else {
-            // 移動した場合、空腹と喉の渇きを減少させる
-            if (isMoving) {
-                // 走っている場合はより早く減少
-                const decreaseRate = isRunning ? GameConfig.STATUS.MOVEMENT.RUNNING_MULTIPLIER : 1.0;
-                // 移動時の減少率を適用（停止時の減少はplayerStatus.jsのupdateメソッドで処理）
-                this.playerStatus.decreaseHunger(GameConfig.STATUS.MOVEMENT.HUNGER * decreaseRate * deltaTime);
-                this.playerStatus.decreaseThirst(GameConfig.STATUS.MOVEMENT.THIRST * decreaseRate * deltaTime);
-            }
+    });
+    
+    // 衝突が発生した場合は元の位置に戻す
+    if (hasCollision) {
+        this.playerModel.setPosition(currentPosition.x, currentPosition.y, currentPosition.z);
+    } else {
+        // 移動した場合、空腹と喉の渇きを減少させる
+        if (isMoving) {
+            // 走っている場合はより早く減少
+            const decreaseRate = isRunning ? GameConfig.STATUS.MOVEMENT.RUNNING_MULTIPLIER : 1.0;
+            // 移動時の減少率を適用
+            this.playerStatus.decreaseHunger(GameConfig.STATUS.MOVEMENT.HUNGER * decreaseRate * deltaTime);
+            this.playerStatus.decreaseThirst(GameConfig.STATUS.MOVEMENT.THIRST * decreaseRate * deltaTime);
         }
+    }
         
         // カメラの位置を更新（プレイヤーの背後に配置）
         this.updateCameraPosition();
@@ -1267,7 +1290,7 @@ console.log('プレイヤーを追加:', playerData);
     takeDamage(damage) {
         
         if (this.isGameOver) return;
-       console.log(damage);
+       //console.log(damage);
        this.currentHealth -= damage;
         this.playerStatus.health = this.currentHealth; // HPを同期
         
@@ -1500,6 +1523,8 @@ getSafeSpawnPosition() {
         this.isGameOver = false;
         this.gameOverElement.style.display = 'none';
         
+
+        this.playerSpawnTime = Date.now();
         /*
         // 古いキャラクターを確実に削除
         if (this.playerModel) {
@@ -1508,14 +1533,96 @@ getSafeSpawnPosition() {
             this.playerModel = null;
         }
         */
-        
+        // ランダムなリスポーンポイントを探す
+   // const safePosition = this.findSafeRespawnPosition();
+    
+    // プレイヤーの位置を更新
+   // this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
+    
         // 新しいキャラクターを作成（他のプレイヤーの近くにスポーン）
         this.createPlayerModel();
         
         // サーバーにリスタートを通知
         this.socket.emit('playerRestart');
     }
+// 安全なリスポーンポイントを探す新しいメソッドを追加
+findSafeRespawnPosition() {
+    const maxAttempts = 20; // 最大試行回数
+    const safeDistance = 10; // 敵から最低限離れるべき距離
+    
+    // 現在のプレイヤー位置
+    const currentPosition = this.playerModel.getPosition().clone();
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        // ランダムな方向と距離を生成
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 10 + Math.random() * 20; // 10-30ユニットの距離
+        
+        // 新しい候補位置を計算
+        const newPosition = new THREE.Vector3(
+            currentPosition.x + Math.cos(angle) * distance,
+            currentPosition.y,
+            currentPosition.z + Math.sin(angle) * distance
+        );
+        
+        // マップの境界内に収める
+        newPosition.x = Math.max(-450, Math.min(450, newPosition.x));
+        newPosition.z = Math.max(-450, Math.min(450, newPosition.z));
+        
+        // 地形の高さを取得
+        const terrainHeight = this.fieldMap.getHeightAt(newPosition.x, newPosition.z);
+        if (terrainHeight !== null) {
+            newPosition.y = terrainHeight + 0.5;
+        }
+        
+        // 建物との衝突チェック
+        if (this.fieldMap.checkCollision(newPosition, 2)) {
+            continue; // 衝突する場合は次の候補へ
+        }
+        
+        // 敵との距離をチェック
+        let isSafe = true;
+        this.enemies.forEach(enemy => {
+            if (enemy.isDead) return;
+            
+            const enemyPosition = enemy.model.getPosition();
+            const distance = newPosition.distanceTo(enemyPosition);
+            
+            if (distance < safeDistance) {
+                isSafe = false;
+            }
+        });
+        
+        // 安全な位置が見つかった場合
+        if (isSafe) {
+            return newPosition;
+        }
+    }
+    
+    // 安全な位置が見つからなかった場合、マップ上の別のランダムな位置を使用
+    return this.getSafeMapPosition();
+}
 
+// マップ上の安全な位置を取得するバックアップメソッド
+getSafeMapPosition() {
+    // マップの四隅から一つをランダムに選択
+    const safeLocations = [
+        new THREE.Vector3(200, 0, 200),
+        new THREE.Vector3(-200, 0, 200),
+        new THREE.Vector3(200, 0, -200),
+        new THREE.Vector3(-200, 0, -200)
+    ];
+    
+    const selectedLocation = safeLocations[Math.floor(Math.random() * safeLocations.length)];
+    
+    // 地形の高さを取得
+    const terrainHeight = this.fieldMap.getHeightAt(selectedLocation.x, selectedLocation.z);
+    if (terrainHeight !== null) {
+        selectedLocation.y = terrainHeight + 0.5;
+    }
+    
+    return selectedLocation;
+}
     // 敵の数を更新するメソッド
     updateEnemyCount() {
         if (this.enemyCountElement) {
@@ -1592,6 +1699,8 @@ getSafeSpawnPosition() {
     update(deltaTime) {
         if (this.isGameOver) return;
         
+
+
         // プレイヤーの位置に基づいてバイオーム名を表示
         const biome = this.fieldMap.getBiomeAt(this.playerModel.position.x, this.playerModel.position.z);
         //console.log('現在のバイオーム:', biome.type);
@@ -1612,23 +1721,7 @@ this.updateLightDirection();
 
         // 射撃のクールダウンを更新
         if (!this.canShoot) {
-            this.shootTimer += deltaTime;
-            const gauge = document.getElementById('shootGauge');
-            //const shootButton = document.getElementById('shootButton');
-            
-            //if (gauge && shootButton) {
-               // const progress = (this.shootTimer / this.shootCooldown) * 100;
-               // gauge.style.height = `${progress}%`;
-                
-                // ゲージの進行に応じてボタンの色を変更
-                //if (progress >= 100) {
-//shootButton.style.backgroundColor = '#00ff00'; // 射撃可能時は緑
-               // } else {
-                   // shootButton.style.backgroundColor = '#ff0000'; // クールダウン中は赤
-               // }
-                    
-            //}
-            
+            this.shootTimer += deltaTime;       
             if (this.shootTimer >= this.shootCooldown) {
                 this.canShoot = true;
                 this.shootTimer = 0;
@@ -1668,43 +1761,34 @@ this.updateLightDirection();
         // アイテム効果の表示を更新
         this.updateEffectsDisplay();
 
-// 自動射撃の処理
-if (this.autoShootEnabled && !this.isGameOver && this.canShoot) {
-    const playerPosition = this.playerModel.getPosition();
-    let nearestEnemy = null;
-    let minDistance = Infinity;
-    
-    // 最も近い敵を探す
-    this.enemies.forEach((enemy) => {
-        if (!enemy.isDead) {
-            const enemyPosition = enemy.model.getPosition();
-            const distance = playerPosition.distanceTo(enemyPosition);
-            
-            if (distance < minDistance) {
-                minDistance = distance;
-                nearestEnemy = {
-                    enemy: enemy,
-                    distance: distance,
-                    position: enemyPosition
-                };
+    // 自動射撃の処理
+    if (this.autoShootEnabled && !this.isGameOver && this.canShoot) {
+        const playerPosition = this.playerModel.getPosition();
+        let nearestEnemy = null;
+        let minDistance = Infinity;
+        
+        // 最も近い敵を探す
+        this.enemies.forEach((enemy) => {
+            if (!enemy.isDead) {
+                const enemyPosition = enemy.model.getPosition();
+                const distance = playerPosition.distanceTo(enemyPosition);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestEnemy = {
+                        enemy: enemy,
+                        distance: distance,
+                        position: enemyPosition
+                    };
+                }
             }
+        });
+        
+        // 最も近い敵が検出半径内にいれば自動射撃
+        if (nearestEnemy && nearestEnemy.distance < this.autoShootRadius) {
+            // 自動射撃
+            this.shoot();
         }
-    });
-    
-    // 最も近い敵が検出半径内にいれば自動射撃
-    if (nearestEnemy && nearestEnemy.distance < this.autoShootRadius) {
-        /*
-        // 敵の方向を向く
-        const direction = new THREE.Vector3()
-            .subVectors(nearestEnemy.position, playerPosition)
-            .normalize();
-        const angle = Math.atan2(direction.x, direction.z);
-        this.playerModel.setRotation(angle);
-        */
-        // 自動射撃
-        this.shoot();
     }
-}
 
 
 
@@ -1799,10 +1883,9 @@ if (this.autoShootEnabled && !this.isGameOver && this.canShoot) {
     }
     
     useItem(itemType) {
-        console.log(itemType);
+        //console.log(itemType);
         const itemConfig = GameConfig.ITEMS[itemType];
         if (!itemConfig) return;
-console.log(itemConfig);
         // 即時効果の適用
         if (itemConfig.effects?.immediate) {
             const effects = itemConfig.effects.immediate;
@@ -1820,7 +1903,7 @@ console.log(itemConfig);
         // 持続効果の適用
         if (itemConfig.effects?.duration) {
             const durationEffect = itemConfig.effects.duration;
-            console.log(durationEffect);
+            //console.log(durationEffect);
             this.playerStatus.addDurationEffect(durationEffect);
         }
 

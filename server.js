@@ -42,10 +42,10 @@ const ENEMY_SPAWN_INTERVAL = 100;
 // 時間帯ごとの敵の最大数
 
 const MAX_ENEMIES = {
-    MORNING:  0,   // 朝（6:00-12:00）0
-    DAY: 0,      // 昼（12:00-18:00）0
-    EVENING: 30,  // 夕方（18:00-24:00） 30
-    NIGHT: 70     // 夜（0:00-6:00）70
+    MORNING:  300,   // 朝（6:00-12:00）0
+    DAY: 300,      // 昼（12:00-18:00）0
+    EVENING: 300,  // 夕方（18:00-24:00） 30
+    NIGHT: 300     // 夜（0:00-6:00）70
 };
 
 
@@ -127,13 +127,15 @@ let lastTimeOfDay = getCurrentTimeOfDay();
 setInterval(() => {
     const currentTimeOfDay = getCurrentTimeOfDay();
     if (currentTimeOfDay !== lastTimeOfDay) {
-        console.log(`時間帯が ${lastTimeOfDay} から ${currentTimeOfDay} に変わりました`);
+        //console.log(`時間帯が ${lastTimeOfDay} から ${currentTimeOfDay} に変わりました`);
         lastTimeOfDay = currentTimeOfDay;
         adjustEnemyCount();
     }
 }, TIME_CHECK_INTERVAL);
 
 // 敵の生成
+// server.js の spawnEnemy 関数を修正
+
 // server.js の spawnEnemy 関数を修正
 
 function spawnEnemy() {
@@ -143,9 +145,8 @@ function spawnEnemy() {
     
     const enemyId = 'enemy_' + Date.now();
 
-    // マップサイズ内にスポーン（端から10単位の余白を設ける）
-    const x = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
-    const z = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
+    // 安全なスポーン位置を見つける
+    let position = findSafeEnemyPosition();
     
     // ランダムに敵のタイプを選択（基本タイプ）
     const enemyTypes = ['NORMAL', 'FAST', 'SHOOTER'];
@@ -153,7 +154,7 @@ function spawnEnemy() {
     
     // ランダムにキャラクターモデルタイプを選択
     const characterModels = ['humanoid', 'quadruped', 'hexapod'];
-    const modelWeights = [0.6, 0.25, 0.15]; // 出現確率（人型60%、四足25%、六足15%）
+    const modelWeights = [0.6, 0.25, 0.15]; // 出現確率
     
     // 重み付き抽選
     let randomValue = Math.random();
@@ -179,26 +180,83 @@ function spawnEnemy() {
     
     enemies[enemyId] = {
         id: enemyId,
-        position: { x, y: 0, z },
+        position: position,
         rotation: { y: Math.random() * Math.PI * 2 },
         health: enemyHealth,
         type: randomType,
-        enemyType: selectedModel, // キャラクターモデルタイプを追加
+        enemyType: selectedModel,
         target: null,
-        state: 'wandering', // wandering, chasing
+        state: 'wandering',
         lastAttack: 0
     };
     
     io.emit('enemySpawned', enemies[enemyId]);
 }
+
+// 安全なスポーン位置を見つける関数
+function findSafeEnemyPosition() {
+    const safeDistance = 5; // 他の敵やプレイヤーから最低限離れるべき距離
+    const maxAttempts = 20; // 最大試行回数
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        // マップサイズ内にスポーン（端から10単位の余白を設ける）
+        const x = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
+        const z = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
+        
+        // この位置が他の敵から十分離れているか確認
+        let isSafe = true;
+        
+        // 他の敵との距離チェック
+        Object.values(enemies).forEach(enemy => {
+            const dx = enemy.position.x - x;
+            const dz = enemy.position.z - z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            
+            if (distance < safeDistance) {
+                isSafe = false;
+            }
+        });
+        
+        // プレイヤーとの距離チェック
+        Object.values(players).forEach(player => {
+            if (player.health <= 0) return;
+            
+            const dx = player.position.x - x;
+            const dz = player.position.z - z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            
+            // プレイヤーの近くには出現させない（遠すぎても面白くない）
+            if (distance < safeDistance * 3 || distance > 100) {
+                isSafe = false;
+            }
+        });
+        
+        // 安全な場所が見つかった場合
+        if (isSafe) {
+            return { x, y: 0, z };
+        }
+    }
+    
+    // 安全な場所が見つからなかった場合はデフォルト値を返す
+    return { x: Math.random() * 100 - 50, y: 0, z: Math.random() * 100 - 50 };
+}
 // 定期的に敵を生成
 setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
 
 // 敵の更新
+// server.js の updateEnemies 関数内を修正
+
+// server.js の updateEnemies 関数を修正
+
+// server.js の updateEnemies 関数を修正
+
 function updateEnemies() {
     const now = Date.now();
     
-    Object.values(enemies).forEach(enemy => {
+    // すべての敵のリスト
+    const enemyList = Object.values(enemies);
+    
+    enemyList.forEach(enemy => {
         // 敵が死亡している場合はスキップ
         if (enemy.health <= 0) return;
 
@@ -231,8 +289,6 @@ function updateEnemies() {
             return; // 遠くの敵の更新をスキップ
         }
 
-
-
         // プレイヤーが近くにいる場合、追いかける
         if (closestPlayer && minDistance < 50) {
             enemy.state = 'chasing';
@@ -245,19 +301,103 @@ function updateEnemies() {
             
             enemy.rotation.y = angle;
             
-            // 移動速度を遅くする（0.5 → 0.2）
+            // 移動速度を設定
             const speed = 0.15;
-            enemy.position.x += Math.sin(angle) * speed;
-            enemy.position.z += Math.cos(angle) * speed;
             
-            // プレイヤーに攻撃
-            if (minDistance < 2 && now - enemy.lastAttack > 1000) {
-                // 敵が死亡していない場合のみ攻撃
-                if (enemy.health > 0) {
-                    enemy.lastAttack = now;
-                    io.to(closestPlayer.id).emit('enemyAttack', { damage: 10 });
+            // 移動方向と距離を計算
+            const moveX = Math.sin(angle) * speed;
+            const moveZ = Math.cos(angle) * speed;
+            
+            // 新しい位置を計算
+            const newPosition = {
+                x: enemy.position.x + moveX,
+                y: enemy.position.y,
+                z: enemy.position.z + moveZ
+            };
+            
+            // 敵同士の衝突チェック
+            let hasCollision = false;
+            
+            // すべての他の敵との衝突をチェック
+            for (const otherEnemy of enemyList) {
+                // 自分自身または死亡した敵はスキップ
+                if (otherEnemy.id === enemy.id || otherEnemy.health <= 0) continue;
+                
+                // 2つの敵の間の距離を計算
+                const dx = otherEnemy.position.x - newPosition.x;
+                const dz = otherEnemy.position.z - newPosition.z;
+                const distance = Math.sqrt(dx * dx + dz * dz);
+                
+                // 衝突判定の距離
+                const collisionDistance = 1.6; // 敵のサイズに応じて調整
+                
+                if (distance < collisionDistance) {
+                    hasCollision = true;
+                    
+                    // 衝突回避のロジック：障害物を迂回するような動き
+                    // 衝突方向に対して垂直な方向に少し動かす
+                    if (Math.random() < 0.5) {
+                        // 左に曲がる
+                        enemy.rotation.y += Math.PI / 8;
+                    } else {
+                        // 右に曲がる
+                        enemy.rotation.y -= Math.PI / 8;
+                    }
+                    
+                    break; // 衝突が見つかったらループを抜ける
                 }
             }
+            
+            // プレイヤーとの衝突チェック
+            Object.values(players).forEach(player => {
+                if (player.health <= 0) return;
+                
+                const dx = player.position.x - newPosition.x;
+                const dz = player.position.z - newPosition.z;
+                const distance = Math.sqrt(dx * dx + dz * dz);
+                
+                // 攻撃距離より近づきすぎないようにする
+                const minPlayerDistance = 1.6;
+                
+                if (distance < minPlayerDistance) {
+                    hasCollision = true;
+                    // プレイヤーに攻撃（クールダウンが経過していれば）
+                    if (now - enemy.lastAttack > 1000) {
+                        enemy.lastAttack = now;
+                        enemy.state = 'attacking';
+                        io.to(player.id).emit('enemyAttack', { damage: 10 });
+                        
+                        // 攻撃状態の送信
+                        io.emit('enemyStateChanged', {
+                            id: enemy.id,
+                            state: 'attacking'
+                        });
+                        
+                        // 0.5秒後に追跡状態に戻す
+                        setTimeout(() => {
+                            if (enemy && enemy.health > 0) {
+                                enemy.state = 'chasing';
+                                io.emit('enemyStateChanged', {
+                                    id: enemy.id,
+                                    state: 'chasing'
+                                });
+                            }
+                        }, 500);
+                    }
+                }
+            });
+            
+            // 衝突がなく、マップ内であれば位置を更新
+            if (!hasCollision && 
+                Math.abs(newPosition.x) <= MAP_SIZE / 2 && 
+                Math.abs(newPosition.z) <= MAP_SIZE / 2) {
+                enemy.position = newPosition;
+            } else if (hasCollision) {
+                // 衝突があった場合、少し後ろに下がる
+                enemy.position.x -= moveX * 0.5;
+                enemy.position.z -= moveZ * 0.5;
+            }
+            
         } else {
             // ランダムに徘徊
             enemy.state = 'wandering';
@@ -267,37 +407,79 @@ function updateEnemies() {
                 enemy.rotation.y = Math.random() * Math.PI * 2;
             }
             
-            // 徘徊時の速度を遅くする（0.2 → 0.1）
+            // 徘徊時の速度
             const speed = 0.1;
-            enemy.position.x += Math.sin(enemy.rotation.y) * speed;
-            enemy.position.z += Math.cos(enemy.rotation.y) * speed;
-        }
-
-        // 敵同士の衝突判定
-        let hasCollision = false;
-        Object.values(enemies).forEach(otherEnemy => {
-            if (otherEnemy.id === enemy.id || otherEnemy.health <= 0) return;
-
-            const dx = otherEnemy.position.x - enemy.position.x;
-            const dz = otherEnemy.position.z - enemy.position.z;
-            const distance = Math.sqrt(dx * dx + dz * dz);
-
-            // 衝突判定の距離（敵の半径の2倍）
-            const collisionDistance = 2.0;
-
-            if (distance < collisionDistance) {
-                hasCollision = true;
-                // 衝突した場合、元の位置に戻す
-                enemy.position = oldPosition;
+            
+            // 移動方向と距離を計算
+            const moveX = Math.sin(enemy.rotation.y) * speed;
+            const moveZ = Math.cos(enemy.rotation.y) * speed;
+            
+            // 新しい位置を計算
+            const newPosition = {
+                x: enemy.position.x + moveX,
+                y: enemy.position.y,
+                z: enemy.position.z + moveZ
+            };
+            
+            // 敵同士の衝突チェック
+            let hasCollision = false;
+            
+            // すべての他の敵との衝突をチェック
+            for (const otherEnemy of enemyList) {
+                // 自分自身または死亡した敵はスキップ
+                if (otherEnemy.id === enemy.id || otherEnemy.health <= 0) continue;
+                
+                // 2つの敵の間の距離を計算
+                const dx = otherEnemy.position.x - newPosition.x;
+                const dz = otherEnemy.position.z - newPosition.z;
+                const distance = Math.sqrt(dx * dx + dz * dz);
+                
+                // 衝突判定の距離
+                const collisionDistance = 1.6; // 敵のサイズに応じて調整
+                
+                if (distance < collisionDistance) {
+                    hasCollision = true;
+                    
+                    // 衝突回避：ランダムに方向を変える
+                    enemy.rotation.y = Math.random() * Math.PI * 2;
+                    
+                    break; // 衝突が見つかったらループを抜ける
+                }
             }
-        });
-
-        // マップの境界チェック
-        if (Math.abs(enemy.position.x) > MAP_SIZE / 2 || Math.abs(enemy.position.z) > MAP_SIZE / 2) {
-            enemy.position = oldPosition;
+            
+            // プレイヤーとの衝突チェック
+            Object.values(players).forEach(player => {
+                if (player.health <= 0) return;
+                
+                const dx = player.position.x - newPosition.x;
+                const dz = player.position.z - newPosition.z;
+                const distance = Math.sqrt(dx * dx + dz * dz);
+                
+                // 攻撃距離より近づきすぎないようにする
+                const minPlayerDistance = 1.6;
+                
+                if (distance < minPlayerDistance) {
+                    hasCollision = true;
+                    
+                    // プレイヤーを見つけたので追跡状態に変更
+                    enemy.state = 'chasing';
+                    enemy.target = player.id;
+                    
+                    // プレイヤーの方を向く
+                    const angle = Math.atan2(dx, dz);
+                    enemy.rotation.y = angle;
+                }
+            });
+            
+            // 衝突がなく、マップ内であれば位置を更新
+            if (!hasCollision && 
+                Math.abs(newPosition.x) <= MAP_SIZE / 2 && 
+                Math.abs(newPosition.z) <= MAP_SIZE / 2) {
+                enemy.position = newPosition;
+            }
         }
         
-        // 敵の位置を更新
+        // 敵の位置と状態を更新
         io.emit('enemyMoved', {
             id: enemy.id,
             position: enemy.position,
@@ -305,6 +487,66 @@ function updateEnemies() {
             state: enemy.state
         });
     });
+    
+    // 敵の密集状態を解消するための追加処理
+    resolveCrowding(enemyList);
+}
+
+// 敵の密集状態を解消する関数
+function resolveCrowding(enemyList) {
+    // 互いに近すぎる敵のペアを見つける
+    const crowdingThreshold = 1.6; // 近すぎる距離の閾値
+    
+    for (let i = 0; i < enemyList.length; i++) {
+        const enemy1 = enemyList[i];
+        if (enemy1.health <= 0) continue;
+        
+        for (let j = i + 1; j < enemyList.length; j++) {
+            const enemy2 = enemyList[j];
+            if (enemy2.health <= 0) continue;
+            
+            // 2つの敵の間の距離を計算
+            const dx = enemy2.position.x - enemy1.position.x;
+            const dz = enemy2.position.z - enemy1.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            
+            // 敵が近すぎる場合
+            if (distance < crowdingThreshold) {
+                // 反発力を計算（距離が短いほど強い）
+                const force = (crowdingThreshold - distance) / crowdingThreshold;
+                const angle = Math.atan2(dx, dz);
+                
+                // 敵1を反対方向に押す
+                enemy1.position.x -= Math.sin(angle) * force * 0.1;
+                enemy1.position.z -= Math.cos(angle) * force * 0.1;
+                
+                // 敵2を反対方向に押す
+                enemy2.position.x += Math.sin(angle) * force * 0.1;
+                enemy2.position.z += Math.cos(angle) * force * 0.1;
+                
+                // マップの境界チェック
+                enemy1.position.x = Math.max(-MAP_SIZE/2, Math.min(MAP_SIZE/2, enemy1.position.x));
+                enemy1.position.z = Math.max(-MAP_SIZE/2, Math.min(MAP_SIZE/2, enemy1.position.z));
+                enemy2.position.x = Math.max(-MAP_SIZE/2, Math.min(MAP_SIZE/2, enemy2.position.x));
+                enemy2.position.z = Math.max(-MAP_SIZE/2, Math.min(MAP_SIZE/2, enemy2.position.z));
+                
+                // 変更を通知
+                io.emit('enemyMoved', {
+                    id: enemy1.id,
+                    position: enemy1.position,
+                    rotation: enemy1.rotation,
+                    state: enemy1.state
+                });
+                
+                io.emit('enemyMoved', {
+                    id: enemy2.id,
+                    position: enemy2.position,
+                    rotation: enemy2.rotation,
+                    state: enemy2.state
+                });
+            }
+        }
+    }
 }
 
 // 敵の更新を定期的に実行
@@ -366,7 +608,7 @@ function getSpawnPosition() {
 function getSpawnPosition() {
     const players = Object.values(io.sockets.sockets).map(socket => socket.player);
     if (players.length === 0) {
-        console.log('他のプレイヤーがいないため、デフォルト位置を使用します');
+        //console.log('他のプレイヤーがいないため、デフォルト位置を使用します');
         // 他のプレイヤーがいない場合はデフォルト位置
         return { x: 9, y: 0, z: 0 };
     }
