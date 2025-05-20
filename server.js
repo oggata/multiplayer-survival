@@ -44,10 +44,11 @@ const ENEMY_SPAWN_INTERVAL = 100;
 const MAX_ENEMIES = {
     MORNING:  0,   // 朝（6:00-12:00）0
     DAY: 0,      // 昼（12:00-18:00）0
-    EVENING: 0,  // 夕方（18:00-24:00） 30
-    NIGHT: 0     // 夜（0:00-6:00）70
+    EVENING: 100,  // 夕方（18:00-24:00） 30
+    NIGHT: 200     // 夜（0:00-6:00）70
 };
 
+const SPAWN_DISTANCE_TO_PLAYER = 2000;
 
 // マップサイズ(クライアントと揃えてください)
 const MAP_SIZE = 6000;
@@ -232,7 +233,7 @@ function findSafeEnemyPosition() {
             
             // プレイヤーの近くには出現させない（遠すぎても面白くない）
             //if (distance < safeDistance * 3 || distance > 100) {
-            if (distance < safeDistance * 3 || distance > 1500) {
+            if (distance < safeDistance * 3 || distance > SPAWN_DISTANCE_TO_PLAYER) {
                 isSafe = false;
             }
         });

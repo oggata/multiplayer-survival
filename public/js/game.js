@@ -1537,10 +1537,10 @@ getSafeSpawnPosition() {
         }
         */
         // ランダムなリスポーンポイントを探す
-   // const safePosition = this.findSafeRespawnPosition();
+   const safePosition = this.findSafeRespawnPosition();
     
     // プレイヤーの位置を更新
-   // this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
+   this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
     
         // 新しいキャラクターを作成（他のプレイヤーの近くにスポーン）
         this.createPlayerModel();
@@ -2844,7 +2844,7 @@ spawnEnemy(enemyData) {
             }
         });
         this.bullets.clear();
-
+*/
         // アイテムリストをクリア
         this.items.forEach(item => {
             if (item.mesh) {
@@ -2852,7 +2852,7 @@ spawnEnemy(enemyData) {
             }
         });
         this.items.clear();
-*/
+
         // ゲームオーバー表示を非表示
         document.getElementById('gameOver').style.display = 'none';
 

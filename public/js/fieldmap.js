@@ -227,6 +227,7 @@ class FieldMap {
             if (currentChunk < totalChunks) {
                 // 次のフレームで続行
                 requestAnimationFrame(generateNextChunks);
+                this.hideLoadingScreen();
             } else {
                 // 地形生成完了後、オブジェクトを生成
                 this.generateObjects();
@@ -289,11 +290,11 @@ class FieldMap {
 
     void main() {
         float height = vPosition.z;
-        vec3 waterColor = vec3(0.0, 0.3, 0.7);
-        vec3 sandColor = vec3(0.76, 0.7, 0.5);
-        vec3 grassColor = vec3(0.0, 0.5, 0.0);
-        vec3 rockColor = vec3(0.5, 0.5, 0.5);
-        vec3 snowColor = vec3(1.0, 1.0, 1.0);
+        vec3 waterColor = vec3(0.0, 0.2, 0.5);
+        vec3 sandColor = vec3(0.6, 0.55, 0.4);
+        vec3 grassColor = vec3(0.0, 0.35, 0.0);
+        vec3 rockColor = vec3(0.35, 0.35, 0.35);
+        vec3 snowColor = vec3(0.9, 0.9, 0.9);
 
         vec3 baseColor;
         if (height < 0.5) {
@@ -315,7 +316,7 @@ class FieldMap {
         vec3 normalizedNormal = normalize(vNormal);
         vec3 normalizedLightDirection = normalize(lightDirection);
         float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
-        directionalFactor = max(directionalFactor, 0.24);
+        directionalFactor = max(directionalFactor, 0.1);
         
         vec3 directionalContribution = lightColor * directionalFactor;
         vec3 ambientContribution = ambientColor * ambientIntensity;
@@ -453,6 +454,7 @@ class FieldMap {
 
         // すべてのチャンクを更新
         this.terrainChunks.forEach(updateChunk);
+        
     }
 
     getHeightAt(x, z) {
@@ -592,7 +594,7 @@ class FieldMap {
         const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
         
         // ビルの生成
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < 3; i++) {
         if (this.rng() < buildingChance) {
             let position;
             let isSafe = false;
