@@ -7,12 +7,12 @@ class FieldMap {
         this.mapSize = GameConfig.MAP.SIZE;
         this.biomes = [];
         this.objects = [];
+        this.terrainChunks = []; // 地形チャンクを管理する配列
+        this.chunkSize = 200; // チャンクのサイズ
+        this.visibleDistance = 300; // 視界距離
 
-this.fieldObject = new FieldObject(scene,seed,this);
+        this.fieldObject = new FieldObject(scene,seed,this);
 
-
-        this.terrainGeometry = null;
-        /*
         // ビルタイプの定義
         this.buildingTypes = [
             { name: 'skyscraper', minHeight: 30, maxHeight: 100, color: 0x555555 },
@@ -24,15 +24,6 @@ this.fieldObject = new FieldObject(scene,seed,this);
             { name: 'school', minHeight: 8, maxHeight: 20, color: 0xCCCCCC },
             { name: 'apartment', minHeight: 15, maxHeight: 45, color: 0x999999 },
             { name: 'hotel', minHeight: 20, maxHeight: 60, color: 0xAAAAAA }
-        ];
-        */
-        this.buildingTypes = [
-            { name: 'skyscraper', minHeight: 30, maxHeight: 100, color: 0x555555 },
-            { name: 'office', minHeight: 15, maxHeight: 40, color: 0x666666 },
-            { name: 'residential', minHeight: 5, maxHeight: 15, color: 0x777777 },
-            { name: 'industrial', minHeight: 8, maxHeight: 20, color: 0x444444 },
-            { name: 'mall', minHeight: 10, maxHeight: 25, color: 0x888888 },
-
         ];
 
         // がれきタイプの定義
@@ -130,226 +121,181 @@ this.fieldObject = new FieldObject(scene,seed,this);
     getTerrain() {
         return this.terrainGeometry;
     }
-generateTerrain() {
-    // 地面の作成（起伏を追加）
-    const size = GameConfig.MAP.SIZE; // マップのサイズ
-    const segments = 32; // より高精細な地形
-    const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
-
-    // テクスチャローダー
-    const textureLoader = new THREE.TextureLoader();
-
-    // 地形の高さによって色を変える
-    const vertexShader = `
-        varying vec3 vPosition;
-        varying vec3 vNormal;
-
-        void main() {
-            vPosition = position;
-            vNormal = normal; // 法線をフラグメントシェーダーに渡す
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `;
-
- const fragmentShader = `
-    varying vec3 vPosition;
-    varying vec3 vNormal;
-    uniform vec3 lightDirection;
-    uniform float lightIntensity;
-    uniform float ambientIntensity;
-    uniform vec3 lightColor;
-    uniform vec3 ambientColor;
-    
-    // スポットライト用の新しいuniform変数
-    uniform vec3 spotLightPosition;
-    uniform vec3 spotLightDirection;
-    uniform vec3 spotLightColor;
-    uniform float spotLightIntensity;
-    uniform float spotLightDistance;
-    uniform float spotLightAngle;
-    uniform float spotLightPenumbra;
-    uniform bool spotLightEnabled;
-
-    void main() {
-        // 既存の高さベースの色計算
-        float height = vPosition.z;
-        vec3 waterColor = vec3(0.0, 0.3, 0.7);
-        vec3 sandColor = vec3(0.76, 0.7, 0.5);
-        vec3 grassColor = vec3(0.0, 0.5, 0.0);
-        vec3 rockColor = vec3(0.5, 0.5, 0.5);
-        vec3 snowColor = vec3(1.0, 1.0, 1.0);
-
-        vec3 baseColor;
-        if (height < 0.5) {
-            baseColor = sandColor;
-        } else if (height < 1.0) {
-            float t = (height - 0.5) / 0.5;
-            baseColor = mix(sandColor, sandColor, t);
-        } else if (height < 4.0) {
-            float t = (height - 1.0) / 3.0;
-            baseColor = mix(sandColor, grassColor, t);
-        } else if (height < 8.0) {
-            float t = (height - 4.0) / 4.0;
-            baseColor = mix(grassColor, rockColor, t);
-        } else {
-            float t = min((height - 8.0) / 4.0, 1.0);
-            baseColor = mix(rockColor, snowColor, t);
-        }
-
-        // 既存の太陽光（ディレクショナルライト）計算
-        vec3 normalizedNormal = normalize(vNormal);
-        vec3 normalizedLightDirection = normalize(lightDirection);
-        float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
+    generateTerrain() {
+        const size = GameConfig.MAP.SIZE;
+        const chunkCount = Math.ceil(size / this.chunkSize);
         
-        // 最小照明レベルを設定（これは既存のコードに基づいています）
-        directionalFactor = max(directionalFactor, 0.24);
-        
-        // 太陽光と環境光
-        vec3 directionalContribution = lightColor * directionalFactor;
-        vec3 ambientContribution = ambientColor * ambientIntensity;
-        
-        
-        // スポットライトの計算（新しいコード）
-        vec3 spotContribution = vec3(0.0);
-
-        /*
-        if (spotLightEnabled) {
-            // 現在の頂点からスポットライトへのベクトル
-            vec3 surfaceToLight = spotLightPosition - vPosition;
-            float distanceToLight = length(surfaceToLight);
-            
-            // スポットライトの影響範囲内にある場合
-            if (distanceToLight < spotLightDistance) {
-                // ライトの方向に正規化
-                vec3 lightDir = normalize(surfaceToLight);
-                
-                // ライトの中心軸との角度を計算
-                float angleCos = dot(lightDir, normalize(-spotLightDirection));
-                
-                // スポットライトの円錐内にある場合
-                float spotEffect = 0.0;
-                float spotAngleCos = cos(spotLightAngle);
-                if (angleCos > spotAngleCos) {
-                    // アングルに応じた減衰を計算
-                    float spotFalloff = smoothstep(spotAngleCos, spotAngleCos + spotLightPenumbra, angleCos);
-                    
-                    // 距離に応じた減衰を計算
-                    float attenuation = 1.0 - smoothstep(0.0, spotLightDistance, distanceToLight);
-                    
-                    // 法線とライト方向の内積で照明強度を計算
-                    float NdotL = max(dot(normalizedNormal, lightDir), 0.0);
-                    
-                    // すべての要素を組み合わせる
-                    spotEffect = NdotL * attenuation * spotFalloff;
-                }
-                
-                // スポットライトの寄与を追加
-                spotContribution = spotLightColor * spotEffect * spotLightIntensity;
+        // チャンクの生成
+        for (let x = -chunkCount/2; x < chunkCount/2; x++) {
+            for (let z = -chunkCount/2; z < chunkCount/2; z++) {
+                this.createTerrainChunk(x, z);
             }
         }
-            */
-        
-        // すべての光源からの寄与を組み合わせる
-        vec3 finalColor = baseColor * (directionalContribution + ambientContribution + spotContribution);
-
-        gl_FragColor = vec4(finalColor, 1.0);
     }
-`;
 
-    // デフォルトのライト方向を定義
-    const defaultLightDirection = new THREE.Vector3(1, 1, 1).normalize();
+    createTerrainChunk(chunkX, chunkZ) {
+        const segments = 32;
+        const geometry = new THREE.PlaneGeometry(this.chunkSize, this.chunkSize, segments, segments);
+        
+        // シェーダーマテリアルの設定（既存のコードと同じ）
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
+                lightIntensity: { value: 1.5 },
+                ambientIntensity: { value: 0.4 },
+                lightColor: { value: new THREE.Color(0xffffff) },
+                ambientColor: { value: new THREE.Color(0xffffff) },
+                spotLightPosition: { value: new THREE.Vector3(0, 0, 0) },
+                spotLightDirection: { value: new THREE.Vector3(0, -1, 0) },
+                spotLightColor: { value: new THREE.Color(0xffffcc) },
+                spotLightIntensity: { value: 0.0 },
+                spotLightDistance: { value: 50.0 },
+                spotLightAngle: { value: Math.PI / 4 },
+                spotLightPenumbra: { value: 0.2 },
+                spotLightEnabled: { value: false }
+            },
+            vertexShader: `
+                varying vec3 vPosition;
+                varying vec3 vNormal;
 
-    // ライトの方向を uniform に渡す
-// ライトの方向を uniform に渡す
-const material = new THREE.ShaderMaterial({
-    uniforms: {
-        lightDirection: { value: defaultLightDirection },
-        lightIntensity: { value: 1.5 },
-        ambientIntensity: { value: 0.4 },
-        lightColor: { value: new THREE.Color(0xffffff) },
-        ambientColor: { value: new THREE.Color(0xffffff) },
-        
-        // スポットライト用の新しいuniform変数
-        spotLightPosition: { value: new THREE.Vector3(0, 0, 0) },
-        spotLightDirection: { value: new THREE.Vector3(0, -1, 0) },
-        spotLightColor: { value: new THREE.Color(0xffffcc) }, // 暖色系のライト色
-        spotLightIntensity: { value: 0.0 }, // 初期値は0（オフ）
-        spotLightDistance: { value: 50.0 },
-        spotLightAngle: { value: Math.PI / 4 }, // 45度
-        spotLightPenumbra: { value: 0.2 },
-        spotLightEnabled: { value: false }
-    },
-    vertexShader: vertexShader,
-    fragmentShader: fragmentShader,
-    side: THREE.DoubleSide
-});
+                void main() {
+                    vPosition = position;
+                    vNormal = normal;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vPosition;
+                varying vec3 vNormal;
+                uniform vec3 lightDirection;
+                uniform float lightIntensity;
+                uniform float ambientIntensity;
+                uniform vec3 lightColor;
+                uniform vec3 ambientColor;
+                
+                void main() {
+                    float height = vPosition.z;
+                    vec3 waterColor = vec3(0.0, 0.3, 0.7);
+                    vec3 sandColor = vec3(0.76, 0.7, 0.5);
+                    vec3 grassColor = vec3(0.0, 0.5, 0.0);
+                    vec3 rockColor = vec3(0.5, 0.5, 0.5);
+                    vec3 snowColor = vec3(1.0, 1.0, 1.0);
 
-    const terrainGeometry = new THREE.Mesh(geometry, material);
-    terrainGeometry.rotation.x = -Math.PI / 2;
-    terrainGeometry.receiveShadow = true;
-    this.terrainGeometry = terrainGeometry;
+                    vec3 baseColor;
+                    if (height < 0.5) {
+                        baseColor = sandColor;
+                    } else if (height < 1.0) {
+                        float t = (height - 0.5) / 0.5;
+                        baseColor = mix(sandColor, sandColor, t);
+                    } else if (height < 4.0) {
+                        float t = (height - 1.0) / 3.0;
+                        baseColor = mix(sandColor, grassColor, t);
+                    } else if (height < 8.0) {
+                        float t = (height - 4.0) / 4.0;
+                        baseColor = mix(grassColor, rockColor, t);
+                    } else {
+                        float t = min((height - 8.0) / 4.0, 1.0);
+                        baseColor = mix(rockColor, snowColor, t);
+                    }
 
-    // 頂点の色を設定
-    const vertices = terrainGeometry.geometry.attributes.position.array;
-    
-    // マップのサイズの半分（中心からの最大距離）
-    const halfSize = size / 2;
-    // 端からどれくらい内側でフェードアウトを始めるか（例：20%のマージン）
-    const borderMargin = halfSize * 0.1;
-    // 実際の使用可能なサイズ（フェードアウトを考慮）
-    const usableSize = halfSize - borderMargin;
-    
-    for (let i = 0; i < vertices.length; i += 3) {
-        const x = vertices[i];
-        const y = vertices[i + 1];
-        
-        // 基本的な地形の起伏を計算
-        const baseHeight = 
-            Math.sin(x * 0.1) * Math.cos(y * 0.1) * 3 + 
-            Math.sin(x * 0.3 + 0.5) * Math.cos(y * 0.3 + 0.5) * 2 +
-            Math.sin(x * 0.03) * Math.cos(y * 0.03) * 5;
-        
-        // 中心からの距離を計算
-        const distanceFromCenter = Math.sqrt(x * x + y * y);
-        
-        // フェードアウト係数を計算（中心に近いほど1、端に近いほど0）
-        let fadeOutFactor = 1.0;
-        
-        if (distanceFromCenter > usableSize) {
-            // usableSizeを超えた場合、端に向かって徐々にフェードアウト
-            fadeOutFactor = Math.max(0, 1.0 - (distanceFromCenter - usableSize) / borderMargin);
+                    vec3 normalizedNormal = normalize(vNormal);
+                    vec3 normalizedLightDirection = normalize(lightDirection);
+                    float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
+                    directionalFactor = max(directionalFactor, 0.24);
+                    
+                    vec3 directionalContribution = lightColor * directionalFactor;
+                    vec3 ambientContribution = ambientColor * ambientIntensity;
+                    
+                    vec3 finalColor = baseColor * (directionalContribution + ambientContribution);
+
+                    gl_FragColor = vec4(finalColor, 1.0);
+                }
+            `,
+            side: THREE.DoubleSide
+        });
+
+        const terrainChunk = new THREE.Mesh(geometry, material);
+        terrainChunk.rotation.x = -Math.PI / 2;
+        terrainChunk.receiveShadow = true;
+
+        // チャンクの位置を設定
+        terrainChunk.position.set(
+            chunkX * this.chunkSize,
+            0,
+            chunkZ * this.chunkSize
+        );
+
+        // 頂点の高さを設定
+        const vertices = terrainChunk.geometry.attributes.position.array;
+        for (let i = 0; i < vertices.length; i += 3) {
+            const x = vertices[i] + terrainChunk.position.x;
+            const y = vertices[i + 1] + terrainChunk.position.z;
             
-            // スムーズなフェードアウトのために、fadeOutFactorをイージング関数で調整
-            // 例: 二次関数で滑らかに減少（オプション）
-            fadeOutFactor = fadeOutFactor * fadeOutFactor;
+            var baseHeight = 
+                Math.sin(x * 0.1) * Math.cos(y * 0.1) * 3 + 
+                Math.sin(x * 0.3 + 0.5) * Math.cos(y * 0.3 + 0.5) * 2 +
+                Math.sin(x * 0.03) * Math.cos(y * 0.03) * 5;
+            
+            if(baseHeight < 0) {
+                baseHeight =0;
+            }
+
+            vertices[i + 2] = baseHeight;
         }
-        
-        // 最終的な高さを計算（端に近づくにつれて0に近づく）
-        const finalHeight = Math.max(0, baseHeight * fadeOutFactor);
-        
-        vertices[i + 2] = finalHeight;
+
+        terrainChunk.geometry.attributes.position.needsUpdate = true;
+        terrainChunk.geometry.computeVertexNormals();
+
+        // チャンクを管理配列に追加
+        this.terrainChunks.push({
+            mesh: terrainChunk,
+            chunkX: chunkX,
+            chunkZ: chunkZ
+        });
+
+        this.scene.add(terrainChunk);
     }
 
-    terrainGeometry.geometry.attributes.position.needsUpdate = true;
-    terrainGeometry.geometry.computeVertexNormals();
-    
-    this.scene.add(terrainGeometry);
-}
-    
+    updateTerrainVisibility(cameraPosition) {
+        this.terrainChunks.forEach(chunk => {
+            const distance = Math.sqrt(
+                Math.pow(cameraPosition.x - chunk.mesh.position.x, 2) +
+                Math.pow(cameraPosition.z - chunk.mesh.position.z, 2)
+            );
+            
+            // 視界距離より遠いチャンクは非表示
+            chunk.mesh.visible = distance <= this.visibleDistance;
+        });
+    }
 
     getHeightAt(x, z) {
-        const raycaster = new THREE.Raycaster();
-        const down = new THREE.Vector3(0, -1, 0); // Ray direction (downward)
-        raycaster.set(new THREE.Vector3(x, 100, z), down); // Start ray above the terrain
+        // 最も近いチャンクを探す
+        let closestChunk = null;
+        let minDistance = Infinity;
 
-        const intersects = raycaster.intersectObject(this.terrainGeometry);
-        if (intersects.length > 0) {
-            return intersects[0].point.y; // Return the height of the terrain
+        for (const chunk of this.terrainChunks) {
+            const dx = x - chunk.mesh.position.x;
+            const dz = z - chunk.mesh.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestChunk = chunk;
+            }
         }
-        return 0; // Default to ground level if no intersection
+
+        if (closestChunk) {
+            const raycaster = new THREE.Raycaster();
+            const down = new THREE.Vector3(0, -1, 0);
+            raycaster.set(new THREE.Vector3(x, 100, z), down);
+
+            const intersects = raycaster.intersectObject(closestChunk.mesh);
+            if (intersects.length > 0) {
+                return intersects[0].point.y;
+            }
+        }
+        return 0;
     }
-
-
 
     generateObjects() {
         // バイオームごとのオブジェクト生成
