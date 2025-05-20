@@ -481,15 +481,16 @@ this.devMode = true;
     }
 
     updateLightDirection() {
+        
         if (!this.fieldMap || !this.fieldMap.terrainGeometry) {
-            console.warn('FieldMap または terrainGeometry が初期化されていません');
+            //console.warn('FieldMap または terrainGeometry が初期化されていません');
             return;
         }
         
     // directionalLight が存在するか確認
         const directionalLight = this.sunLight || this.scene.children.find(obj => obj.isDirectionalLight);
         if (!directionalLight) {
-            console.warn('DirectionalLight が見つかりません');
+            //console.warn('DirectionalLight が見つかりません');
             return;
         }
 
@@ -518,7 +519,7 @@ this.devMode = true;
     createPlayerModel() {
 
         if(this.playerModel){
-            this.scene.remove(this.playerModel.getMesh());
+            //this.scene.remove(this.playerModel.getMesh());
             this.playerModel.dispose();
         }
 
@@ -1654,6 +1655,14 @@ getSafeMapPosition() {
         // オブジェクトの表示/非表示を更新
         this.updateObjectVisibility();
         
+        // 地形チャンクの表示/非表示を更新
+        if (this.fieldMap && this.playerModel) {
+            this.fieldMap.updateTerrainVisibility(this.playerModel.getPosition());
+        }
+        //if (this.fieldMap && this.playerModel) {
+        this.fieldMap.updateObjectsVisibility(this.playerModel.getPosition());
+       // }
+
         // メッセージポップアップの位置を更新
         this.updateMessagePopups();
         

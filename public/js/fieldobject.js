@@ -51,55 +51,15 @@ class FieldObject {
         
         // ビルの位置を設定
         building.position.set(position.x, buildingHeight / 2, position.z);
-        
-        // 破壊レベルが高い場合はランダムな回転と傾きを適用
-        if (destructionLevel > 0.6) {
-            building.rotation.y = this.rng() * Math.PI / 4;
-            
-            // ビルを傾かせる
-            if (this.rng() > 0.5) {
-                building.rotation.x = this.rng() * destructionLevel * 0.5;
-            } else {
-                building.rotation.z = this.rng() * destructionLevel * 0.5;
-            }
-            
-            // 傾いたビルの位置を調整
-            building.position.y -= buildingHeight * destructionLevel * 0.3;
-        }
-        
-        // ビルをシーンに追加
-        building.userData = { type: 'building', buildingType: buildingType.name };
         building.castShadow = true;
         building.receiveShadow = true;
-        this.fieldmap.scene.add(building);
-        this.fieldmap.objects.push(building);
-        
-        // 壊れた窓を追加
-        this.createBrokenWindows(building, buildingWidth, buildingHeight, buildingDepth);
-        
-        // 破壊レベルが高い場合は周囲にがれきを追加
-        if (destructionLevel > 0.5) {
-            for (let i = 0; i < destructionLevel * 15; i++) {  // がれきの数を増加
-                const debrisX = position.x + (this.rng() - 0.5) * buildingWidth * 3;  // がれきの範囲を拡大
-                const debrisZ = position.z + (this.rng() - 0.5) * buildingDepth * 3;
-                this.createDebris(debrisX, debrisZ);
-            }
-        }
 
-        // 建物の上部に破壊された部分を追加
-        if (destructionLevel > 0.4) {
-            this.createDestroyedTop(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
-        }
+        // 破壊された外観の追加
+        this.createDestroyedTop(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
+        this.createCracks(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
+        this.createCollapsedWalls(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
 
-        // 建物の壁に亀裂を追加
-        if (destructionLevel > 0.3) {
-            this.createCracks(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
-        }
-
-        // 建物の周りに崩れた壁の破片を追加
-        if (destructionLevel > 0.6) {
-            this.createCollapsedWalls(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
-        }
+        return { mesh: building, position: building.position };
     }
     
     createBrokenWindows(building, width, height, depth) {
@@ -406,64 +366,39 @@ class FieldObject {
         trunk.castShadow = true;
         trunk.receiveShadow = true;
         treeGroup.add(trunk);
-        
-        // 木の種類に応じた葉の作成
+
+        // 木の種類に応じて葉の形状を変更
         switch(treeType.name) {
             case 'pine':
-                // 松の木は複数の円錐を重ねる
-                for (let i = 0; i < 3; i++) {
-                    const coneGeometry = new THREE.ConeGeometry(
-                        treeType.leavesSize * (1 - i * 0.2),
-                        leavesHeight * 0.4,
-                        8
-                    );
-                    const leavesMaterial = new THREE.MeshStandardMaterial({
-                        color: treeType.leavesColor,
-                        roughness: 0.8,
-                        metalness: 0.1
-                    });
-                    const leaves = new THREE.Mesh(coneGeometry, leavesMaterial);
-                    leaves.position.y = trunkHeight + leavesHeight * 0.3 * i;
-                    leaves.castShadow = true;
-                    leaves.receiveShadow = true;
-                    treeGroup.add(leaves);
-                }
-                break;
-                
-            case 'oak':
-                // オークは複数の球体を組み合わせる
-                const mainLeavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
-                const leavesMaterial = new THREE.MeshStandardMaterial({
+                // 松の木は円錐状の葉
+                const pineLeavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight * 2, 8);
+                const pineLeavesMaterial = new THREE.MeshStandardMaterial({
                     color: treeType.leavesColor,
                     roughness: 0.8,
                     metalness: 0.1
                 });
-                const mainLeaves = new THREE.Mesh(mainLeavesGeometry, leavesMaterial);
-                mainLeaves.position.y = trunkHeight + leavesHeight * 0.6;
-                mainLeaves.castShadow = true;
-                mainLeaves.receiveShadow = true;
-                treeGroup.add(mainLeaves);
-                
-                // 追加の葉の塊
-                for (let i = 0; i < 3; i++) {
-                    const subLeavesGeometry = new THREE.SphereGeometry(
-                        treeType.leavesSize * 0.7,
-                        8,
-                        8
-                    );
-                    const subLeaves = new THREE.Mesh(subLeavesGeometry, leavesMaterial);
-                    const angle = (i * Math.PI * 2) / 3;
-                    subLeaves.position.set(
-                        Math.cos(angle) * treeType.leavesSize * 0.5,
-                        trunkHeight + leavesHeight * 0.4,
-                        Math.sin(angle) * treeType.leavesSize * 0.5
-                    );
-                    subLeaves.castShadow = true;
-                    subLeaves.receiveShadow = true;
-                    treeGroup.add(subLeaves);
-                }
+                const pineLeaves = new THREE.Mesh(pineLeavesGeometry, pineLeavesMaterial);
+                pineLeaves.position.y = trunkHeight + leavesHeight;
+                pineLeaves.castShadow = true;
+                pineLeaves.receiveShadow = true;
+                treeGroup.add(pineLeaves);
                 break;
-                
+
+            case 'oak':
+                // オークは球状の葉
+                const oakLeavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
+                const oakLeavesMaterial = new THREE.MeshStandardMaterial({
+                    color: treeType.leavesColor,
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+                const oakLeaves = new THREE.Mesh(oakLeavesGeometry, oakLeavesMaterial);
+                oakLeaves.position.y = trunkHeight + leavesHeight * 0.6;
+                oakLeaves.castShadow = true;
+                oakLeaves.receiveShadow = true;
+                treeGroup.add(oakLeaves);
+                break;
+
             case 'palm':
                 // ヤシの木は葉を放射状に配置
                 const trunkTop = trunkHeight + 0.5;
@@ -489,7 +424,7 @@ class FieldObject {
                     treeGroup.add(leaf);
                 }
                 break;
-                
+
             default:
                 // その他の木は基本的な形状
                 const defaultLeavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
@@ -504,7 +439,7 @@ class FieldObject {
                 defaultLeaves.receiveShadow = true;
                 treeGroup.add(defaultLeaves);
         }
-        
+
         // 木の下に影を追加
         const shadowGeometry = new THREE.PlaneGeometry(treeType.leavesSize * 2, treeType.leavesSize * 2);
         const shadowMaterial = new THREE.MeshBasicMaterial({
@@ -516,9 +451,8 @@ class FieldObject {
         shadow.rotation.x = -Math.PI / 2;
         shadow.position.y = 0.01;
         treeGroup.add(shadow);
-        
-        this.fieldmap.scene.add(treeGroup);
-        this.fieldmap.objects.push(treeGroup);
+
+        return { mesh: treeGroup, position: treeGroup.position };
     }
     
     createRock(x, z, size) {

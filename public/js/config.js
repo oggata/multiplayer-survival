@@ -84,7 +84,7 @@ const GameConfig = {
     
     // マップ設定
     MAP: {
-        SIZE:   1200,
+        SIZE:   4000,
         BOUNDARY_WALL_HEIGHT:  0,
         FLOOR: {
             THICKNESS: 1,
@@ -94,10 +94,10 @@ const GameConfig = {
             GRID_SECONDARY_COLOR: 0x444444
         },
         BUILDINGS: {
-            COUNT: 10,
-            CAR_COUNT:100,
+            //COUNT: 999,
+            //CAR_COUNT:100,
             DENSITY: 1,  // 建物の生成確率（0-1）
-            MIN_DISTANCE: 0.1,  // 建物間の最小距離
+            MIN_DISTANCE: 30,  // 建物間の最小距離
             MAX_ATTEMPTS: 100  // 建物配置の最大試行回数
         }
     },

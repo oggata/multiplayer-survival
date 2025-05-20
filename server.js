@@ -37,20 +37,20 @@ const enemies = {};
 const enemyColor = 0x33aa33;
 
 // 敵の生成間隔（ミリ秒）
-const ENEMY_SPAWN_INTERVAL = 100;
+const ENEMY_SPAWN_INTERVAL = 10;
 
 // 時間帯ごとの敵の最大数
 
 const MAX_ENEMIES = {
     MORNING:  0,   // 朝（6:00-12:00）0
     DAY: 0,      // 昼（12:00-18:00）0
-    EVENING: 50,  // 夕方（18:00-24:00） 30
-    NIGHT: 200     // 夜（0:00-6:00）70
+    EVENING: 30,  // 夕方（18:00-24:00） 30
+    NIGHT: 30     // 夜（0:00-6:00）70
 };
 
 
 // マップサイズ(クライアントと揃えてください)
-const MAP_SIZE = 600;
+const MAP_SIZE = 4000;
 
 // 時間設定
 const TIME = {
@@ -120,7 +120,7 @@ function adjustEnemyCount() {
 }
 
 // 時間帯チェックの間隔（1分）
-const TIME_CHECK_INTERVAL = 1000;
+const TIME_CHECK_INTERVAL = 10;
 let lastTimeOfDay = getCurrentTimeOfDay();
 
 // 定期的に時間帯をチェック
@@ -129,15 +129,16 @@ setInterval(() => {
     if (currentTimeOfDay !== lastTimeOfDay) {
         //console.log(`時間帯が ${lastTimeOfDay} から ${currentTimeOfDay} に変わりました`);
         lastTimeOfDay = currentTimeOfDay;
+
+
+        const count = Object.keys(enemies).length;
+console.log(count);
+
         adjustEnemyCount();
     }
 }, TIME_CHECK_INTERVAL);
 
 // 敵の生成
-// server.js の spawnEnemy 関数を修正
-
-// server.js の spawnEnemy 関数を修正
-
 function spawnEnemy() {
     const currentMaxEnemies = getMaxEnemies();
     
@@ -200,8 +201,12 @@ function findSafeEnemyPosition() {
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         // マップサイズ内にスポーン（端から10単位の余白を設ける）
-        const x = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
-        const z = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
+        //const x = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
+        //const z = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
+
+
+        const x = Math.floor(Math.random() * MAP_SIZE) + 30;
+        const z =Math.floor(Math.random() * MAP_SIZE) + 30;
         
         // この位置が他の敵から十分離れているか確認
         let isSafe = true;

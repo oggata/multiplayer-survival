@@ -8,10 +8,13 @@ class FieldMap {
         this.biomes = [];
         this.objects = [];
         this.terrainChunks = []; // 地形チャンクを管理する配列
-        this.chunkSize = 200; // チャンクのサイズ
-        this.visibleDistance = 300; // 視界距離
+        this.chunkSize = 100; // チャンクのサイズ
+        this.visibleDistance = 50; // 視界距離
+        this.lodDistances = [100, 200, 300]; // LODの距離閾値
+        this.lodSegments = [64, 32, 16]; // 各LODレベルのセグメント数
+        this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
 
-        this.fieldObject = new FieldObject(scene,seed,this);
+        this.fieldObject = new FieldObject(scene, seed, this);
 
         // ビルタイプの定義
         this.buildingTypes = [
@@ -64,6 +67,7 @@ class FieldMap {
             { name: 'shale', color: 0x556B2F, size: 0.7, roughness: 0.8 }
         ];
         
+        // マップの初期化を即時実行
         this.createMap();
     }
     
@@ -75,10 +79,10 @@ class FieldMap {
         this.generateTerrain();
         
         // オブジェクトの生成
-        this.generateObjects();
+        //this.generateObjects();
         
         // 境界壁の作成
-        this.createBoundaryWalls();
+        //this.createBoundaryWalls();
     }
     
     generateBiomes() {
@@ -119,25 +123,121 @@ class FieldMap {
         }
     }
     getTerrain() {
-        return this.terrainGeometry;
+        // 現在のカメラ位置に最も近いチャンクを返す
+        if (this.terrainChunks.length === 0) {
+            return null;
+        }
+        return this.terrainChunks[0].mesh;
     }
-    generateTerrain() {
+generateTerrain() {
         const size = GameConfig.MAP.SIZE;
         const chunkCount = Math.ceil(size / this.chunkSize);
         
-        // チャンクの生成
-        for (let x = -chunkCount/2; x < chunkCount/2; x++) {
-            for (let z = -chunkCount/2; z < chunkCount/2; z++) {
+        // チャンクの生成を最適化
+        const totalChunks = chunkCount * chunkCount;
+        const chunksPerFrame = 4; // 1フレームあたりの生成チャンク数
+        let currentChunk = 0;
+
+        const generateNextChunks = () => {
+            const startTime = performance.now();
+            let chunksGenerated = 0;
+
+            while (chunksGenerated < chunksPerFrame && currentChunk < totalChunks) {
+                const x = Math.floor(currentChunk / chunkCount) - chunkCount/2;
+                const z = (currentChunk % chunkCount) - chunkCount/2;
+                
                 this.createTerrainChunk(x, z);
+                
+                currentChunk++;
+                chunksGenerated++;
             }
-        }
+
+            if (currentChunk < totalChunks) {
+                // 次のフレームで続行
+                requestAnimationFrame(generateNextChunks);
+            } else {
+                // 地形生成完了後、オブジェクトを生成
+                this.generateObjects();
+            }
+        };
+
+        generateNextChunks();
     }
 
     createTerrainChunk(chunkX, chunkZ) {
-        const segments = 32;
-        const geometry = new THREE.PlaneGeometry(this.chunkSize, this.chunkSize, segments, segments);
+        // チャンクの位置を計算
+        const position = new THREE.Vector3(
+            chunkX * this.chunkSize,
+            0,
+            chunkZ * this.chunkSize
+        );
+
+        // チャンクが既に存在するかチェック
+        const existingChunk = this.terrainChunks.find(
+            chunk => chunk.chunkX === chunkX && chunk.chunkZ === chunkZ
+        );
+        if (existingChunk) return;
+
+        // 高解像度のジオメトリを作成
+        const geometry = new THREE.PlaneGeometry(
+            this.chunkSize,
+            this.chunkSize,
+            this.lodSegments[0],
+            this.lodSegments[0]
+        );
+
+        // バイオームの取得
+        const biome = this.getBiomeAt(position.x, position.z);
+        const biomeType = biome ? biome.type : 'default';
+
+        // バイオームに応じた色を設定
+        let waterColor, sandColor, grassColor, rockColor, snowColor;
         
-        // シェーダーマテリアルの設定（既存のコードと同じ）
+        switch(biomeType) {
+            case 'urban':
+                waterColor = new THREE.Color(0.0, 0.2, 0.5);  // 暗い水色
+                sandColor = new THREE.Color(0.6, 0.6, 0.6);   // コンクリート色
+                grassColor = new THREE.Color(0.2, 0.2, 0.2);  // アスファルト色
+                rockColor = new THREE.Color(0.4, 0.4, 0.4);   // 灰色
+                snowColor = new THREE.Color(0.8, 0.8, 0.8);   // 明るい灰色
+                break;
+            case 'forest':
+                waterColor = new THREE.Color(0.0, 0.4, 0.6);  // 自然な水色
+                sandColor = new THREE.Color(0.76, 0.7, 0.5);  // 砂色
+                grassColor = new THREE.Color(0.0, 0.6, 0.0);  // 濃い緑
+                rockColor = new THREE.Color(0.4, 0.4, 0.3);   // 茶色がかった灰色
+                snowColor = new THREE.Color(0.9, 0.9, 0.9);   // 白
+                break;
+            case 'ruins':
+                waterColor = new THREE.Color(0.0, 0.3, 0.5);  // 濁った水色
+                sandColor = new THREE.Color(0.7, 0.65, 0.5);  // くすんだ砂色
+                grassColor = new THREE.Color(0.3, 0.4, 0.2);  // くすんだ緑
+                rockColor = new THREE.Color(0.5, 0.45, 0.4);  // くすんだ灰色
+                snowColor = new THREE.Color(0.8, 0.8, 0.8);   // くすんだ白
+                break;
+            case 'industrial':
+                waterColor = new THREE.Color(0.0, 0.2, 0.4);  // 暗い水色
+                sandColor = new THREE.Color(0.5, 0.5, 0.5);   // 灰色
+                grassColor = new THREE.Color(0.3, 0.3, 0.3);  // 暗い灰色
+                rockColor = new THREE.Color(0.4, 0.4, 0.4);   // 灰色
+                snowColor = new THREE.Color(0.7, 0.7, 0.7);   // 暗い灰色
+                break;
+            case 'beach':
+                waterColor = new THREE.Color(0.0, 0.4, 0.8);  // 明るい水色
+                sandColor = new THREE.Color(0.9, 0.85, 0.7);  // 明るい砂色
+                grassColor = new THREE.Color(0.8, 0.8, 0.6);  // 砂浜の色
+                rockColor = new THREE.Color(0.7, 0.7, 0.6);   // 明るい灰色
+                snowColor = new THREE.Color(1.0, 1.0, 1.0);   // 白
+                break;
+            default:
+                waterColor = new THREE.Color(0.0, 0.3, 0.7);  // デフォルトの水色
+                sandColor = new THREE.Color(0.76, 0.7, 0.5);  // デフォルトの砂色
+                grassColor = new THREE.Color(0.0, 0.5, 0.0);  // デフォルトの緑
+                rockColor = new THREE.Color(0.5, 0.5, 0.5);   // デフォルトの灰色
+                snowColor = new THREE.Color(1.0, 1.0, 1.0);   // デフォルトの白
+        }
+
+        // マテリアルの設定
         const material = new THREE.ShaderMaterial({
             uniforms: {
                 lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
@@ -145,127 +245,197 @@ class FieldMap {
                 ambientIntensity: { value: 0.4 },
                 lightColor: { value: new THREE.Color(0xffffff) },
                 ambientColor: { value: new THREE.Color(0xffffff) },
-                spotLightPosition: { value: new THREE.Vector3(0, 0, 0) },
-                spotLightDirection: { value: new THREE.Vector3(0, -1, 0) },
-                spotLightColor: { value: new THREE.Color(0xffffcc) },
-                spotLightIntensity: { value: 0.0 },
-                spotLightDistance: { value: 50.0 },
-                spotLightAngle: { value: Math.PI / 4 },
-                spotLightPenumbra: { value: 0.2 },
-                spotLightEnabled: { value: false }
+                waterColor: { value: waterColor },
+                sandColor: { value: sandColor },
+                grassColor: { value: grassColor },
+                rockColor: { value: rockColor },
+                snowColor: { value: snowColor }
             },
             vertexShader: `
-                varying vec3 vPosition;
-                varying vec3 vNormal;
+        varying vec3 vPosition;
+        varying vec3 vNormal;
 
-                void main() {
-                    vPosition = position;
+        void main() {
+            vPosition = position;
                     vNormal = normal;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
             `,
             fragmentShader: `
-                varying vec3 vPosition;
-                varying vec3 vNormal;
-                uniform vec3 lightDirection;
-                uniform float lightIntensity;
-                uniform float ambientIntensity;
-                uniform vec3 lightColor;
-                uniform vec3 ambientColor;
-                
-                void main() {
-                    float height = vPosition.z;
-                    vec3 waterColor = vec3(0.0, 0.3, 0.7);
-                    vec3 sandColor = vec3(0.76, 0.7, 0.5);
-                    vec3 grassColor = vec3(0.0, 0.5, 0.0);
-                    vec3 rockColor = vec3(0.5, 0.5, 0.5);
-                    vec3 snowColor = vec3(1.0, 1.0, 1.0);
+    varying vec3 vPosition;
+    varying vec3 vNormal;
+    uniform vec3 lightDirection;
+    uniform float lightIntensity;
+    uniform float ambientIntensity;
+    uniform vec3 lightColor;
+    uniform vec3 ambientColor;
+                uniform vec3 waterColor;
+                uniform vec3 sandColor;
+                uniform vec3 grassColor;
+                uniform vec3 rockColor;
+                uniform vec3 snowColor;
 
-                    vec3 baseColor;
-                    if (height < 0.5) {
-                        baseColor = sandColor;
-                    } else if (height < 1.0) {
-                        float t = (height - 0.5) / 0.5;
-                        baseColor = mix(sandColor, sandColor, t);
-                    } else if (height < 4.0) {
-                        float t = (height - 1.0) / 3.0;
-                        baseColor = mix(sandColor, grassColor, t);
-                    } else if (height < 8.0) {
-                        float t = (height - 4.0) / 4.0;
-                        baseColor = mix(grassColor, rockColor, t);
-                    } else {
-                        float t = min((height - 8.0) / 4.0, 1.0);
-                        baseColor = mix(rockColor, snowColor, t);
-                    }
+    void main() {
+        float height = vPosition.z;
+        vec3 baseColor;
+        if (height < 0.5) {
+                        baseColor = waterColor;
+        } else if (height < 1.0) {
+            float t = (height - 0.5) / 0.5;
+                        baseColor = mix(waterColor, sandColor, t);
+        } else if (height < 4.0) {
+            float t = (height - 1.0) / 3.0;
+            baseColor = mix(sandColor, grassColor, t);
+        } else if (height < 8.0) {
+            float t = (height - 4.0) / 4.0;
+            baseColor = mix(grassColor, rockColor, t);
+        } else {
+            float t = min((height - 8.0) / 4.0, 1.0);
+            baseColor = mix(rockColor, snowColor, t);
+        }
 
-                    vec3 normalizedNormal = normalize(vNormal);
-                    vec3 normalizedLightDirection = normalize(lightDirection);
-                    float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
-                    directionalFactor = max(directionalFactor, 0.24);
-                    
-                    vec3 directionalContribution = lightColor * directionalFactor;
-                    vec3 ambientContribution = ambientColor * ambientIntensity;
-                    
+        vec3 normalizedNormal = normalize(vNormal);
+        vec3 normalizedLightDirection = normalize(lightDirection);
+        float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
+        directionalFactor = max(directionalFactor, 0.24);
+        
+        vec3 directionalContribution = lightColor * directionalFactor;
+        vec3 ambientContribution = ambientColor * ambientIntensity;
+        
                     vec3 finalColor = baseColor * (directionalContribution + ambientContribution);
-
-                    gl_FragColor = vec4(finalColor, 1.0);
-                }
+        gl_FragColor = vec4(finalColor, 1.0);
+    }
             `,
-            side: THREE.DoubleSide
-        });
+    side: THREE.DoubleSide
+});
 
         const terrainChunk = new THREE.Mesh(geometry, material);
         terrainChunk.rotation.x = -Math.PI / 2;
         terrainChunk.receiveShadow = true;
-
-        // チャンクの位置を設定
-        terrainChunk.position.set(
-            chunkX * this.chunkSize,
-            0,
-            chunkZ * this.chunkSize
-        );
+        terrainChunk.position.copy(position);
 
         // 頂点の高さを設定
         const vertices = terrainChunk.geometry.attributes.position.array;
-        for (let i = 0; i < vertices.length; i += 3) {
-            const x = vertices[i] + terrainChunk.position.x;
-            const y = vertices[i + 1] + terrainChunk.position.z;
-            
+    for (let i = 0; i < vertices.length; i += 3) {
+            const x = vertices[i] + position.x;
+            const y = vertices[i + 1] + position.z;
+        
             var baseHeight = 
-                Math.sin(x * 0.1) * Math.cos(y * 0.1) * 3 + 
-                Math.sin(x * 0.3 + 0.5) * Math.cos(y * 0.3 + 0.5) * 2 +
-                Math.sin(x * 0.03) * Math.cos(y * 0.03) * 5;
-            
+            Math.sin(x * 0.1) * Math.cos(y * 0.1) * 3 + 
+            Math.sin(x * 0.3 + 0.5) * Math.cos(y * 0.3 + 0.5) * 2 +
+            Math.sin(x * 0.03) * Math.cos(y * 0.03) * 5;
+        
             if(baseHeight < 0) {
-                baseHeight =0;
+                baseHeight = 0;
             }
 
             vertices[i + 2] = baseHeight;
-        }
+    }
 
         terrainChunk.geometry.attributes.position.needsUpdate = true;
         terrainChunk.geometry.computeVertexNormals();
-
+    
         // チャンクを管理配列に追加
         this.terrainChunks.push({
             mesh: terrainChunk,
             chunkX: chunkX,
-            chunkZ: chunkZ
+            chunkZ: chunkZ,
+            geometry: geometry,
+            material: material,
+            biomeType: biomeType
         });
 
         this.scene.add(terrainChunk);
     }
 
     updateTerrainVisibility(cameraPosition) {
-        this.terrainChunks.forEach(chunk => {
+        const updateChunk = (chunk) => {
             const distance = Math.sqrt(
                 Math.pow(cameraPosition.x - chunk.mesh.position.x, 2) +
                 Math.pow(cameraPosition.z - chunk.mesh.position.z, 2)
             );
-            
+
             // 視界距離より遠いチャンクは非表示
-            chunk.mesh.visible = distance <= this.visibleDistance;
-        });
+            if (distance > this.visibleDistance) {
+                if (chunk.mesh.visible) {
+                    chunk.mesh.visible = false;
+                    // チャンクに関連するオブジェクトも非表示にする
+                    const chunkKey = `${chunk.chunkX},${chunk.chunkZ}`;
+                    const chunkObjects = this.objectChunks.get(chunkKey);
+                    if (chunkObjects) {
+                        chunkObjects.forEach(obj => {
+                            if (obj && obj.mesh) {
+                                obj.mesh.visible = false;
+                            }
+                        });
+                        }
+                    }
+                return;
+            }
+
+            // 視界内のチャンクを表示
+            if (!chunk.mesh.visible) {
+                chunk.mesh.visible = true;
+                // チャンクに関連するオブジェクトも表示する
+                const chunkKey = `${chunk.chunkX},${chunk.chunkZ}`;
+                const chunkObjects = this.objectChunks.get(chunkKey);
+                if (chunkObjects) {
+                    chunkObjects.forEach(obj => {
+                        if (obj && obj.mesh) {
+                            obj.mesh.visible = true;
+                        }
+                    });
+                }
+            }
+
+            // LODの適用
+            let lodLevel = 0;
+            for (let i = 0; i < this.lodDistances.length; i++) {
+                if (distance > this.lodDistances[i]) {
+                    lodLevel = i + 1;
+                }
+            }
+
+            // 現在のLODレベルに応じてジオメトリを更新
+            if (chunk.currentLodLevel !== lodLevel) {
+                const newGeometry = new THREE.PlaneGeometry(
+                    this.chunkSize,
+                    this.chunkSize,
+                    this.lodSegments[lodLevel],
+                    this.lodSegments[lodLevel]
+                );
+
+                // 頂点の高さを設定
+                const vertices = newGeometry.attributes.position.array;
+                for (let i = 0; i < vertices.length; i += 3) {
+                    const x = vertices[i] + chunk.mesh.position.x;
+                    const y = vertices[i + 1] + chunk.mesh.position.z;
+                    
+                    var baseHeight = 
+                        Math.sin(x * 0.1) * Math.cos(y * 0.1) * 3 + 
+                        Math.sin(x * 0.3 + 0.5) * Math.cos(y * 0.3 + 0.5) * 2 +
+                        Math.sin(x * 0.03) * Math.cos(y * 0.03) * 5;
+                    
+                    if(baseHeight < 0) {
+                        baseHeight = 0;
+        }
+
+                    vertices[i + 2] = baseHeight;
+                }
+
+                newGeometry.attributes.position.needsUpdate = true;
+                newGeometry.computeVertexNormals();
+
+                // 古いジオメトリを破棄
+                chunk.geometry.dispose();
+                chunk.geometry = newGeometry;
+                chunk.mesh.geometry = newGeometry;
+                chunk.currentLodLevel = lodLevel;
+            }
+        };
+
+        // すべてのチャンクを更新
+        this.terrainChunks.forEach(updateChunk);
     }
 
     getHeightAt(x, z) {
@@ -281,7 +451,7 @@ class FieldMap {
             if (distance < minDistance) {
                 minDistance = distance;
                 closestChunk = chunk;
-            }
+                        }
         }
 
         if (closestChunk) {
@@ -292,492 +462,218 @@ class FieldMap {
             const intersects = raycaster.intersectObject(closestChunk.mesh);
             if (intersects.length > 0) {
                 return intersects[0].point.y;
-            }
-        }
+                    }
+                }
         return 0;
     }
 
     generateObjects() {
-        // バイオームごとのオブジェクト生成
-        for (const biome of this.biomes) {
-            // がれきの生成確率を増加
-            const debrisChance = 0.5; // 50%の確率でがれきを生成
-            
-            /*
-            // がれきを生成（複数個）
-            if (this.rng() < debrisChance) {
-                const debrisCount = Math.floor(this.rng() * 3) + 1; // 1-3個のがれきを生成
-                for (let i = 0; i < debrisCount; i++) {
-                    const x = biome.x + (this.rng() - 0.5) * biome.size;
-                    const z = biome.z + (this.rng() - 0.5) * biome.size;
-                    this.fieldObject.createDebris(x, z);
-                }
-            }
-            */
-            /*
-            // バイオームタイプに応じたオブジェクト生成
-            switch (biome.type) {
-                case 'urban':
-                    this.generateUrbanObjects(biome);
-                    break;
-                case 'forest':
-                    this.generateForestObjects(biome);
-                    break;
-                case 'ruins':
-                    this.generateRuinsObjects(biome);
-                    break;
-                case 'industrial':
-                    this.generateIndustrialObjects(biome);
-                    break;
-                case 'beach':
-                    this.generateBeachObjects(biome);
-                    break;
-            }
-                    */
-                this.generateUrbanObjects(biome);
-                
-        }
+        // オブジェクトの生成をチャンクごとに管理
+        this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
+        this.objects = []; // 既存のオブジェクト配列も維持
 
-        // グリッドベースの追加オブジェクト生成
-        const gridSize = 20; // グリッドのサイズ
-        const gridCount = Math.floor(this.mapSize / gridSize);
-        /*
-        for (let x = -gridCount/2; x < gridCount/2; x++) {
-            for (let z = -gridCount/2; z < gridCount/2; z++) {
-                // グリッドの中心位置を計算
-                const centerX = x * gridSize + (this.rng() - 0.5) * gridSize * 0.5;
-                const centerZ = z * gridSize + (this.rng() - 0.5) * gridSize * 0.5;
-                
-                // グリッド内に複数のオブジェクトを配置
-                const objectCount = Math.floor(this.rng() * 3) + 1; // 1-3個のオブジェクト
-                
-                for (let i = 0; i < objectCount; i++) {
-                    // グリッド内のランダムな位置を計算
-                    const offsetX = (this.rng() - 0.5) * gridSize * 0.8;
-                    const offsetZ = (this.rng() - 0.5) * gridSize * 0.8;
-                    const posX = centerX + offsetX;
-                    const posZ = centerZ + offsetZ;
-                    
-                    // 他のオブジェクトとの距離をチェック
-                    let isSafe = true;
-                    for (const object of this.objects) {
-                        const dx = posX - object.position.x;
-                        const dz = posZ - object.position.z;
-                        const distance = Math.sqrt(dx * dx + dz * dz);
-                        if (distance < 8) { // 最小距離を8に設定
-                            isSafe = false;
-                            break;
-                        }
-                    }
-                    
-                    if (isSafe) {
-                        // ランダムにオブジェクトタイプを選択
-                        const objectType = Math.floor(this.rng() * 6); // 6種類のオブジェクト
-                        switch (objectType) {
-                            case 0: // がれき
-                                this.fieldObject.createDebris(posX, posZ);
-                                break;
-                            case 1: // 岩
-                                const rockSize = this.rng() * 2 + 1;
-                                this.fieldObject.createRock(posX, posZ, rockSize);
-                                break;
-                            case 2: // 木
-                                const treeHeight = Math.floor(this.rng() * 5) + 3;
-                                const treeType = this.treeTypes[Math.floor(this.rng() * this.treeTypes.length)].name;
-                                this.fieldObject.createTree(posX, posZ, treeHeight, treeType);
-                                break;
-                            case 3: // 車
-                                this.fieldObject.createCar(posX, posZ, this.rng() * Math.PI * 2);
-                                break;
-                            case 4: // 廃墟
-                                const ruinHeight = Math.floor(this.rng() * 5) + 2;
-                                this.fieldObject.createRuins(posX, posZ, ruinHeight);
-                                break;
-                            case 5: // 小さな岩の群れ
-                                const smallRockCount = Math.floor(this.rng() * 3) + 2;
-                                for (let j = 0; j < smallRockCount; j++) {
-                                    const smallRockX = posX + (this.rng() - 0.5) * 3;
-                                    const smallRockZ = posZ + (this.rng() - 0.5) * 3;
-                                    const smallRockSize = this.rng() * 1.5 + 0.5;
-                                    this.fieldObject.createRock(smallRockX, smallRockZ, smallRockSize);
-                                }
-                                break;
-                        }
-                    }
-                }
+        // 初期のチャンクにオブジェクトを生成
+        for (const chunk of this.terrainChunks) {
+            this.generateObjectsForChunk(chunk.chunkX, chunk.chunkZ);
+        }
             }
-        }*/
-    }
-    
-    generateUrbanObjects(biome) {
-        const mapSize = GameConfig.MAP.SIZE;
-        const halfSize = mapSize / 2;
-        const minDistance = 50;
+
+    updateObjectsVisibility(cameraPosition) {
+        if (!this.terrainChunks || this.terrainChunks.length === 0) {
+            console.log('terrainChunks is empty or undefined');
+            return;
+        }
         
-        // ビルの生成確率を設定から取得
-        const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
-        for(var i=0;i< GameConfig.MAP.BUILDINGS.COUNT;i++){
-            // ビルを生成
-            if (this.rng() < buildingChance) {
-                let position;
-                let isSafe = false;
-                let attempts = 0;
-                const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
-                
-                while (!isSafe && attempts < maxAttempts) {
-                    // マップの範囲内でランダムな位置を生成
-                    position = new THREE.Vector3(
-                        (Math.random() - 0.5) * (mapSize - minDistance * 2),
-                        0,
-                        (Math.random() - 0.5) * (mapSize - minDistance * 2)
-                    );
-                    
-                    // マップの境界からminDistance以上離れていることを確認
-                    if (Math.abs(position.x) > halfSize - minDistance || 
-                        Math.abs(position.z) > halfSize - minDistance) {
-                        attempts++;
-                        continue;
-                    }
-                    
-                    // 他のオブジェクトとの距離をチェック
-                    isSafe = true;
-                    for (const object of this.objects) {
-                        if (object.position.distanceTo(position) < minDistance) {
-                            isSafe = false;
-                            break;
-                        }
-                    }
-                    
-                    attempts++;
-                }
-                
-                if (isSafe) {
-                    const buildingType = this.buildingTypes[Math.floor(Math.random() * this.buildingTypes.length)];
-                    const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
-                    const width = 15 + this.rng() * 25;
-                    //this.createBuilding(position, buildingType, height, width);
-                    this.fieldObject.createBuilding(position, buildingType, height, width);
-                }
+        // 現在の視界内のチャンクを特定
+        const visibleChunks = new Set();
+      //  console.log('terrainChunks length:', this.terrainChunks.length);
+        
+        // カメラ位置からの距離に基づいて可視チャンクを決定
+        for (const chunk of this.terrainChunks) {
+            if (!chunk || !chunk.mesh) {
+                console.log('Invalid chunk found');
+                continue;
+            }
+
+            const distance = Math.sqrt(
+                Math.pow(cameraPosition.x - chunk.mesh.position.x, 2) +
+                Math.pow(cameraPosition.z - chunk.mesh.position.z, 2)
+            );
+            
+            if (distance <= this.visibleDistance) {
+                const key = `${chunk.chunkX},${chunk.chunkZ}`;
+                visibleChunks.add(key);
             }
         }
 
-        // 都市部は桜とメープル
-        var treeType = Math.random() < 0.5 ? 'oak' : 'pine';
-
-        const treeCount = Math.floor(this.rng() * 20) + 5;
-        for (let i = 0; i < treeCount; i++) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
-            const height = Math.floor(this.rng() * 5) + 3;
-            this.fieldObject.createTree(x, z, height, treeType);
-        }
-
-
-
-
-    }
-    
-    generateForestObjects(biome) {
-        // バイオームの種類に応じて木の種類を決定
-        let treeType;
-        switch (biome.type) {
-            case 'urban':
-                // 都市部は桜とメープル
-                treeType = Math.random() < 0.5 ? 'cherry' : 'maple';
-                break;
-            case 'forest':
-                // 森は松、オーク、シラカバ
-                const forestTypes = ['pine', 'oak', 'birch'];
-                treeType = forestTypes[Math.floor(Math.random() * forestTypes.length)];
-                break;
-            case 'ruins':
-                // 廃墟は松と糸杉
-                treeType = Math.random() < 0.5 ? 'pine' : 'cypress';
-                break;
-            case 'industrial':
-                // 工業地帯は松とレッドウッド
-                treeType = Math.random() < 0.5 ? 'pine' : 'redwood';
-                break;
-            default:
-                treeType = 'pine';
-
-                const mapSize = GameConfig.MAP.SIZE;
-                const halfSize = mapSize / 2;
-                const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
+       // console.log('Visible chunks count:', visibleChunks.size);
                 
-                // ビルの生成確率を設定から取得
-                const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
-                
-                for(var i=0;i<GameConfig.MAP.BUILDINGS.COUNT;i++){               // ビルを生成
-                if (this.rng() < buildingChance) {
-                    let position;
-                    let isSafe = false;
-                    let attempts = 0;
-                    const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
-                    
-                    while (!isSafe && attempts < maxAttempts) {
-                        // マップの範囲内でランダムな位置を生成
-                        position = new THREE.Vector3(
-                            (Math.random() - 0.5) * (mapSize - minDistance * 2),
-                            0,
-                            (Math.random() - 0.5) * (mapSize - minDistance * 2)
-                        );
-                        
-                        // マップの境界からminDistance以上離れていることを確認
-                        if (Math.abs(position.x) > halfSize - minDistance || 
-                            Math.abs(position.z) > halfSize - minDistance) {
-                            attempts++;
-                            continue;
-                        }
-                        
-                        // 他のオブジェクトとの距離をチェック
-                        isSafe = true;
-                        for (const object of this.objects) {
-                            if (object.position.distanceTo(position) < minDistance) {
-                                isSafe = false;
-                                break;
+        // 視界外のチャンクのオブジェクトを削除
+        if (this.objectChunks) {
+            for (const [key, objects] of this.objectChunks) {
+                if (!visibleChunks.has(key)) {
+                    // オブジェクトをシーンから削除
+                    objects.forEach(obj => {
+                        if (obj && obj.mesh) {
+                            this.scene.remove(obj.mesh);
+                            if (obj.mesh.geometry) obj.mesh.geometry.dispose();
+                            if (obj.mesh.material) {
+                                if (Array.isArray(obj.mesh.material)) {
+                                    obj.mesh.material.forEach(mat => mat.dispose());
+                                } else {
+                                    obj.mesh.material.dispose();
+                                }
+                            }
+                            // グローバルなオブジェクト配列からも削除
+                            const index = this.objects.indexOf(obj);
+                            if (index !== -1) {
+                                this.objects.splice(index, 1);
                             }
                         }
-                        
-                        attempts++;
-                    }
-                    
-                    if (isSafe) {
-                        const buildingType = this.buildingTypes[Math.floor(Math.random() * this.buildingTypes.length)];
-                        const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
-                        const width = 15 + this.rng() * 25;
-                        this.createBuilding(position, buildingType, height, width);
+                    });
+                    this.objectChunks.delete(key);
+            }
+        }
+    }
+
+        // 視界内のチャンクにオブジェクトを生成
+        if (visibleChunks.size > 0) {
+            for (const key of visibleChunks) {
+                if (!this.objectChunks.has(key)) {
+                    const [chunkX, chunkZ] = key.split(',').map(Number);
+                    //console.log("xxx")
+                    this.generateObjectsForChunk(chunkX, chunkZ);
+                }
+            }
+        }
+    }
+    
+    generateObjectsForChunk(chunkX, chunkZ) {
+        // 既にこのチャンクのオブジェクトが生成されている場合はスキップ
+        const chunkKey = `${chunkX},${chunkZ}`;
+        if (this.objectChunks.has(chunkKey)) {
+            return;
+        }
+
+        const chunkObjects = [];
+        const chunkPosition = new THREE.Vector3(
+            chunkX * this.chunkSize,
+            0,
+            chunkZ * this.chunkSize
+        );
+
+        // バイオームの取得
+        const biome = this.getBiomeAt(chunkPosition.x, chunkPosition.z);
+        //if (!biome) return;
+        
+        // オブジェクトの生成確率を設定
+        const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
+        const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
+        
+        // ビルの生成
+        for (let i = 0; i < 2; i++) {
+        if (this.rng() < buildingChance) {
+            let position;
+            let isSafe = false;
+            let attempts = 0;
+            const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
+            
+            while (!isSafe && attempts < maxAttempts) {
+                position = new THREE.Vector3(
+                        chunkPosition.x + (this.rng() - 0.5) * this.chunkSize,
+                        0,
+                        chunkPosition.z + (this.rng() - 0.5) * this.chunkSize
+                );
+                
+                    // チャンク内に収まっているか確認
+                    if (Math.abs(position.x - chunkPosition.x) > this.chunkSize/2 ||
+                        Math.abs(position.z - chunkPosition.z) > this.chunkSize/2) {
+                    attempts++;
+                    continue;
+                }
+                
+                // 他のオブジェクトとの距離をチェック
+                isSafe = true;
+                    for (const obj of chunkObjects) {
+                        if (obj.position.distanceTo(position) < minDistance) {
+                        isSafe = false;
+                        break;
                     }
                 }
-                for(var i=0;i<GameConfig.MAP.BUILDINGS.CAR_COUNT;i++){
-                // 車の生成
-                const carChance = 0.3; // 30%の確率で車を生成
-                if (this.rng() < carChance) {
-                    const x = biome.x + (this.rng() - 0.5) * biome.size;
-                    const z = biome.z + (this.rng() - 0.5) * biome.size;
-                    this.fieldObject.createCar(x, z, this.rng() * Math.PI * 2);
-                }}
+                
+                attempts++;
             }
-
+            
+            if (isSafe) {
+                    const buildingType = this.buildingTypes[Math.floor(this.rng() * this.buildingTypes.length)];
+                const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
+                const width = 15 + this.rng() * 25;
+                    
+                    // ビルの生成と配置
+                    const building = this.fieldObject.createBuilding(position, buildingType, height, width);
+                    if (building && building.mesh) {
+                        building.mesh.position.copy(position);
+                        building.mesh.position.y = this.getHeightAt(position.x, position.z);
+                        this.scene.add(building.mesh);
+                        chunkObjects.push(building);
+                        this.objects.push(building);
+                    }
+                }
+            }
         }
 
         // 木の生成
-        const treeCount = Math.floor(this.rng() * 10) + 5;
+        const treeCount = Math.floor(this.rng() * 20) + 5;
         for (let i = 0; i < treeCount; i++) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
+            const x = chunkPosition.x + (this.rng() - 0.5) * this.chunkSize;
+            const z = chunkPosition.z + (this.rng() - 0.5) * this.chunkSize;
             const height = Math.floor(this.rng() * 5) + 3;
-            this.fieldObject.createTree(x, z, height, treeType);
-        }
-        
-        // 岩の生成
-        const rockCount = Math.floor(this.rng() * 5) + 2;
-        for (let i = 0; i < rockCount; i++) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
-            const size = this.rng() * 2 + 1;
-            this.fieldObject.createRock(x, z, size);
-        }
-    }
-    
-    generateRuinsObjects(biome) {
-        // 廃墟の生成
-        const ruinCount = Math.floor(this.rng() * 4) + 2;
-        for (let i = 0; i < ruinCount; i++) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
-            const height = Math.floor(this.rng() * 5) + 2;
-            this.fieldObject.createRuins(x, z, height);
+            const treeType = Math.random() < 0.5 ? 'oak' : 'pine';
+            
+            // 木の生成と配置
+            const tree = this.fieldObject.createTree(x, z, height, treeType);
+            if (tree && tree.mesh) {
+                tree.mesh.position.set(x, this.getHeightAt(x, z), z);
+                this.scene.add(tree.mesh);
+                chunkObjects.push(tree);
+                this.objects.push(tree);
+            }
         }
 
-        const mapSize = GameConfig.MAP.SIZE;
-        const halfSize = mapSize / 2;
-        const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
-        
-        // ビルの生成確率を設定から取得
-        const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
-        for(var i=0;i<GameConfig.MAP.BUILDINGS.COUNT;i++){
-        // ビルを生成
-        if (this.rng() < buildingChance) {
-            let position;
-            let isSafe = false;
-            let attempts = 0;
-            const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
-            
-            while (!isSafe && attempts < maxAttempts) {
-                // マップの範囲内でランダムな位置を生成
-                position = new THREE.Vector3(
-                    (Math.random() - 0.5) * (mapSize - minDistance * 2),
-                    0,
-                    (Math.random() - 0.5) * (mapSize - minDistance * 2)
-                );
-                
-                // マップの境界からminDistance以上離れていることを確認
-                if (Math.abs(position.x) > halfSize - minDistance || 
-                    Math.abs(position.z) > halfSize - minDistance) {
-                    attempts++;
-                    continue;
-                }
-                
-                // 他のオブジェクトとの距離をチェック
-                isSafe = true;
-                for (const object of this.objects) {
-                    if (object.position.distanceTo(position) < minDistance) {
-                        isSafe = false;
-                        break;
-                    }
-                }
-                
-                attempts++;
-            }
-            
-            if (isSafe) {
-                const buildingType = this.buildingTypes[Math.floor(Math.random() * this.buildingTypes.length)];
-                const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
-                const width = 15 + this.rng() * 25;
-                this.fieldObject.createBuilding(position, buildingType, height, width);
-            }
-        }
-    }
         // 車の生成
-        const carChance = 1; // 30%の確率で車を生成
-        for(var i=0;i<GameConfig.MAP.BUILDINGS.CAR_COUNT;i++){
-        if (this.rng() < carChance) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
-            this.fieldObject.createCar(x, z, this.rng() * Math.PI * 2);
-        }}
-
-    }
-    
-    generateIndustrialObjects(biome) {
-        // 工場の生成
-        const factoryCount = Math.floor(this.rng() * 3) + 1;
-        for (let i = 0; i < factoryCount; i++) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
-            const height = Math.floor(this.rng() * 15) + 8;
-            this.fieldObject.createFactory(x, z, height);
-        }
-        
-        // タンクの生成
-        const tankCount = Math.floor(this.rng() * 5) + 3;
-        for (let i = 0; i < tankCount; i++) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
-            this.fieldObject.createTank(x, z);
-        }
-        const mapSize = GameConfig.MAP.SIZE;
-        const halfSize = mapSize / 2;
-        const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
-        
-        // ビルの生成確率を設定から取得
-        const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
-        
-        // ビルを生成
-        if (this.rng() < buildingChance) {
-            let position;
-            let isSafe = false;
-            let attempts = 0;
-            const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
+        for (let i = 0; i < GameConfig.MAP.BUILDINGS.CAR_COUNT; i++) {
+            const x = chunkPosition.x + (this.rng() - 0.5) * this.chunkSize;
+            const z = chunkPosition.z + (this.rng() - 0.5) * this.chunkSize;
             
-            while (!isSafe && attempts < maxAttempts) {
-                // マップの範囲内でランダムな位置を生成
-                position = new THREE.Vector3(
-                    (Math.random() - 0.5) * (mapSize - minDistance * 2),
-                    0,
-                    (Math.random() - 0.5) * (mapSize - minDistance * 2)
-                );
-                
-                // マップの境界からminDistance以上離れていることを確認
-                if (Math.abs(position.x) > halfSize - minDistance || 
-                    Math.abs(position.z) > halfSize - minDistance) {
-                    attempts++;
-                    continue;
-                }
-                
-                // 他のオブジェクトとの距離をチェック
-                isSafe = true;
-                for (const object of this.objects) {
-                    if (object.position.distanceTo(position) < minDistance) {
-                        isSafe = false;
-                        break;
-                    }
-                }
-                
-                attempts++;
-            }
-            
-            if (isSafe) {
-                const buildingType = this.buildingTypes[Math.floor(Math.random() * this.buildingTypes.length)];
-                const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
-                const width = 15 + this.rng() * 25;
-                this.fieldObject.createBuilding(position, buildingType, height, width);
+            // 車の生成と配置
+            const car = this.fieldObject.createCar(x, z, this.rng() * Math.PI * 2);
+            if (car && car.mesh) {
+                car.mesh.position.set(x, this.getHeightAt(x, z), z);
+                this.scene.add(car.mesh);
+                chunkObjects.push(car);
+                this.objects.push(car);
             }
         }
-        
-        // 車の生成
-        const carChance = 0.3; // 30%の確率で車を生成
-        if (this.rng() < carChance) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
-            this.fieldObject.createCar(x, z, this.rng() * Math.PI * 2);
+
+        // チャンクのオブジェクトを保存
+        this.objectChunks.set(chunkKey, chunkObjects);
         }
-        
-    }
-    
-    generateBeachObjects(biome) {
-        // 砂浜のマテリアルを作成
-        const sandMaterial = new THREE.MeshStandardMaterial({
-            color: 0xF4A460, // 砂の色
-            roughness: 0.9,
-            metalness: 0.1
-        });
-
-        // 砂浜の平面を作成
-        const sandGeometry = new THREE.PlaneGeometry(biome.size, biome.size);
-        const sand = new THREE.Mesh(sandGeometry, sandMaterial);
-        sand.rotation.x = -Math.PI / 2;
-        sand.position.set(biome.x, -0.05, biome.z);
-        //this.scene.add(sand);
-        this.objects.push(sand);
-
-        // ヤシの木を生成
-        const palmCount = Math.floor(this.rng() * 3) + 1;
-        for (let i = 0; i < palmCount; i++) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
-            const height = Math.floor(this.rng() * 3) + 5;
-            this.fieldObject.createTree(x, z, height, 'palm');
-        }
-
-        // 岩を生成
-        const rockCount = Math.floor(this.rng() * 4) + 2;
-        for (let i = 0; i < rockCount; i++) {
-            const x = biome.x + (this.rng() - 0.5) * biome.size;
-            const z = biome.z + (this.rng() - 0.5) * biome.size;
-            const size = this.rng() * 1.5 + 0.5;
-            this.fieldObject.createRock(x, z, size);
-        }
-    }
-    
-
     
     createBoundaryWalls() {
         const wallHeight = 0;
         const wallThickness = 0;
         
         // 北の壁
-        this.createWall(0, wallHeight/2, -this.mapSize/2, this.mapSize, wallThickness, wallHeight);
+       // this.createWall(0, wallHeight/2, -this.mapSize/2, this.mapSize, wallThickness, wallHeight);
         // 南の壁
-        this.createWall(0, wallHeight/2, this.mapSize/2, this.mapSize, wallThickness, wallHeight);
+       // this.createWall(0, wallHeight/2, this.mapSize/2, this.mapSize, wallThickness, wallHeight);
         // 東の壁
-        this.createWall(this.mapSize/2, wallHeight/2, 0, wallThickness, this.mapSize, wallHeight);
+       // this.createWall(this.mapSize/2, wallHeight/2, 0, wallThickness, this.mapSize, wallHeight);
         // 西の壁
-        this.createWall(-this.mapSize/2, wallHeight/2, 0, wallThickness, this.mapSize, wallHeight);
+       // this.createWall(-this.mapSize/2, wallHeight/2, 0, wallThickness, this.mapSize, wallHeight);
 
         // 海の作成
-        this.createOcean();
+        //this.createOcean();
     }
     
     createWall(x, y, z, width, depth, height) {
@@ -809,9 +705,9 @@ class FieldMap {
         });
         
         // 海のメッシュを作成
-        const ocean = new THREE.Mesh(oceanGeometry, oceanMaterial);
-        ocean.rotation.x = -Math.PI / 2; // 平面を水平に
-        ocean.position.y = 0.1; // 地面より少し下に配置
+        //const ocean = new THREE.Mesh(oceanGeometry, oceanMaterial);
+        //ocean.rotation.x = -Math.PI / 2; // 平面を水平に
+        //ocean.position.y = 0.1; // 地面より少し下に配置
         
         // 波のアニメーション用の頂点を取得
         //const positions = oceanGeometry.attributes.position.array;
@@ -858,7 +754,7 @@ class FieldMap {
         //animateOcean();
         
         // 海をシーンに追加
-        this.scene.add(ocean);
+        //this.scene.add(ocean);
         //this.objects.push(ocean);
     }
     
