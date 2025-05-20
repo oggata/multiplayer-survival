@@ -50,7 +50,7 @@ const MAX_ENEMIES = {
 
 
 // マップサイズ(クライアントと揃えてください)
-const MAP_SIZE = 1200;
+const MAP_SIZE = 6000;
 
 // 時間設定
 const TIME = {
@@ -148,6 +148,8 @@ function spawnEnemy() {
 
     // 安全なスポーン位置を見つける
     let position = findSafeEnemyPosition();
+
+   // console.log(position);
     
     // ランダムに敵のタイプを選択（基本タイプ）
     const enemyTypes = ['NORMAL', 'FAST', 'SHOOTER'];
@@ -203,10 +205,8 @@ function findSafeEnemyPosition() {
         // マップサイズ内にスポーン（端から10単位の余白を設ける）
         //const x = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
         //const z = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
-
-
         const x = Math.floor(Math.random() * MAP_SIZE) + 30;
-        const z =Math.floor(Math.random() * MAP_SIZE) + 30;
+        const z = Math.floor(Math.random() * MAP_SIZE) + 30;
         
         // この位置が他の敵から十分離れているか確認
         let isSafe = true;
@@ -231,7 +231,8 @@ function findSafeEnemyPosition() {
             const distance = Math.sqrt(dx * dx + dz * dz);
             
             // プレイヤーの近くには出現させない（遠すぎても面白くない）
-            if (distance < safeDistance * 3 || distance > 100) {
+            //if (distance < safeDistance * 3 || distance > 100) {
+            if (distance < safeDistance * 3 || distance > 1500) {
                 isSafe = false;
             }
         });

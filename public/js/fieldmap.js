@@ -13,8 +13,12 @@ class FieldMap {
         this.lodDistances = [100, 200, 300]; // LODの距離閾値
         this.lodSegments = [64, 32, 16]; // 各LODレベルのセグメント数
         this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
+        this.isLoading = true; // ローディング状態を管理
 
         this.fieldObject = new FieldObject(scene, seed, this);
+
+        // ローディング画面の作成
+        this.createLoadingScreen();
 
         // ビルタイプの定義
         this.buildingTypes = [
@@ -129,7 +133,71 @@ class FieldMap {
         }
         return this.terrainChunks[0].mesh;
     }
-generateTerrain() {
+    createLoadingScreen() {
+        // ローディング画面のコンテナ
+        const loadingContainer = document.createElement('div');
+        loadingContainer.id = 'loading-screen';
+        loadingContainer.style.position = 'fixed';
+        loadingContainer.style.top = '0';
+        loadingContainer.style.left = '0';
+        loadingContainer.style.width = '100%';
+        loadingContainer.style.height = '100%';
+        loadingContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        loadingContainer.style.display = 'flex';
+        loadingContainer.style.flexDirection = 'column';
+        loadingContainer.style.justifyContent = 'center';
+        loadingContainer.style.alignItems = 'center';
+        loadingContainer.style.zIndex = '1000';
+        loadingContainer.style.color = 'white';
+        loadingContainer.style.fontFamily = 'Arial, sans-serif';
+
+        // ローディングテキスト
+        const loadingText = document.createElement('div');
+        loadingText.textContent = '地形を生成中...';
+        loadingText.style.fontSize = '24px';
+        loadingText.style.marginBottom = '20px';
+
+        // プログレスバー
+        const progressBar = document.createElement('div');
+        progressBar.style.width = '300px';
+        progressBar.style.height = '20px';
+        progressBar.style.backgroundColor = '#333';
+        progressBar.style.borderRadius = '10px';
+        progressBar.style.overflow = 'hidden';
+
+        const progressFill = document.createElement('div');
+        progressFill.style.width = '0%';
+        progressFill.style.height = '100%';
+        progressFill.style.backgroundColor = '#4CAF50';
+        progressFill.style.transition = 'width 0.3s ease-in-out';
+
+        progressBar.appendChild(progressFill);
+        loadingContainer.appendChild(loadingText);
+        loadingContainer.appendChild(progressBar);
+        document.body.appendChild(loadingContainer);
+
+        this.loadingScreen = loadingContainer;
+        this.progressFill = progressFill;
+    }
+
+    hideLoadingScreen() {
+        if (this.loadingScreen) {
+            this.loadingScreen.style.opacity = '0';
+            this.loadingScreen.style.transition = 'opacity 0.5s ease-out';
+            setTimeout(() => {
+                this.loadingScreen.remove();
+            }, 500);
+        }
+        this.isLoading = false;
+    }
+
+    updateLoadingProgress(progress) {
+        if (this.progressFill) {
+            this.progressFill.style.width = `${progress}%`;
+        }
+    }
+
+    generateTerrain() {
         const size = GameConfig.MAP.SIZE;
         const chunkCount = Math.ceil(size / this.chunkSize);
         
@@ -150,6 +218,10 @@ generateTerrain() {
                 
                 currentChunk++;
                 chunksGenerated++;
+
+                // 進捗状況を更新
+                const progress = Math.floor((currentChunk / totalChunks) * 100);
+                this.updateLoadingProgress(progress);
             }
 
             if (currentChunk < totalChunks) {
@@ -158,6 +230,7 @@ generateTerrain() {
             } else {
                 // 地形生成完了後、オブジェクトを生成
                 this.generateObjects();
+                this.hideLoadingScreen();
             }
         };
 
