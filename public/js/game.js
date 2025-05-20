@@ -519,7 +519,7 @@ this.devMode = true;
     createPlayerModel() {
 
         if(this.playerModel){
-            //this.scene.remove(this.playerModel.getMesh());
+            this.scene.remove(this.playerModel.getMesh());
             this.playerModel.dispose();
         }
 

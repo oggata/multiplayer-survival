@@ -37,20 +37,20 @@ const enemies = {};
 const enemyColor = 0x33aa33;
 
 // 敵の生成間隔（ミリ秒）
-const ENEMY_SPAWN_INTERVAL = 10;
+const ENEMY_SPAWN_INTERVAL = 100;
 
 // 時間帯ごとの敵の最大数
 
 const MAX_ENEMIES = {
     MORNING:  0,   // 朝（6:00-12:00）0
     DAY: 0,      // 昼（12:00-18:00）0
-    EVENING: 30,  // 夕方（18:00-24:00） 30
-    NIGHT: 30     // 夜（0:00-6:00）70
+    EVENING: 0,  // 夕方（18:00-24:00） 30
+    NIGHT: 0     // 夜（0:00-6:00）70
 };
 
 
 // マップサイズ(クライアントと揃えてください)
-const MAP_SIZE = 4000;
+const MAP_SIZE = 1200;
 
 // 時間設定
 const TIME = {
@@ -120,7 +120,7 @@ function adjustEnemyCount() {
 }
 
 // 時間帯チェックの間隔（1分）
-const TIME_CHECK_INTERVAL = 10;
+const TIME_CHECK_INTERVAL = 100;
 let lastTimeOfDay = getCurrentTimeOfDay();
 
 // 定期的に時間帯をチェック

@@ -9,7 +9,7 @@ class FieldMap {
         this.objects = [];
         this.terrainChunks = []; // 地形チャンクを管理する配列
         this.chunkSize = 100; // チャンクのサイズ
-        this.visibleDistance = 50; // 視界距離
+        this.visibleDistance = 100; // 視界距離
         this.lodDistances = [100, 200, 300]; // LODの距離閾値
         this.lodSegments = [64, 32, 16]; // 各LODレベルのセグメント数
         this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
@@ -186,70 +186,14 @@ generateTerrain() {
             this.lodSegments[0]
         );
 
-        // バイオームの取得
-        const biome = this.getBiomeAt(position.x, position.z);
-        const biomeType = biome ? biome.type : 'default';
-
-        // バイオームに応じた色を設定
-        let waterColor, sandColor, grassColor, rockColor, snowColor;
-        
-        switch(biomeType) {
-            case 'urban':
-                waterColor = new THREE.Color(0.0, 0.2, 0.5);  // 暗い水色
-                sandColor = new THREE.Color(0.6, 0.6, 0.6);   // コンクリート色
-                grassColor = new THREE.Color(0.2, 0.2, 0.2);  // アスファルト色
-                rockColor = new THREE.Color(0.4, 0.4, 0.4);   // 灰色
-                snowColor = new THREE.Color(0.8, 0.8, 0.8);   // 明るい灰色
-                break;
-            case 'forest':
-                waterColor = new THREE.Color(0.0, 0.4, 0.6);  // 自然な水色
-                sandColor = new THREE.Color(0.76, 0.7, 0.5);  // 砂色
-                grassColor = new THREE.Color(0.0, 0.6, 0.0);  // 濃い緑
-                rockColor = new THREE.Color(0.4, 0.4, 0.3);   // 茶色がかった灰色
-                snowColor = new THREE.Color(0.9, 0.9, 0.9);   // 白
-                break;
-            case 'ruins':
-                waterColor = new THREE.Color(0.0, 0.3, 0.5);  // 濁った水色
-                sandColor = new THREE.Color(0.7, 0.65, 0.5);  // くすんだ砂色
-                grassColor = new THREE.Color(0.3, 0.4, 0.2);  // くすんだ緑
-                rockColor = new THREE.Color(0.5, 0.45, 0.4);  // くすんだ灰色
-                snowColor = new THREE.Color(0.8, 0.8, 0.8);   // くすんだ白
-                break;
-            case 'industrial':
-                waterColor = new THREE.Color(0.0, 0.2, 0.4);  // 暗い水色
-                sandColor = new THREE.Color(0.5, 0.5, 0.5);   // 灰色
-                grassColor = new THREE.Color(0.3, 0.3, 0.3);  // 暗い灰色
-                rockColor = new THREE.Color(0.4, 0.4, 0.4);   // 灰色
-                snowColor = new THREE.Color(0.7, 0.7, 0.7);   // 暗い灰色
-                break;
-            case 'beach':
-                waterColor = new THREE.Color(0.0, 0.4, 0.8);  // 明るい水色
-                sandColor = new THREE.Color(0.9, 0.85, 0.7);  // 明るい砂色
-                grassColor = new THREE.Color(0.8, 0.8, 0.6);  // 砂浜の色
-                rockColor = new THREE.Color(0.7, 0.7, 0.6);   // 明るい灰色
-                snowColor = new THREE.Color(1.0, 1.0, 1.0);   // 白
-                break;
-            default:
-                waterColor = new THREE.Color(0.0, 0.3, 0.7);  // デフォルトの水色
-                sandColor = new THREE.Color(0.76, 0.7, 0.5);  // デフォルトの砂色
-                grassColor = new THREE.Color(0.0, 0.5, 0.0);  // デフォルトの緑
-                rockColor = new THREE.Color(0.5, 0.5, 0.5);   // デフォルトの灰色
-                snowColor = new THREE.Color(1.0, 1.0, 1.0);   // デフォルトの白
-        }
-
-        // マテリアルの設定
+        // マテリアルの設定（既存のコードと同じ）
         const material = new THREE.ShaderMaterial({
             uniforms: {
                 lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
-                lightIntensity: { value: 1.5 },
+                lightIntensity: { value: 1.0 },
                 ambientIntensity: { value: 0.4 },
                 lightColor: { value: new THREE.Color(0xffffff) },
-                ambientColor: { value: new THREE.Color(0xffffff) },
-                waterColor: { value: waterColor },
-                sandColor: { value: sandColor },
-                grassColor: { value: grassColor },
-                rockColor: { value: rockColor },
-                snowColor: { value: snowColor }
+                ambientColor: { value: new THREE.Color(0xffffff) }
             },
             vertexShader: `
         varying vec3 vPosition;
@@ -269,14 +213,15 @@ generateTerrain() {
     uniform float ambientIntensity;
     uniform vec3 lightColor;
     uniform vec3 ambientColor;
-                uniform vec3 waterColor;
-                uniform vec3 sandColor;
-                uniform vec3 grassColor;
-                uniform vec3 rockColor;
-                uniform vec3 snowColor;
 
     void main() {
         float height = vPosition.z;
+        vec3 waterColor = vec3(0.0, 0.3, 0.7);
+        vec3 sandColor = vec3(0.76, 0.7, 0.5);
+        vec3 grassColor = vec3(0.0, 0.5, 0.0);
+        vec3 rockColor = vec3(0.5, 0.5, 0.5);
+        vec3 snowColor = vec3(1.0, 1.0, 1.0);
+
         vec3 baseColor;
         if (height < 0.5) {
                         baseColor = waterColor;
@@ -330,19 +275,18 @@ generateTerrain() {
             }
 
             vertices[i + 2] = baseHeight;
-    }
+        }
 
         terrainChunk.geometry.attributes.position.needsUpdate = true;
         terrainChunk.geometry.computeVertexNormals();
-    
+
         // チャンクを管理配列に追加
         this.terrainChunks.push({
             mesh: terrainChunk,
             chunkX: chunkX,
             chunkZ: chunkZ,
             geometry: geometry,
-            material: material,
-            biomeType: biomeType
+            material: material
         });
 
         this.scene.add(terrainChunk);
@@ -368,8 +312,8 @@ generateTerrain() {
                                 obj.mesh.visible = false;
                             }
                         });
-                        }
                     }
+                }
                 return;
             }
 
@@ -418,7 +362,7 @@ generateTerrain() {
                     
                     if(baseHeight < 0) {
                         baseHeight = 0;
-        }
+                    }
 
                     vertices[i + 2] = baseHeight;
                 }
@@ -451,7 +395,7 @@ generateTerrain() {
             if (distance < minDistance) {
                 minDistance = distance;
                 closestChunk = chunk;
-                        }
+            }
         }
 
         if (closestChunk) {
@@ -462,8 +406,8 @@ generateTerrain() {
             const intersects = raycaster.intersectObject(closestChunk.mesh);
             if (intersects.length > 0) {
                 return intersects[0].point.y;
-                    }
-                }
+            }
+        }
         return 0;
     }
 
@@ -474,16 +418,16 @@ generateTerrain() {
 
         // 初期のチャンクにオブジェクトを生成
         for (const chunk of this.terrainChunks) {
-            this.generateObjectsForChunk(chunk.chunkX, chunk.chunkZ);
+            //this.generateObjectsForChunk(chunk.chunkX, chunk.chunkZ);
         }
-            }
+    }
 
     updateObjectsVisibility(cameraPosition) {
         if (!this.terrainChunks || this.terrainChunks.length === 0) {
             console.log('terrainChunks is empty or undefined');
             return;
         }
-        
+
         // 現在の視界内のチャンクを特定
         const visibleChunks = new Set();
       //  console.log('terrainChunks length:', this.terrainChunks.length);
@@ -506,8 +450,8 @@ generateTerrain() {
             }
         }
 
-       // console.log('Visible chunks count:', visibleChunks.size);
-                
+       console.log('Visible chunks count:', visibleChunks.size);
+       //console.log('Visible chunks count:', visibleChunks);
         // 視界外のチャンクのオブジェクトを削除
         if (this.objectChunks) {
             for (const [key, objects] of this.objectChunks) {
@@ -532,13 +476,14 @@ generateTerrain() {
                         }
                     });
                     this.objectChunks.delete(key);
+                }
             }
         }
-    }
 
         // 視界内のチャンクにオブジェクトを生成
         if (visibleChunks.size > 0) {
             for (const key of visibleChunks) {
+                //console.log(key);
                 if (!this.objectChunks.has(key)) {
                     const [chunkX, chunkZ] = key.split(',').map(Number);
                     //console.log("xxx")
@@ -547,9 +492,12 @@ generateTerrain() {
             }
         }
     }
-    
+
     generateObjectsForChunk(chunkX, chunkZ) {
         // 既にこのチャンクのオブジェクトが生成されている場合はスキップ
+        //console.log("generateObjectsForChunk:" + chunkX + "-" + chunkZ);
+
+
         const chunkKey = `${chunkX},${chunkZ}`;
         if (this.objectChunks.has(chunkKey)) {
             return;
@@ -565,7 +513,7 @@ generateTerrain() {
         // バイオームの取得
         const biome = this.getBiomeAt(chunkPosition.x, chunkPosition.z);
         //if (!biome) return;
-        
+
         // オブジェクトの生成確率を設定
         const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
         const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
@@ -583,8 +531,8 @@ generateTerrain() {
                         chunkPosition.x + (this.rng() - 0.5) * this.chunkSize,
                         0,
                         chunkPosition.z + (this.rng() - 0.5) * this.chunkSize
-                );
-                
+                    );
+
                     // チャンク内に収まっているか確認
                     if (Math.abs(position.x - chunkPosition.x) > this.chunkSize/2 ||
                         Math.abs(position.z - chunkPosition.z) > this.chunkSize/2) {
@@ -639,7 +587,7 @@ generateTerrain() {
                 this.objects.push(tree);
             }
         }
-
+/*
         // 車の生成
         for (let i = 0; i < GameConfig.MAP.BUILDINGS.CAR_COUNT; i++) {
             const x = chunkPosition.x + (this.rng() - 0.5) * this.chunkSize;
@@ -654,10 +602,10 @@ generateTerrain() {
                 this.objects.push(car);
             }
         }
-
+*/
         // チャンクのオブジェクトを保存
         this.objectChunks.set(chunkKey, chunkObjects);
-        }
+    }
     
     createBoundaryWalls() {
         const wallHeight = 0;

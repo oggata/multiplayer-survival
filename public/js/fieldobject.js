@@ -51,16 +51,58 @@ class FieldObject {
         
         // ビルの位置を設定
         building.position.set(position.x, buildingHeight / 2, position.z);
+        
+        // 破壊レベルが高い場合はランダムな回転と傾きを適用
+        if (destructionLevel > 0.6) {
+            building.rotation.y = this.rng() * Math.PI / 4;
+            
+            // ビルを傾かせる
+            if (this.rng() > 0.5) {
+                building.rotation.x = this.rng() * destructionLevel * 0.5;
+            } else {
+                building.rotation.z = this.rng() * destructionLevel * 0.5;
+            }
+            
+            // 傾いたビルの位置を調整
+            building.position.y -= buildingHeight * destructionLevel * 0.3;
+        }
+        
+        // ビルをシーンに追加
+        building.userData = { type: 'building', buildingType: buildingType.name };
         building.castShadow = true;
         building.receiveShadow = true;
+        this.fieldmap.scene.add(building);
+        this.fieldmap.objects.push(building);
+        
+        // 壊れた窓を追加
+        this.createBrokenWindows(building, buildingWidth, buildingHeight, buildingDepth);
+        
+        // 破壊レベルが高い場合は周囲にがれきを追加
+        if (destructionLevel > 0.5) {
+            for (let i = 0; i < destructionLevel * 15; i++) {  // がれきの数を増加
+                const debrisX = position.x + (this.rng() - 0.5) * buildingWidth * 3;  // がれきの範囲を拡大
+                const debrisZ = position.z + (this.rng() - 0.5) * buildingDepth * 3;
+               // this.createDebris(debrisX, debrisZ);
+            }
+        }
 
-        // 破壊された外観の追加
-        this.createDestroyedTop(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
-        this.createCracks(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
-        this.createCollapsedWalls(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
+        // 建物の上部に破壊された部分を追加
+        if (destructionLevel > 0.4) {
+            this.createDestroyedTop(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
+        }
 
+        // 建物の壁に亀裂を追加
+        if (destructionLevel > 0.3) {
+            this.createCracks(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
+        }
+
+        // 建物の周りに崩れた壁の破片を追加
+        if (destructionLevel > 0.6) {
+            //this.createCollapsedWalls(building, buildingWidth, buildingHeight, buildingDepth, destructionLevel);
+        }
         return { mesh: building, position: building.position };
     }
+
     
     createBrokenWindows(building, width, height, depth) {
         // ビルに窓のパターンを作成
