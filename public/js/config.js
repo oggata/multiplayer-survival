@@ -73,21 +73,18 @@ const GameConfig = {
     
     // 霧設定
     FOG: {
-        DENSITY: 0.005 // 0.028
+        DENSITY: 0.009
     },
     
     // カメラ設定
     CAMERA: {
-        FOV: 50,
-        NEAR: 0.1,
-        FAR: 10000,
         OFFSET_Y: 4.5,
         OFFSET_Z: 15
     },
     
     // マップ設定
     MAP: {
-        SIZE:   300,
+        SIZE:   600,
         BOUNDARY_WALL_HEIGHT:  0,
         FLOOR: {
             THICKNESS: 1,

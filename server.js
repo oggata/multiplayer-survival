@@ -50,7 +50,7 @@ const MAX_ENEMIES = {
 
 
 // マップサイズ(クライアントと揃えてください)
-const MAP_SIZE = 300;
+const MAP_SIZE = 600;
 
 // 時間設定
 const TIME = {

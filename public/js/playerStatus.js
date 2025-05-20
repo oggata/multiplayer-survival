@@ -119,9 +119,6 @@ class PlayerStatus {
         this.temperature = 37;
         this.hygiene = 100;
         this.isGameOver = false;
-//this.survivalTime = 0;
-
-
         document.getElementById('gameOver').style.display = 'none';
         this.updateUI();
     }
@@ -155,8 +152,6 @@ class PlayerStatus {
 
     increaseBleeding(amount) {
         this.bleeding = Math.min(this.maxBleeding, this.bleeding + amount);
-
-        //console.log(this.bleeding);
         this.updateUI();
     }
 
@@ -189,13 +184,13 @@ class PlayerStatus {
         }
 
         // 出血が70%を超えた場合
-        if (this.bleeding < 20) {
+        if (this.bleeding > 80) {
             damage += 1;
         }
         
         // ダメージを適用
         if (damage > 0) {
-            this.health - damage
+            this.health = this.health - damage;
             this.updateStatusDisplay();
         }
     }
