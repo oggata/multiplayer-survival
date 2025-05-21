@@ -48,7 +48,7 @@ const MAX_ENEMIES = {
     NIGHT: 1000     // 夜（0:00-6:00）70
 };
 
-const SPAWN_DISTANCE_TO_PLAYER = 300;
+const SPAWN_DISTANCE_TO_PLAYER = 1000;
 
 // マップサイズ(クライアントと揃えてください)
 const MAP_SIZE = 6000;
@@ -193,10 +193,17 @@ function spawnEnemy() {
     io.emit('enemySpawned', enemies[enemyId]);
 }
 
+
+const randRange = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
+
+
 // 安全なスポーン位置を見つける関数
 function findSafeEnemyPosition() {
     const safeDistance = 5; // 他の敵やプレイヤーから最低限離れるべき距離
     const maxAttempts = 20; // 最大試行回数
+
+    var a;
+    var b;
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
 
@@ -222,20 +229,12 @@ function findSafeEnemyPosition() {
             }
         });
 
-        
-        
         // プレイヤーとの距離チェック
         Object.values(players).forEach(player => {
             if (player.health <= 0) return;
-            
             const dx = player.position.x - x;
             const dz = player.position.z - z;
             const distance = Math.sqrt(dx * dx + dz * dz);
-
-            //console.log(player.position.x + "-" + player.position.z);
-            
-            // プレイヤーの近くには出現させない（遠すぎても面白くない）
-            //if (distance < safeDistance * 3 || distance > 100) {
             if (distance < safeDistance * 3 || distance > SPAWN_DISTANCE_TO_PLAYER) {
                 isSafe = false;
             }
@@ -246,20 +245,24 @@ function findSafeEnemyPosition() {
             return { x, y: 0, z };
         }
     }
-    
-    // 安全な場所が見つからなかった場合はデフォルト値を返す
-    return { x: Math.random() * 100 - 50, y: 0, z: Math.random() * 100 - 50 };
+
+    var player = Object.values(players)[0];
+    if (!player) {
+        // プレイヤーがいない場合はデフォルトの位置を返す
+        return { x: 0, y: 0, z: 0 };
+    }else{
+        var a = randRange(player.position.x - 300, player.position.x + 300);  
+        var b = randRange(player.position.z - 300, player.position.z + 300);    
+        
+        // 安全な場所が見つからなかった場合はデフォルト値を返す
+        return { x: a, y: 0, z: b };
+    }
+
 }
 // 定期的に敵を生成
 setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
 
 // 敵の更新
-// server.js の updateEnemies 関数内を修正
-
-// server.js の updateEnemies 関数を修正
-
-// server.js の updateEnemies 関数を修正
-
 function updateEnemies() {
     const now = Date.now();
     
@@ -300,7 +303,7 @@ function updateEnemies() {
         }
 
         // プレイヤーが近くにいる場合、追いかける
-        if (closestPlayer && minDistance < 50) {
+        if (closestPlayer && minDistance < 10) {
             enemy.state = 'chasing';
             enemy.target = closestPlayer.id;
             
