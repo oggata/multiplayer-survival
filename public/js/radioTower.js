@@ -225,7 +225,7 @@ class RadioTowerManager {
         for (let i = 0; i < 4; i++) {
             let position;
             let attempts = 0;
-            const maxAttempts = 100;
+            const maxAttempts = 1;
 
             do {
                 position = new THREE.Vector3(

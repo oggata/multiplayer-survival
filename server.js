@@ -34,29 +34,29 @@ const players = {};
 const enemies = {};
 
 // 敵の色
-const enemyColor = 0x33aa33;
+//const enemyColor = 0x33aa33;
 
 // 敵の生成間隔（ミリ秒）
-const ENEMY_SPAWN_INTERVAL = 50;
+const ENEMY_SPAWN_INTERVAL = 10;
 
 // プレイヤーの視界範囲（単位）
-const PLAYER_VISION_RANGE = 50;
+const PLAYER_VISION_RANGE = 100;
 
 // 敵のスポーン範囲（プレイヤーからの距離）
 const SPAWN_RANGE = {
-    MIN: 15,  // 最小距離を20から15に短縮
-    MAX: 35   // 最大距離を40から35に短縮
+    MIN: 40,  // 最小距離を20から15に短縮
+    MAX: 100   // 最大距離を40から35に短縮
 };
 
 // プレイヤーの移動先予測範囲
-const PLAYER_PREDICTION_RANGE = 30;
+const PLAYER_PREDICTION_RANGE = 100;
 
 // 時間帯ごとの敵の最大数
 const MAX_ENEMIES = {
-    MORNING:  0,   // 朝（6:00-12:00）0
-    DAY: 0,      // 昼（12:00-18:00）0
-    EVENING: 500,  // 夕方（18:00-24:00） 30
-    NIGHT: 1000     // 夜（0:00-6:00）70
+    MORNING:  30,   // 朝（6:00-12:00）0
+    DAY: 50,      // 昼（12:00-18:00）0
+    EVENING: 100,  // 夕方（18:00-24:00） 30
+    NIGHT: 200     // 夜（0:00-6:00）70
 };
 
 const SPAWN_DISTANCE_TO_PLAYER = 1000;
