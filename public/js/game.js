@@ -550,8 +550,9 @@ this.devMode = true;
             //console.log("Initial position unsafe, finding safe spawn position...");
             
             // Find a safe spawn position
-            const safePosition = this.getSafeSpawnPosition();
-            this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
+            //const safePosition = this.getSafeSpawnPosition();
+            const safePosition2 = this.getNearbyPlayerPosition();
+            this.playerModel.setPosition(safePosition2.x, safePosition2.y, safePosition2.z);
             
             // Immediately notify server of the corrected position
             this.socket.emit('playerMove', {
@@ -1427,9 +1428,9 @@ updateJoystickKnob() {
         while (attempts < maxAttempts) {
             // プレイヤーの周囲にランダムなオフセットを加える
             const offset = new THREE.Vector3(
-                (Math.random() - 0.5) * 10, // -5から5の範囲でランダム
+                (Math.random() - 0.5) * 5, // -5から5の範囲でランダム
                 0,
-                (Math.random() - 0.5) * 10  // -5から5の範囲でランダム
+                (Math.random() - 0.5) * 5  // -5から5の範囲でランダム
             );
             
             // 新しい位置を計算
@@ -1544,10 +1545,11 @@ getSafeSpawnPosition() {
             this.playerModel = null;
         }
         */
+
+
+        
         // ランダムなリスポーンポイントを探す
    const safePosition = this.findSafeRespawnPosition();
-    
-    // プレイヤーの位置を更新
    this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
     
         // 新しいキャラクターを作成（他のプレイヤーの近くにスポーン）

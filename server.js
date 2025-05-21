@@ -711,8 +711,21 @@ function getSpawnPosition() {
 io.on('connection', (socket) => {
     console.log('プレイヤーが接続しました:', socket.id);
     
-    // プレイヤーの色をランダムに生成
-    const playerColor = Math.floor(Math.random() * 0xffffff);
+    // 使用可能な色からランダムに選択
+    const availableColors = playerColors.filter(color => !usedColors.has(color));
+    let playerColor;
+    
+    if (availableColors.length > 0) {
+        // 使用可能な色がある場合は、その中からランダムに選択
+        playerColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+    } else {
+        // 使用可能な色がない場合は、最初の色を使用
+        playerColor = playerColors[0];
+    }
+    
+    // 選択した色を使用済みとしてマーク
+    usedColors.add(playerColor);
+    
     const playerHash = Math.random().toString(36).substring(2, 8);
     
     // スポーン位置を取得
