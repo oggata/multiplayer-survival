@@ -283,7 +283,7 @@ this.devMode = true;
     setupMessageSocketEvents() {
         // メッセージを受信したときの処理
         this.socket.on('showMessage', (data) => {
-            console.log('メッセージを受信:', data);
+            //console.log('メッセージを受信:', data);
             this.showMessagePopupForPlayer(data.playerId, data.position);
         });
     }
@@ -305,7 +305,7 @@ this.devMode = true;
     }
 
     showMessagePopupForPlayer(playerId, position) {
-        console.log('メッセージを表示:', playerId, position);
+        //console.log('メッセージを表示:', playerId, position);
         
         // プレイヤーの位置を取得
         const playerPosition = this.players.get(playerId)?.getPosition();
@@ -540,7 +540,7 @@ this.devMode = true;
         if (this.fieldMap && this.fieldMap.checkCollision(new THREE.Vector3(
             serverPosition.x, serverPosition.y, serverPosition.z), 2)) {
             
-            console.log("Initial position unsafe, finding safe spawn position...");
+            //console.log("Initial position unsafe, finding safe spawn position...");
             
             // Find a safe spawn position
             const safePosition = this.getSafeSpawnPosition();
@@ -865,7 +865,7 @@ updateJoystickKnob() {
                     // 敵のモデルをシーンから削除
                     enemy.forcedDieByServer();
                     // 敵をMapから削除
-                    console.log('敵を削除:', enemyId);
+                    //console.log('敵を削除:', enemyId);
                     this.enemies.delete(enemyId);
                 }
             });
@@ -1396,6 +1396,7 @@ updateJoystickKnob() {
         if (playerCountElement) {
             //playerCountElement.textContent = this.players.size;
         }
+        //console.log("enemy count = " + this.enemies.length);
     }
 
     // 他のプレイヤーの近くにリスポーンするメソッド
@@ -1710,14 +1711,17 @@ getSafeMapPosition() {
     update(deltaTime) {
         if (this.isGameOver) return;
         
-
+        
 
         // プレイヤーの位置に基づいてバイオーム名を表示
         const biome = this.fieldMap.getBiomeAt(this.playerModel.position.x, this.playerModel.position.z);
         //console.log('現在のバイオーム:', biome.type);
         
     // 敵の表示/非表示を更新
+    var  a = 0;
     this.enemies.forEach(enemy => {
+
+        //console.log(enemy)
         // スキップフラグがある場合は更新しない
         if (enemy.skipUpdate) return;
         
@@ -1726,7 +1730,10 @@ getSafeMapPosition() {
         
         // アニメーションの更新
         enemy.model.updateLimbAnimation(deltaTime);
+        a++;
     });
+
+   // console.log("enemy count = " + a);
 
 this.updateLightDirection();
 
@@ -2923,7 +2930,7 @@ spawnEnemy(enemyData) {
     updatePlayerHeight(player) {
         const position = player.getPosition();
         const terrainHeight = this.getHeightAt(position.x, position.z);
-        console.log('Terrain height:', terrainHeight);
+        //console.log('Terrain height:', terrainHeight);
         //const terrainHeight = this.fieldMap.getHeightAt(position.x, position.z);
         player.setPosition(position.x, terrainHeight, position.z);
     }

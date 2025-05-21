@@ -483,6 +483,7 @@ class FieldObject {
         }
 
         // 木の下に影を追加
+        /*
         const shadowGeometry = new THREE.PlaneGeometry(treeType.leavesSize * 2, treeType.leavesSize * 2);
         const shadowMaterial = new THREE.MeshBasicMaterial({
             color: 0x000000,
@@ -493,6 +494,7 @@ class FieldObject {
         shadow.rotation.x = -Math.PI / 2;
         shadow.position.y = 0.01;
         treeGroup.add(shadow);
+        */
 
         return { mesh: treeGroup, position: treeGroup.position };
     }

@@ -44,11 +44,11 @@ const ENEMY_SPAWN_INTERVAL = 100;
 const MAX_ENEMIES = {
     MORNING:  0,   // 朝（6:00-12:00）0
     DAY: 0,      // 昼（12:00-18:00）0
-    EVENING: 100,  // 夕方（18:00-24:00） 30
-    NIGHT: 200     // 夜（0:00-6:00）70
+    EVENING: 500,  // 夕方（18:00-24:00） 30
+    NIGHT: 1000     // 夜（0:00-6:00）70
 };
 
-const SPAWN_DISTANCE_TO_PLAYER = 2000;
+const SPAWN_DISTANCE_TO_PLAYER = 300;
 
 // マップサイズ(クライアントと揃えてください)
 const MAP_SIZE = 6000;
@@ -121,7 +121,7 @@ function adjustEnemyCount() {
 }
 
 // 時間帯チェックの間隔（1分）
-const TIME_CHECK_INTERVAL = 100;
+const TIME_CHECK_INTERVAL = 1000;
 let lastTimeOfDay = getCurrentTimeOfDay();
 
 // 定期的に時間帯をチェック
@@ -130,11 +130,7 @@ setInterval(() => {
     if (currentTimeOfDay !== lastTimeOfDay) {
         //console.log(`時間帯が ${lastTimeOfDay} から ${currentTimeOfDay} に変わりました`);
         lastTimeOfDay = currentTimeOfDay;
-
-
         const count = Object.keys(enemies).length;
-console.log(count);
-
         adjustEnemyCount();
     }
 }, TIME_CHECK_INTERVAL);
@@ -203,6 +199,9 @@ function findSafeEnemyPosition() {
     const maxAttempts = 20; // 最大試行回数
     
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
+
+
+        
         // マップサイズ内にスポーン（端から10単位の余白を設ける）
         //const x = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
         //const z = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
@@ -222,6 +221,8 @@ function findSafeEnemyPosition() {
                 isSafe = false;
             }
         });
+
+        
         
         // プレイヤーとの距離チェック
         Object.values(players).forEach(player => {
@@ -230,6 +231,8 @@ function findSafeEnemyPosition() {
             const dx = player.position.x - x;
             const dz = player.position.z - z;
             const distance = Math.sqrt(dx * dx + dz * dz);
+
+            //console.log(player.position.x + "-" + player.position.z);
             
             // プレイヤーの近くには出現させない（遠すぎても面白くない）
             //if (distance < safeDistance * 3 || distance > 100) {

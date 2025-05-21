@@ -499,7 +499,7 @@ class FieldMap {
 
     updateObjectsVisibility(cameraPosition) {
         if (!this.terrainChunks || this.terrainChunks.length === 0) {
-            console.log('terrainChunks is empty or undefined');
+            //console.log('terrainChunks is empty or undefined');
             return;
         }
 
@@ -510,7 +510,7 @@ class FieldMap {
         // カメラ位置からの距離に基づいて可視チャンクを決定
         for (const chunk of this.terrainChunks) {
             if (!chunk || !chunk.mesh) {
-                console.log('Invalid chunk found');
+                //console.log('Invalid chunk found');
                 continue;
             }
 
@@ -525,7 +525,7 @@ class FieldMap {
             }
         }
 
-       console.log('Visible chunks count:', visibleChunks.size);
+      // console.log('Visible chunks count:', visibleChunks.size);
        //console.log('Visible chunks count:', visibleChunks);
         // 視界外のチャンクのオブジェクトを削除
         if (this.objectChunks) {
