@@ -126,34 +126,43 @@ class Character {
 		this.character.add(this.rightShoe);
 	}
 
-	// キャラクターの色を設定するメソッド
 	setColor(color) {
-		const bodyParts=[ this.body,
-		this.rightArm,
-		this.leftArm];
-		const bodyParts2=[ this.rightLeg,
-		this.leftLeg];
+    // Ensure color is a valid hex number
+    const hexColor = (typeof color === 'string') ? parseInt(color, 16) : color;
+    
+    // Debug log to verify color being set
+    console.log('Setting character color:', hexColor.toString(16));
+    
+    const bodyParts = [
+        this.body,
+        this.rightArm,
+        this.leftArm
+    ];
+    
+    const bodyParts2 = [
+        this.rightLeg,
+        this.leftLeg
+    ];
 
-		bodyParts.forEach(part=> {
-				if (part && part.material) {
-					part.material.color.setHex(color);
-					part.material.emissive.setHex(color);
-				}
-			}
+    bodyParts.forEach(part => {
+        if (part && part.material) {
+            part.material.color.setHex(hexColor);
+            part.material.emissive.setHex(hexColor);
+            part.material.needsUpdate = true; // Ensure material updates
+        }
+    });
 
-		);
-
-		bodyParts2.forEach(part2=> {
-				const darkerColor=color * 0.7;
-
-				if (part2 && part2.material) {
-					part2.material.color.setHex(darkerColor);
-					part2.material.emissive.setHex(darkerColor);
-				}
-			}
-
-		);
-	}
+    bodyParts2.forEach(part2 => {
+        // 少し暗い色（本体の0.7倍の明るさ）を使用
+        const darkerColor = Math.floor(hexColor * 0.7);
+        
+        if (part2 && part2.material) {
+            part2.material.color.setHex(darkerColor);
+            part2.material.emissive.setHex(darkerColor);
+            part2.material.needsUpdate = true; // Ensure material updates
+        }
+    });
+}
 
 	setEnemyColor(color) {
 		const bodyParts=[ this.head,

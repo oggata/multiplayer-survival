@@ -276,78 +276,84 @@ class FieldMap {
     }
 
     generateTerrain() {
-    const size = GameConfig.MAP.SIZE;
-    const chunkCount = Math.ceil(size / this.chunkSize);
-    const totalChunks = chunkCount * chunkCount;
-    const chunksPerFrame = 4; // 1フレームあたりの生成チャンク数
-    
-    // プレイヤーの位置を取得 (プレイヤーがまだ存在しない場合は中央を使用)
-    let playerPosition = new THREE.Vector3(0, 0, 0);
-    if (this.game && this.game.playerModel) {
-        playerPosition = this.game.playerModel.getPosition();
-    }
-    
-    // プレイヤーの位置から最も近いチャンク座標を計算
-    const playerChunkX = Math.floor(playerPosition.x / this.chunkSize);
-    const playerChunkZ = Math.floor(playerPosition.z / this.chunkSize);
-    
-    // チャンクの生成順序をプレイヤーからの距離でソート
-    const chunkCoords = [];
-    for (let x = -Math.floor(chunkCount/2); x < Math.ceil(chunkCount/2); x++) {
-        for (let z = -Math.floor(chunkCount/2); z < Math.ceil(chunkCount/2); z++) {
-            // プレイヤーから各チャンクまでの距離を計算
-            const distToPlayer = Math.sqrt(
-                Math.pow(x - playerChunkX, 2) + 
-                Math.pow(z - playerChunkZ, 2)
-            );
-            
-            chunkCoords.push({
-                x: x,
-                z: z,
-                distance: distToPlayer
-            });
-        }
-    }
-    
-    // プレイヤーからの距離でソート（近い順）
-    chunkCoords.sort((a, b) => a.distance - b.distance);
-    
-    let currentChunk = 0;
-    
-    const generateNextChunks = () => {
-        const startTime = performance.now();
-        let chunksGenerated = 0;
-
-        while (chunksGenerated < chunksPerFrame && currentChunk < totalChunks) {
-            const chunkData = chunkCoords[currentChunk];
-            
-            this.createTerrainChunk(chunkData.x, chunkData.z);
-            
-            currentChunk++;
-            chunksGenerated++;
-
-            // 進捗状況を更新
-            const progress = Math.floor((currentChunk / totalChunks) * 100);
-            this.updateLoadingProgress(progress);
-        }
-
-        if (currentChunk < totalChunks) {
-            // 次のフレームで続行
-            requestAnimationFrame(generateNextChunks);
-        } else {
-            // 地形生成完了後、オブジェクトを生成
-            this.generateObjects();
-            this.hideLoadingScreen();
+        const size = GameConfig.MAP.SIZE;
+        const chunkCount = Math.ceil(size / this.chunkSize);
+        const chunksPerFrame = 4; // 1フレームあたりの生成チャンク数
+        
+        // プレイヤーの位置を取得 (プレイヤーがまだ存在しない場合は中央を使用)
+        let playerPosition = new THREE.Vector3(0, 0, 0);
+        if (this.game && this.game.playerModel) {
+            playerPosition = this.game.playerModel.getPosition();
         }
         
-        // 最初のチャンク (プレイヤー周辺) が読み込まれたらローディング画面を隠す
-        if (currentChunk >= 9 && this.isLoading) { // 3x3 の周辺チャンクが読み込まれたら
-            this.hideLoadingScreen();
+        // プレイヤーの位置から最も近いチャンク座標を計算
+        const playerChunkX = Math.floor(playerPosition.x / this.chunkSize);
+        const playerChunkZ = Math.floor(playerPosition.z / this.chunkSize);
+        
+        // 生成するチャンクの範囲を制限（プレイヤーの周囲のみ）
+        const generationRadius = Math.ceil(this.visibleDistance / this.chunkSize);
+        
+        // チャンクの生成順序をプレイヤーからの距離でソート
+        const chunkCoords = [];
+        for (let x = playerChunkX - generationRadius; x <= playerChunkX + generationRadius; x++) {
+            for (let z = playerChunkZ - generationRadius; z <= playerChunkZ + generationRadius; z++) {
+                // プレイヤーから各チャンクまでの距離を計算
+                const distToPlayer = Math.sqrt(
+                    Math.pow(x - playerChunkX, 2) + 
+                    Math.pow(z - playerChunkZ, 2)
+                );
+                
+                // 生成半径内のチャンクのみを追加
+                if (distToPlayer <= generationRadius) {
+                    chunkCoords.push({
+                        x: x,
+                        z: z,
+                        distance: distToPlayer
+                    });
+                }
+            }
         }
-    };
+        
+        // プレイヤーからの距離でソート（近い順）
+        chunkCoords.sort((a, b) => a.distance - b.distance);
+        
+        let currentChunk = 0;
+        const totalChunks = chunkCoords.length;
+        
+        const generateNextChunks = () => {
+            const startTime = performance.now();
+            let chunksGenerated = 0;
 
-    generateNextChunks();
-}
+            while (chunksGenerated < chunksPerFrame && currentChunk < totalChunks) {
+                const chunkData = chunkCoords[currentChunk];
+                
+                this.createTerrainChunk(chunkData.x, chunkData.z);
+                
+                currentChunk++;
+                chunksGenerated++;
+
+                // 進捗状況を更新
+                const progress = Math.floor((currentChunk / totalChunks) * 100);
+                this.updateLoadingProgress(progress);
+            }
+
+            if (currentChunk < totalChunks) {
+                // 次のフレームで続行
+                requestAnimationFrame(generateNextChunks);
+            } else {
+                // 地形生成完了後、オブジェクトを生成
+                this.generateObjects();
+                this.hideLoadingScreen();
+            }
+            
+            // 最初のチャンク (プレイヤー周辺) が読み込まれたらローディング画面を隠す
+            if (currentChunk >= 9 && this.isLoading) { // 3x3 の周辺チャンクが読み込まれたら
+                this.hideLoadingScreen();
+            }
+        };
+
+        generateNextChunks();
+    }
 
     createTerrainChunk(chunkX, chunkZ) {
         // チャンクの位置を計算
@@ -584,6 +590,72 @@ class FieldMap {
         // すべてのチャンクを更新
         this.terrainChunks.forEach(updateChunk);
         
+        // プレイヤーの位置から最も近いチャンク座標を計算
+        const playerChunkX = Math.floor(cameraPosition.x / this.chunkSize);
+        const playerChunkZ = Math.floor(cameraPosition.z / this.chunkSize);
+        
+        // 生成するチャンクの範囲を制限（プレイヤーの周囲のみ）
+        const generationRadius = Math.ceil(this.visibleDistance / this.chunkSize);
+        
+        // 新しいチャンクを生成
+        for (let x = playerChunkX - generationRadius; x <= playerChunkX + generationRadius; x++) {
+            for (let z = playerChunkZ - generationRadius; z <= playerChunkZ + generationRadius; z++) {
+                // プレイヤーから各チャンクまでの距離を計算
+                const distToPlayer = Math.sqrt(
+                    Math.pow(x - playerChunkX, 2) + 
+                    Math.pow(z - playerChunkZ, 2)
+                );
+                
+                // 生成半径内のチャンクのみを生成
+                if (distToPlayer <= generationRadius) {
+                    // チャンクが既に存在するかチェック
+                    const existingChunk = this.terrainChunks.find(
+                        chunk => chunk.chunkX === x && chunk.chunkZ === z
+                    );
+                    
+                    if (!existingChunk) {
+                        this.createTerrainChunk(x, z);
+                    }
+                }
+            }
+        }
+        
+        // 遠くのチャンクを削除
+        this.terrainChunks = this.terrainChunks.filter(chunk => {
+            const distance = Math.sqrt(
+                Math.pow(cameraPosition.x - chunk.mesh.position.x, 2) +
+                Math.pow(cameraPosition.z - chunk.mesh.position.z, 2)
+            );
+            
+            if (distance > this.visibleDistance * 1.5) { // 視界距離の1.5倍以上離れたチャンクを削除
+                // チャンクに関連するオブジェクトも削除
+                const chunkKey = `${chunk.chunkX},${chunk.chunkZ}`;
+                const chunkObjects = this.objectChunks.get(chunkKey);
+                if (chunkObjects) {
+                    chunkObjects.forEach(obj => {
+                        if (obj && obj.mesh) {
+                            this.scene.remove(obj.mesh);
+                            if (obj.mesh.geometry) obj.mesh.geometry.dispose();
+                            if (obj.mesh.material) {
+                                if (Array.isArray(obj.mesh.material)) {
+                                    obj.mesh.material.forEach(mat => mat.dispose());
+                                } else {
+                                    obj.mesh.material.dispose();
+                                }
+                            }
+                        }
+                    });
+                    this.objectChunks.delete(chunkKey);
+                }
+                
+                // チャンクのメッシュを削除
+                this.scene.remove(chunk.mesh);
+                chunk.geometry.dispose();
+                chunk.material.dispose();
+                return false;
+            }
+            return true;
+        });
     }
 
     getHeightAt(x, z) {
@@ -720,7 +792,7 @@ class FieldMap {
 
         // 建物の生成
         const buildingCount = Math.floor(this.rng() * 5 * biomeSetting.buildingDensity);
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 5; i++) {
             if (this.rng() < biomeSetting.buildingDensity) {
                 let position;
                 let isSafe = false;

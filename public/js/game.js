@@ -524,45 +524,42 @@ this.devMode = true;
     }
         
     createPlayerModel() {
-
-        if(this.playerModel){
-            this.scene.remove(this.playerModel.getMesh());
-            this.playerModel.dispose();
-        }
-
-
-        // Create new character using the Character class
-        this.playerModel = new Character(this.scene, "player", this);
-        
-        // Set player color if available
-        if (this.playerHash) {
-            const color = this.generateColorFromHash(this.playerHash);
-            this.playerModel.setColor(color);
-        }
-        
-        // Get initial position from server
-        const serverPosition = this.playerModel.getPosition();
-        
-        // Check if this position is safe (not colliding with buildings)
-        if (this.fieldMap && this.fieldMap.checkCollision(new THREE.Vector3(
-            serverPosition.x, serverPosition.y, serverPosition.z), 2)) {
-            
-            //console.log("Initial position unsafe, finding safe spawn position...");
-            
-            // Find a safe spawn position
-            //const safePosition = this.getSafeSpawnPosition();
-            const safePosition2 = this.getNearbyPlayerPosition();
-            this.playerModel.setPosition(safePosition2.x, safePosition2.y, safePosition2.z);
-            
-            // Immediately notify server of the corrected position
-            this.socket.emit('playerMove', {
-                position: this.playerModel.getPosition(),
-                rotation: { y: this.playerModel.getRotation().y },
-                isMoving: false,
-                isRunning: false
-            });
-        }
+    if(this.playerModel){
+        this.scene.remove(this.playerModel.character);
+        this.playerModel.dispose();
     }
+
+    // Create new character using the Character class
+    this.playerModel = new Character(this.scene, "player", this);
+    
+    // Set player color if available from hash
+    if (this.playerHash) {
+        const color = this.generateColorFromHash(this.playerHash);
+        this.playerModel.setColor(color);
+    }
+    
+    // Get initial position from server
+    const serverPosition = this.playerModel.getPosition();
+    
+    // Check if this position is safe (not colliding with buildings)
+    if (this.fieldMap && this.fieldMap.checkCollision(new THREE.Vector3(
+        serverPosition.x, serverPosition.y, serverPosition.z), 2)) {
+        
+        console.log("Initial position unsafe, finding safe spawn position...");
+        
+        // Find a safe spawn position
+        const safePosition2 = this.getNearbyPlayerPosition();
+        this.playerModel.setPosition(safePosition2.x, safePosition2.y, safePosition2.z);
+        
+        // Immediately notify server of the corrected position
+        this.socket.emit('playerMove', {
+            position: this.playerModel.getPosition(),
+            rotation: { y: this.playerModel.getRotation().y },
+            isMoving: false,
+            isRunning: false
+        });
+    }
+}
 
     setupControls() {
         // キーボードコントロール
@@ -752,24 +749,33 @@ updateJoystickKnob() {
 }
     setupSocketEvents() {
         // ゲーム設定の受信
-        this.socket.on('gameConfig', (config) => {
-            this.seed = config.seed;
-            this.gameStartTime = config.gameStartTime;
-            this.playerHash = config.playerHash;
-            this.setupScene(this.seed);
-        });
+    // ゲーム設定の受信
+    this.socket.on('gameConfig', (config) => {
+        this.seed = config.seed;
+        this.gameStartTime = config.gameStartTime;
+        this.playerHash = config.playerHash;
+        
+        // Setup scene after receiving config
+        this.setupScene(this.seed);
+        
+        // If player model already exists, update its color based on hash
+        if (this.playerModel && this.playerHash) {
+            const color = this.generateColorFromHash(this.playerHash);
+            this.playerModel.setColor(color);
+        }
+    });
 
-        this.socket.on('currentPlayers', (players) => {
-            //console.log('現在のプレイヤー:', players);
-            players.forEach(player => this.addPlayer(player));
-            this.updatePlayerCount();
-        });
+    this.socket.on('currentPlayers', (players) => {
+        console.log('現在のプレイヤー:', players);
+        players.forEach(player => this.addPlayer(player));
+        this.updatePlayerCount();
+    });
 
-        this.socket.on('newPlayer', (player) => {
-            //console.log('新規のプレイヤー:', player);
-            this.addPlayer(player);
-            this.updatePlayerCount();
-        });
+    this.socket.on('newPlayer', (player) => {
+        console.log('新規のプレイヤー:', player);
+        this.addPlayer(player);
+        this.updatePlayerCount();
+    });
 
         this.socket.on('playerMoved', (player) => {
             const existingPlayer = this.players.get(player.id);
@@ -905,34 +911,35 @@ updateJoystickKnob() {
         });
     }
 
-    addPlayer(playerData) {
-        //console.log('プレイヤーを追加:', playerData);
-        // プレイヤーがすでに存在する場合は何もしない
-        if (this.players.has(playerData.id)) {
-            //console.log('プレイヤーはすでに存在します:', playerData.id);
-            return;
-        }
-
-
-        // 他のプレイヤーを 追加
-        const character = new Character(this.scene);
-        character.setPosition(
-            playerData.position.x,
-            playerData.position.y,
-            playerData.position.z
-        );
-        character.setRotation(playerData.rotation.y);
-        
-        // プレイヤーの色を設定
-        if (playerData.hash) {
-            const color = this.generateColorFromHash(playerData.hash);
-            character.setColor(color);
-        }
-        
-        this.scene.add(character.character);
-        this.players.set(playerData.id, character);
-        this.updatePlayerCount();
+addPlayer(playerData) {
+    // プレイヤーがすでに存在する場合は何もしない
+    if (this.players.has(playerData.id)) {
+        console.log('プレイヤーはすでに存在します:', playerData.id);
+        return;
     }
+
+    // 他のプレイヤーを追加
+    const character = new Character(this.scene, "player", this);
+    character.setPosition(
+        playerData.position.x,
+        playerData.position.y,
+        playerData.position.z
+    );
+    character.setRotation(playerData.rotation.y);
+    
+    // プレイヤーの色を設定 - ハッシュがあればハッシュから生成、なければサーバーから直接colorを使用
+    if (playerData.hash) {
+        const color = this.generateColorFromHash(playerData.hash);
+        character.setColor(color);
+    } else if (playerData.color) {
+        // サーバーから送られてきた色をそのまま使用
+        character.setColor(playerData.color);
+    }
+    
+    this.scene.add(character.character);
+    this.players.set(playerData.id, character);
+    this.updatePlayerCount();
+}
 
     removePlayer(playerId) {
         const player = this.players.get(playerId);

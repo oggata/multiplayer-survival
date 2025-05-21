@@ -726,7 +726,9 @@ io.on('connection', (socket) => {
     // 選択した色を使用済みとしてマーク
     usedColors.add(playerColor);
     
-    const playerHash = Math.random().toString(36).substring(2, 8);
+    // プレイヤーのハッシュを生成
+    // この値からクライアント側でも同じ色を生成できるようにする
+    const playerHash = generatePlayerHash();
     
     // スポーン位置を取得
     const spawnPosition = getSpawnPosition();
