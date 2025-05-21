@@ -15,6 +15,84 @@ class FieldMap {
         this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
         this.isLoading = true; // ローディング状態を管理
 
+        // バイオームごとの色を定義
+        this.biomeColors = {
+            'urban': {
+                base: new THREE.Color(0x2C2C2C),      // 暗いグレー
+                highlight: new THREE.Color(0x404040),  // やや明るいグレー
+                mid: new THREE.Color(0x1A1A1A),       // 非常に暗いグレー
+                top: new THREE.Color(0x333333)        // 中間のグレー
+            },
+            'forest': {
+                base: new THREE.Color(0x1B3D1B),      // 暗い緑
+                highlight: new THREE.Color(0x2D4D2D),  // やや明るい緑
+                mid: new THREE.Color(0x0F2F0F),       // 非常に暗い緑
+                top: new THREE.Color(0x3D5D3D)        // 中間の緑
+            },
+            'ruins': {
+                base: new THREE.Color(0x4A3A2A),      // 暗い茶色
+                highlight: new THREE.Color(0x5A4A3A),  // やや明るい茶色
+                mid: new THREE.Color(0x3A2A1A),       // 非常に暗い茶色
+                top: new THREE.Color(0x6A5A4A)        // 中間の茶色
+            },
+            'industrial': {
+                base: new THREE.Color(0x2A2A2A),      // 暗いグレー
+                highlight: new THREE.Color(0x3A3A3A),  // やや明るいグレー
+                mid: new THREE.Color(0x1A1A1A),       // 非常に暗いグレー
+                top: new THREE.Color(0x4A4A4A)        // 中間のグレー
+            },
+            'beach': {
+                base: new THREE.Color(0x3A3A2A),      // 暗い砂色
+                highlight: new THREE.Color(0x4A4A3A),  // やや明るい砂色
+                mid: new THREE.Color(0x2A2A1A),       // 非常に暗い砂色
+                top: new THREE.Color(0x5A5A4A)        // 中間の砂色
+            }
+        };
+
+        // バイオームごとのオブジェクト生成設定を定義
+        this.biomeSettings = {
+            'urban': {
+                buildingDensity: 0.8,
+                buildingTypes: ['skyscraper', 'office', 'apartment', 'mall', 'hotel'],
+                treeDensity: 0.1,
+                treeTypes: ['oak', 'maple'],
+                debrisDensity: 0.3,
+                debrisTypes: ['concrete', 'metal', 'glass', 'brick']
+            },
+            'forest': {
+                buildingDensity: 0.1,
+                buildingTypes: ['residential', 'school'],
+                treeDensity: 0.8,
+                treeTypes: ['pine', 'oak', 'birch', 'maple', 'redwood'],
+                debrisDensity: 0.1,
+                debrisTypes: ['wood', 'rock']
+            },
+            'ruins': {
+                buildingDensity: 0.4,
+                buildingTypes: ['residential', 'industrial', 'school'],
+                treeDensity: 0.3,
+                treeTypes: ['oak', 'maple', 'willow'],
+                debrisDensity: 0.7,
+                debrisTypes: ['concrete', 'metal', 'glass', 'brick', 'wood', 'rock']
+            },
+            'industrial': {
+                buildingDensity: 0.6,
+                buildingTypes: ['industrial', 'office', 'warehouse'],
+                treeDensity: 0.05,
+                treeTypes: ['oak', 'maple'],
+                debrisDensity: 0.5,
+                debrisTypes: ['metal', 'concrete', 'plastic', 'rubber']
+            },
+            'beach': {
+                buildingDensity: 0.2,
+                buildingTypes: ['residential', 'hotel'],
+                treeDensity: 0.2,
+                treeTypes: ['palm', 'cypress'],
+                debrisDensity: 0.2,
+                debrisTypes: ['wood', 'plastic', 'ceramic']
+            }
+        };
+
         this.fieldObject = new FieldObject(scene, seed, this);
 
         // ローディング画面の作成
@@ -293,73 +371,90 @@ class FieldMap {
             this.lodSegments[0]
         );
 
-        // マテリアルの設定（既存のコードと同じ）
+        // バイオームを取得
+        const biome = this.getBiomeAt(position.x, position.z);
+        const biomeColor = this.biomeColors[biome.type] || this.biomeColors['urban'];
+
+        // マテリアルの設定
         const material = new THREE.ShaderMaterial({
             uniforms: {
                 lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
-                lightIntensity: { value: 1.0 },
-                ambientIntensity: { value: 0.4 },
-                lightColor: { value: new THREE.Color(0xffffff) },
-                ambientColor: { value: new THREE.Color(0xffffff) }
+                lightIntensity: { value: 0.7 },  // 光の強さを弱める
+                ambientIntensity: { value: 0.3 }, // 環境光も弱める
+                lightColor: { value: new THREE.Color(0xCCCCCC) }, // 光の色を少し暗く
+                ambientColor: { value: new THREE.Color(0x999999) }, // 環境光の色も暗く
+                baseColor: { value: biomeColor.base },
+                highlightColor: { value: biomeColor.highlight },
+                midColor: { value: biomeColor.mid },
+                topColor: { value: biomeColor.top }
             },
             vertexShader: `
-        varying vec3 vPosition;
-        varying vec3 vNormal;
+                varying vec3 vPosition;
+                varying vec3 vNormal;
+                varying float vHeight;
 
-        void main() {
-            vPosition = position;
+                void main() {
+                    vPosition = position;
                     vNormal = normal;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
+                    vHeight = position.z;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
             `,
             fragmentShader: `
-    varying vec3 vPosition;
-    varying vec3 vNormal;
-    uniform vec3 lightDirection;
-    uniform float lightIntensity;
-    uniform float ambientIntensity;
-    uniform vec3 lightColor;
-    uniform vec3 ambientColor;
+                varying vec3 vPosition;
+                varying vec3 vNormal;
+                varying float vHeight;
+                uniform vec3 lightDirection;
+                uniform float lightIntensity;
+                uniform float ambientIntensity;
+                uniform vec3 lightColor;
+                uniform vec3 ambientColor;
+                uniform vec3 baseColor;
+                uniform vec3 highlightColor;
+                uniform vec3 midColor;
+                uniform vec3 topColor;
 
-    void main() {
-        float height = vPosition.z;
-        vec3 waterColor = vec3(0.0, 0.2, 0.5);
-        vec3 sandColor = vec3(0.6, 0.55, 0.4);
-        vec3 grassColor = vec3(0.0, 0.35, 0.0);
-        vec3 rockColor = vec3(0.35, 0.35, 0.35);
-        vec3 snowColor = vec3(0.9, 0.9, 0.9);
+                void main() {
+                    float height = vHeight;
+                    vec3 finalColor;
 
-        vec3 baseColor;
-        if (height < 0.5) {
-                        baseColor = waterColor;
-        } else if (height < 1.0) {
-            float t = (height - 0.5) / 0.5;
-                        baseColor = mix(waterColor, sandColor, t);
-        } else if (height < 4.0) {
-            float t = (height - 1.0) / 3.0;
-            baseColor = mix(sandColor, grassColor, t);
-        } else if (height < 8.0) {
-            float t = (height - 4.0) / 4.0;
-            baseColor = mix(grassColor, rockColor, t);
-        } else {
-            float t = min((height - 8.0) / 4.0, 1.0);
-            baseColor = mix(rockColor, snowColor, t);
-        }
+                    // 高さに基づいて4つの色をブレンド
+                    float heightFactor1 = smoothstep(0.0, 2.0, height);
+                    float heightFactor2 = smoothstep(2.0, 4.0, height);
+                    float heightFactor3 = smoothstep(4.0, 8.0, height);
 
-        vec3 normalizedNormal = normalize(vNormal);
-        vec3 normalizedLightDirection = normalize(lightDirection);
-        float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
-        directionalFactor = max(directionalFactor, 0.1);
-        
-        vec3 directionalContribution = lightColor * directionalFactor;
-        vec3 ambientContribution = ambientColor * ambientIntensity;
-        
-                    vec3 finalColor = baseColor * (directionalContribution + ambientContribution);
-        gl_FragColor = vec4(finalColor, 1.0);
-    }
+                    vec3 color1 = mix(baseColor, midColor, heightFactor1);
+                    vec3 color2 = mix(midColor, highlightColor, heightFactor2);
+                    vec3 color3 = mix(highlightColor, topColor, heightFactor3);
+
+                    vec3 terrainColor;
+                    if (height < 2.0) {
+                        terrainColor = color1;
+                    } else if (height < 4.0) {
+                        terrainColor = color2;
+                    } else {
+                        terrainColor = color3;
+                    }
+
+                    // ノイズを追加して荒廃感を出す
+                    float noise = fract(sin(dot(vPosition.xy, vec2(12.9898, 78.233))) * 43758.5453);
+                    terrainColor = mix(terrainColor, terrainColor * 0.8, noise * 0.2);
+
+                    // ライティング計算
+                    vec3 normalizedNormal = normalize(vNormal);
+                    vec3 normalizedLightDirection = normalize(lightDirection);
+                    float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
+                    directionalFactor = max(directionalFactor, 0.1);
+                    
+                    vec3 directionalContribution = lightColor * directionalFactor;
+                    vec3 ambientContribution = ambientColor * ambientIntensity;
+                    
+                    finalColor = terrainColor * (directionalContribution + ambientContribution);
+                    gl_FragColor = vec4(finalColor, 1.0);
+                }
             `,
-    side: THREE.DoubleSide
-});
+            side: THREE.DoubleSide
+        });
 
         const terrainChunk = new THREE.Mesh(geometry, material);
         terrainChunk.rotation.x = -Math.PI / 2;
@@ -368,7 +463,7 @@ class FieldMap {
 
         // 頂点の高さを設定
         const vertices = terrainChunk.geometry.attributes.position.array;
-    for (let i = 0; i < vertices.length; i += 3) {
+        for (let i = 0; i < vertices.length; i += 3) {
             const x = vertices[i] + position.x;
             const y = vertices[i + 1] + position.z;
         
@@ -393,7 +488,8 @@ class FieldMap {
             chunkX: chunkX,
             chunkZ: chunkZ,
             geometry: geometry,
-            material: material
+            material: material,
+            biome: biome.type
         });
 
         this.scene.add(terrainChunk);
@@ -602,10 +698,6 @@ class FieldMap {
     }
 
     generateObjectsForChunk(chunkX, chunkZ) {
-        // 既にこのチャンクのオブジェクトが生成されている場合はスキップ
-        //console.log("generateObjectsForChunk:" + chunkX + "-" + chunkZ);
-
-
         const chunkKey = `${chunkX},${chunkZ}`;
         if (this.objectChunks.has(chunkKey)) {
             return;
@@ -620,97 +712,116 @@ class FieldMap {
 
         // バイオームの取得
         const biome = this.getBiomeAt(chunkPosition.x, chunkPosition.z);
-        //if (!biome) return;
+        if (!biome) return;
 
-        // オブジェクトの生成確率を設定
-        const buildingChance = GameConfig.MAP.BUILDINGS.DENSITY;
-        const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
-        
-        // ビルの生成
-        for (let i = 0; i < 3; i++) {
-        if (this.rng() < buildingChance) {
-            let position;
-            let isSafe = false;
-            let attempts = 0;
-            const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
-            
-            while (!isSafe && attempts < maxAttempts) {
-                position = new THREE.Vector3(
+        // バイオームの設定を取得
+        const biomeSetting = this.biomeSettings[biome.type];
+        if (!biomeSetting) return;
+
+        // 建物の生成
+        const buildingCount = Math.floor(this.rng() * 5 * biomeSetting.buildingDensity);
+        for (let i = 0; i < 15; i++) {
+            if (this.rng() < biomeSetting.buildingDensity) {
+                let position;
+                let isSafe = false;
+                let attempts = 0;
+                const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
+                
+                while (!isSafe && attempts < maxAttempts) {
+                    position = new THREE.Vector3(
                         chunkPosition.x + (this.rng() - 0.5) * this.chunkSize,
                         0,
                         chunkPosition.z + (this.rng() - 0.5) * this.chunkSize
                     );
 
-                    // チャンク内に収まっているか確認
                     if (Math.abs(position.x - chunkPosition.x) > this.chunkSize/2 ||
                         Math.abs(position.z - chunkPosition.z) > this.chunkSize/2) {
-                    attempts++;
-                    continue;
-                }
-                
-                // 他のオブジェクトとの距離をチェック
-                isSafe = true;
-                    for (const obj of chunkObjects) {
-                        if (obj.position.distanceTo(position) < minDistance) {
-                        isSafe = false;
-                        break;
+                        attempts++;
+                        continue;
                     }
+                    
+                    isSafe = true;
+                    for (const obj of chunkObjects) {
+                        if (obj.position.distanceTo(position) < GameConfig.MAP.BUILDINGS.MIN_DISTANCE) {
+                            isSafe = false;
+                            break;
+                        }
+                    }
+                    
+                    attempts++;
                 }
                 
-                attempts++;
-            }
-            
-            if (isSafe) {
-                    const buildingType = this.buildingTypes[Math.floor(this.rng() * this.buildingTypes.length)];
-                const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
-                const width = 15 + this.rng() * 25;
+                if (isSafe) {
+                    // バイオームに応じた建物タイプを選択
+                    const buildingTypeName = biomeSetting.buildingTypes[
+                        Math.floor(this.rng() * biomeSetting.buildingTypes.length)
+                    ];
+                    const buildingType = this.buildingTypes.find(type => type.name === buildingTypeName);
                     
-                    // ビルの生成と配置
-                    const building = this.fieldObject.createBuilding(position, buildingType, height, width);
-                    if (building && building.mesh) {
-                        building.mesh.position.copy(position);
-                        building.mesh.position.y = this.getHeightAt(position.x, position.z);
-                        this.scene.add(building.mesh);
-                        chunkObjects.push(building);
-                        this.objects.push(building);
+                    if (buildingType) {
+                        const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
+                        const width = 15 + this.rng() * 25;
+                        
+                        const building = this.fieldObject.createBuilding(position, buildingType, height, width);
+                        if (building && building.mesh) {
+                            building.mesh.position.copy(position);
+                            building.mesh.position.y = this.getHeightAt(position.x, position.z);
+                            this.scene.add(building.mesh);
+                            chunkObjects.push(building);
+                            this.objects.push(building);
+                        }
                     }
                 }
             }
         }
 
         // 木の生成
-        const treeCount = Math.floor(this.rng() * 20) + 5;
+        const treeCount = Math.floor(this.rng() * 20 * biomeSetting.treeDensity);
         for (let i = 0; i < treeCount; i++) {
             const x = chunkPosition.x + (this.rng() - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.rng() - 0.5) * this.chunkSize;
-            const height = Math.floor(this.rng() * 5) + 3;
-            const treeType = Math.random() < 0.5 ? 'oak' : 'pine';
             
-            // 木の生成と配置
-            const tree = this.fieldObject.createTree(x, z, height, treeType);
-            if (tree && tree.mesh) {
-                tree.mesh.position.set(x, this.getHeightAt(x, z), z);
-                this.scene.add(tree.mesh);
-                chunkObjects.push(tree);
-                this.objects.push(tree);
+            // バイオームに応じた木のタイプを選択
+            const treeTypeName = biomeSetting.treeTypes[
+                Math.floor(this.rng() * biomeSetting.treeTypes.length)
+            ];
+            const treeType = this.treeTypes.find(type => type.name === treeTypeName);
+            
+            if (treeType) {
+                const height = Math.floor(this.rng() * 5) + 3;
+                const tree = this.fieldObject.createTree(x, z, height, treeTypeName);
+                if (tree && tree.mesh) {
+                    tree.mesh.position.set(x, this.getHeightAt(x, z), z);
+                    this.scene.add(tree.mesh);
+                    chunkObjects.push(tree);
+                    this.objects.push(tree);
+                }
             }
         }
-/*
-        // 車の生成
-        for (let i = 0; i < GameConfig.MAP.BUILDINGS.CAR_COUNT; i++) {
+
+        // がれきの生成
+        const debrisCount = Math.floor(this.rng() * 10 * biomeSetting.debrisDensity);
+        for (let i = 0; i < debrisCount; i++) {
             const x = chunkPosition.x + (this.rng() - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.rng() - 0.5) * this.chunkSize;
             
-            // 車の生成と配置
-            const car = this.fieldObject.createCar(x, z, this.rng() * Math.PI * 2);
-            if (car && car.mesh) {
-                car.mesh.position.set(x, this.getHeightAt(x, z), z);
-                this.scene.add(car.mesh);
-                chunkObjects.push(car);
-                this.objects.push(car);
+            // バイオームに応じたがれきのタイプを選択
+            const debrisTypeName = biomeSetting.debrisTypes[
+                Math.floor(this.rng() * biomeSetting.debrisTypes.length)
+            ];
+            const debrisType = this.debrisTypes.find(type => type.name === debrisTypeName);
+            
+            if (debrisType) {
+                const debris = this.fieldObject.createDebris(x, z, debrisType);
+                if (debris && debris.mesh) {
+                    debris.mesh.position.set(x, this.getHeightAt(x, z), z);
+                    this.scene.add(debris.mesh);
+                    chunkObjects.push(debris);
+                    this.objects.push(debris);
+                }
             }
         }
-*/
+
         // チャンクのオブジェクトを保存
         this.objectChunks.set(chunkKey, chunkObjects);
     }

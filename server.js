@@ -37,10 +37,21 @@ const enemies = {};
 const enemyColor = 0x33aa33;
 
 // 敵の生成間隔（ミリ秒）
-const ENEMY_SPAWN_INTERVAL = 100;
+const ENEMY_SPAWN_INTERVAL = 50;
+
+// プレイヤーの視界範囲（単位）
+const PLAYER_VISION_RANGE = 50;
+
+// 敵のスポーン範囲（プレイヤーからの距離）
+const SPAWN_RANGE = {
+    MIN: 15,  // 最小距離を20から15に短縮
+    MAX: 35   // 最大距離を40から35に短縮
+};
+
+// プレイヤーの移動先予測範囲
+const PLAYER_PREDICTION_RANGE = 30;
 
 // 時間帯ごとの敵の最大数
-
 const MAX_ENEMIES = {
     MORNING:  0,   // 朝（6:00-12:00）0
     DAY: 0,      // 昼（12:00-18:00）0
@@ -199,21 +210,33 @@ const randRange = (min, max) => Math.floor(Math.random() * (max - min + 1) + min
 
 // 安全なスポーン位置を見つける関数
 function findSafeEnemyPosition() {
-    const safeDistance = 5; // 他の敵やプレイヤーから最低限離れるべき距離
-    const maxAttempts = 20; // 最大試行回数
+    const safeDistance = 5;
+    const maxAttempts = 20;
 
-    var a;
-    var b;
-    
+    const activePlayers = Object.values(players).filter(player => player.health > 0);
+    if (activePlayers.length === 0) {
+        return { x: 0, y: 0, z: 0 };
+    }
+
+    // ランダムにプレイヤーを選択
+    const targetPlayer = activePlayers[Math.floor(Math.random() * activePlayers.length)];
+
+    // プレイヤーの移動方向を予測
+    let predictedPosition = { ...targetPlayer.position };
+    if (targetPlayer.isMoving) {
+        const moveX = Math.sin(targetPlayer.rotation.y) * PLAYER_PREDICTION_RANGE;
+        const moveZ = Math.cos(targetPlayer.rotation.y) * PLAYER_PREDICTION_RANGE;
+        predictedPosition.x += moveX;
+        predictedPosition.z += moveZ;
+    }
+
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-
-
+        // プレイヤーの予測位置の周囲にランダムな角度でスポーン
+        const angle = Math.random() * Math.PI * 2;
+        const distance = SPAWN_RANGE.MIN + Math.random() * (SPAWN_RANGE.MAX - SPAWN_RANGE.MIN);
         
-        // マップサイズ内にスポーン（端から10単位の余白を設ける）
-        //const x = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
-        //const z = (Math.random() * (MAP_SIZE - 20)) - (MAP_SIZE / 2 - 10);
-        const x = Math.floor(Math.random() * MAP_SIZE) + 30;
-        const z = Math.floor(Math.random() * MAP_SIZE) + 30;
+        const x = predictedPosition.x + Math.cos(angle) * distance;
+        const z = predictedPosition.z + Math.sin(angle) * distance;
         
         // この位置が他の敵から十分離れているか確認
         let isSafe = true;
@@ -235,7 +258,7 @@ function findSafeEnemyPosition() {
             const dx = player.position.x - x;
             const dz = player.position.z - z;
             const distance = Math.sqrt(dx * dx + dz * dz);
-            if (distance < safeDistance * 3 || distance > SPAWN_DISTANCE_TO_PLAYER) {
+            if (distance < safeDistance * 3) {
                 isSafe = false;
             }
         });
@@ -246,18 +269,14 @@ function findSafeEnemyPosition() {
         }
     }
 
-    var player = Object.values(players)[0];
-    if (!player) {
-        // プレイヤーがいない場合はデフォルトの位置を返す
-        return { x: 0, y: 0, z: 0 };
-    }else{
-        var a = randRange(player.position.x - 300, player.position.x + 300);  
-        var b = randRange(player.position.z - 300, player.position.z + 300);    
-        
-        // 安全な場所が見つからなかった場合はデフォルト値を返す
-        return { x: a, y: 0, z: b };
-    }
-
+    // 安全な場所が見つからなかった場合は、プレイヤーの予測位置の近くにスポーン
+    const angle = Math.random() * Math.PI * 2;
+    const distance = SPAWN_RANGE.MIN;
+    return {
+        x: predictedPosition.x + Math.cos(angle) * distance,
+        y: 0,
+        z: predictedPosition.z + Math.sin(angle) * distance
+    };
 }
 // 定期的に敵を生成
 setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
@@ -268,6 +287,30 @@ function updateEnemies() {
     
     // すべての敵のリスト
     const enemyList = Object.values(enemies);
+    
+    // プレイヤーの視界外の敵を削除
+    Object.values(enemies).forEach(enemy => {
+        let isInAnyPlayerVision = false;
+        
+        Object.values(players).forEach(player => {
+            if (player.health <= 0) return;
+            
+            const dx = player.position.x - enemy.position.x;
+            const dz = player.position.z - enemy.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            
+            if (distance <= PLAYER_VISION_RANGE) {
+                isInAnyPlayerVision = true;
+            }
+        });
+        
+        if (!isInAnyPlayerVision) {
+            // 視界外の敵を削除
+            io.emit('enemyDied', enemy.id);
+            io.emit('enemiesKilled', [enemy.id]);
+            delete enemies[enemy.id];
+        }
+    });
     
     enemyList.forEach(enemy => {
         // 敵が死亡している場合はスキップ

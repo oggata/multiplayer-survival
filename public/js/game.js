@@ -165,6 +165,10 @@ this.devMode = true;
         
         // シーンとアニメーションの初期化
         this.setupScene(Math.random()); // 一時的なシード値を使用
+        
+        // 電波塔の管理を追加（シーン初期化後に配置）
+        this.radioTowerManager = new RadioTowerManager(this.scene);
+        
         this.animate();
         
         // プレイヤーのハッシュ
@@ -265,6 +269,9 @@ this.devMode = true;
             }
         }
         this.updateBackpackUI();
+        
+        // 電波塔の管理を追加
+        this.radioTowerManager = new RadioTowerManager(this.scene);
     }
 
     createMessageIndicatorContainer() {
@@ -1808,7 +1815,10 @@ this.updateLightDirection();
         }
     }
 
-
+        // 電波塔の更新
+        if (this.playerModel) {
+            this.radioTowerManager.update(this.playerModel.getPosition());
+        }
 
     }
 
