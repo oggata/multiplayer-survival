@@ -211,6 +211,7 @@ const randRange = (min, max) => Math.floor(Math.random() * (max - min + 1) + min
 // 安全なスポーン位置を見つける関数
 function findSafeEnemyPosition() {
     const safeDistance = 5;
+    const spawnSafeDistance = 20; // プレイヤーのスポーン地点からの安全距離
     const maxAttempts = 20;
 
     const activePlayers = Object.values(players).filter(player => player.health > 0);
@@ -258,7 +259,16 @@ function findSafeEnemyPosition() {
             const dx = player.position.x - x;
             const dz = player.position.z - z;
             const distance = Math.sqrt(dx * dx + dz * dz);
-            if (distance < safeDistance * 3) {
+            
+            // プレイヤーのスポーン時間をチェック
+            const playerSpawnTime = player.spawnTime || 0;
+            const currentTime = Date.now();
+            const timeSinceSpawn = currentTime - playerSpawnTime;
+            
+            // スポーンしてから30秒以内のプレイヤーは安全ゾーンを持つ
+            if (timeSinceSpawn < 30000 && distance < spawnSafeDistance) {
+                isSafe = false;
+            } else if (distance < safeDistance * 3) {
                 isSafe = false;
             }
         });
@@ -608,104 +618,53 @@ function resolveCrowding(enemyList) {
 // 敵の更新を定期的に実行
 setInterval(updateEnemies, 100);
 
-function getSpawnPosition() {
-    // If no players are connected, return a safe default position
-    // Using (0,0,0) can be risky if buildings are generated there
-    if (Object.keys(players).length === 0) {
-        // Use a position that's likely to be in an open area
-        // Try several pre-defined safe areas
-        const safeAreas = [
-            { x: 100, y: 0, z: 100 },
-            { x: -100, y: 0, z: 100 },
-            { x: 100, y: 0, z: -100 },
-            { x: -100, y: 0, z: -100 }
-        ];
-        return safeAreas[Math.floor(Math.random() * safeAreas.length)];
-    }
-
-    // Get a random player as reference
-    const playerKeys = Object.keys(players);
-    const randomPlayer = players[playerKeys[Math.floor(Math.random() * playerKeys.length)]];
-    
-    // Use much larger offsets to avoid building clusters
-    const maxAttempts = 15; // Increase attempts
-    let attempts = 0;
-    
-    while (attempts < maxAttempts) {
-        // Use larger offsets to find open areas
-        const offset = {
-            x: (Math.random() - 0.5) * 60, // Increased from 10 to 60
-            y: 0,
-            z: (Math.random() - 0.5) * 60  // Increased from 10 to 60
-        };
-        
-        const newPosition = {
-            x: randomPlayer.position.x + offset.x,
-            y: 0,
-            z: randomPlayer.position.z + offset.z
-        };
-        
-        // Keep within map boundaries
-        newPosition.x = Math.max(-450, Math.min(450, newPosition.x));
-        newPosition.z = Math.max(-450, Math.min(450, newPosition.z));
-        
-        attempts++;
-        
-        // Return this position - client will check and correct if needed
-        return newPosition;
-    }
-    
-    // Return a fallback position away from the center
-    return { x: 200, y: 0, z: 200 };
-}
-
-
 // プレイヤーのスポーン位置を取得する関数
 function getSpawnPosition() {
-    const players = Object.values(io.sockets.sockets).map(socket => socket.player);
-    if (players.length === 0) {
-        //console.log('他のプレイヤーがいないため、デフォルト位置を使用します');
-        // 他のプレイヤーがいない場合はデフォルト位置
-        return { x: 9, y: 0, z: 0 };
+    // 安全なスポーン位置のリスト
+    const safeSpawnPositions = [
+        { x: 100, y: 0, z: 100 },
+        { x: -100, y: 0, z: 100 },
+        { x: 100, y: 0, z: -100 },
+        { x: -100, y: 0, z: -100 },
+        { x: 200, y: 0, z: 0 },
+        { x: -200, y: 0, z: 0 },
+        { x: 0, y: 0, z: 200 },
+        { x: 0, y: 0, z: -200 }
+    ];
+
+    // 他のプレイヤーがいない場合は、安全なスポーン位置からランダムに選択
+    if (Object.keys(players).length === 0) {
+        return safeSpawnPositions[Math.floor(Math.random() * safeSpawnPositions.length)];
     }
 
-    // ランダムに他のプレイヤーを選択
-    const randomPlayer = players[Math.floor(Math.random() * players.length)];
-    
-    // 最大試行回数
-    const maxAttempts = 10;
-    let attempts = 0;
-    
-    /*
-    while (attempts < maxAttempts) {
-        // プレイヤーの周囲にランダムなオフセットを加える
-        const offset = {
-            x: (Math.random() - 0.5) * 10, // -5から5の範囲でランダム
-            y: 0,
-            z: (Math.random() - 0.5) * 10  // -5から5の範囲でランダム
-        };
+    // 他のプレイヤーがいる場合は、最も近い安全なスポーン位置を選択
+    const randomPlayer = Object.values(players)[Math.floor(Math.random() * Object.values(players).length)];
+    let closestSafePosition = safeSpawnPositions[0];
+    let minDistance = Infinity;
+
+    safeSpawnPositions.forEach(position => {
+        const dx = position.x - randomPlayer.position.x;
+        const dz = position.z - randomPlayer.position.z;
+        const distance = Math.sqrt(dx * dx + dz * dz);
         
-        // 新しい位置を計算
-        const newPosition = {
-            x: randomPlayer.position.x + offset.x,
-            y: 0,
-            z: randomPlayer.position.z + offset.z
-        };
-        
-        // マップの境界内に収める
-        newPosition.x = Math.max(-450, Math.min(450, newPosition.x));
-        newPosition.z = Math.max(-450, Math.min(450, newPosition.z));
-        
-        // 建物との衝突チェック（必要に応じて実装）
-        // if (!checkCollision(newPosition)) {
-        //     return newPosition;
-        // }
-        
-        attempts++;
-    }
-    */
-    // 最大試行回数を超えた場合は、選択したプレイヤーの位置を返す
-    return randomPlayer.position;
+        if (distance < minDistance) {
+            minDistance = distance;
+            closestSafePosition = position;
+        }
+    });
+
+    // 選択した安全な位置の周囲に少しランダムなオフセットを加える
+    const offset = {
+        x: (Math.random() - 0.5) * 20, // -10から10の範囲でランダム
+        y: 0,
+        z: (Math.random() - 0.5) * 20  // -10から10の範囲でランダム
+    };
+
+    return {
+        x: closestSafePosition.x + offset.x,
+        y: 0,
+        z: closestSafePosition.z + offset.z
+    };
 }
 
 io.on('connection', (socket) => {
@@ -739,7 +698,8 @@ io.on('connection', (socket) => {
         rotation: { y: 0 },
         health: 100,
         color: playerColor,
-        hash: playerHash
+        hash: playerHash,
+        spawnTime: Date.now() // スポーン時間を記録
     };
     
     // シード値とゲーム開始時間をクライアントに送信
