@@ -4,6 +4,7 @@ const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const path = require('path');
 const crypto = require('crypto');
+const { createNoise2D } = require('simplex-noise');
 
 app.use(express.static('public'));
 
@@ -69,6 +70,123 @@ const TIME = {
     DAY_LENGTH: 180, // 秒
     TIME_SPEED: 0.1 // 1フレームあたりの時間進行
 };
+
+// 敵の設定
+const ENEMY_CONFIG = {
+    NORMAL: {
+        model: 'humanoid',
+        visionRange: 10,
+        speed:  0.15,
+        health: 20,
+        weight: 0.6
+    },
+    FAST: {
+        model: 'quadruped',
+        visionRange: 15,
+        speed: 0.5,
+        health: 15,
+        weight: 0.25
+    },
+    SHOOTER: {
+        model: 'hexapod',
+        visionRange: 20,
+        speed: 0.8,
+        health: 25,
+        weight: 0.15
+    }
+};
+
+// 夜間の倍率
+const NIGHT_MULTIPLIER = 1.2;
+
+// バイオームの設定
+const BIOME_CONFIG = {
+    PLAINS: {
+        name: 'PLAINS',
+        color: 0x7CFC00,
+        enemyWeights: {
+            NORMAL: 0.7,
+            FAST: 0.2,
+            SHOOTER: 0.1
+        }
+    },
+    FOREST: {
+        name: 'FOREST',
+        color: 0x228B22,
+        enemyWeights: {
+            NORMAL: 0.5,
+            FAST: 0.4,
+            SHOOTER: 0.1
+        }
+    },
+    DESERT: {
+        name: 'DESERT',
+        color: 0xDAA520,
+        enemyWeights: {
+            NORMAL: 0.3,
+            FAST: 0.6,
+            SHOOTER: 0.1
+        }
+    },
+    SNOW: {
+        name: 'SNOW',
+        color: 0xFFFFFF,
+        enemyWeights: {
+            NORMAL: 0.4,
+            FAST: 0.3,
+            SHOOTER: 0.3
+        }
+    }
+};
+
+// バイオームの生成
+function generateBiomes(seed) {
+    const biomes = [];
+    const noise2D = createNoise2D(() => seed);
+    
+    for (let x = 0; x < MAP_SIZE; x += 100) {
+        for (let z = 0; z < MAP_SIZE; z += 100) {
+            const nx = x / MAP_SIZE - 0.5;
+            const nz = z / MAP_SIZE - 0.5;
+            
+            // ノイズ値を取得
+            const elevation = noise2D(nx * 2, nz * 2);
+            const moisture = noise2D(nx * 3, nz * 3);
+            
+            // バイオームを決定
+            let biome;
+            if (elevation > 0.3) {
+                biome = BIOME_CONFIG.SNOW;
+            } else if (elevation < -0.2) {
+                biome = BIOME_CONFIG.DESERT;
+            } else if (moisture > 0.2) {
+                biome = BIOME_CONFIG.FOREST;
+            } else {
+                biome = BIOME_CONFIG.PLAINS;
+            }
+            
+            biomes.push({
+                x: x,
+                z: z,
+                biome: biome
+            });
+        }
+    }
+    
+    return biomes;
+}
+
+// 座標からバイオームを取得
+function getBiomeAt(x, z, biomes) {
+    const gridX = Math.floor(x / 100) * 100;
+    const gridZ = Math.floor(z / 100) * 100;
+    
+    const biome = biomes.find(b => b.x === gridX && b.z === gridZ);
+    return biome ? biome.biome : BIOME_CONFIG.PLAINS;
+}
+
+// サーバー起動時にバイオームを生成
+const biomes = generateBiomes(serverSeed);
 
 // プレイヤーのハッシュを生成する関数
 function generatePlayerHash() {
@@ -156,54 +274,47 @@ function spawnEnemy() {
 
     // 安全なスポーン位置を見つける
     let position = findSafeEnemyPosition();
-
-   // console.log(position);
     
-    // ランダムに敵のタイプを選択（基本タイプ）
-    const enemyTypes = ['NORMAL', 'FAST', 'SHOOTER'];
-    const randomType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+    // スポーン位置のバイオームを取得
+    const biome = getBiomeAt(position.x, position.z, biomes);
     
-    // ランダムにキャラクターモデルタイプを選択
-    const characterModels = ['humanoid', 'quadruped', 'hexapod'];
-    const modelWeights = [0.6, 0.25, 0.15]; // 出現確率
+    // バイオームに応じた敵の出現確率を取得
+    const enemyTypes = Object.keys(ENEMY_CONFIG);
+    const weights = enemyTypes.map(type => biome.enemyWeights[type]);
     
     // 重み付き抽選
     let randomValue = Math.random();
     let cumulativeWeight = 0;
-    let selectedModel = characterModels[0]; // デフォルト
+    let selectedType = enemyTypes[0]; // デフォルト
     
-    for (let i = 0; i < characterModels.length; i++) {
-        cumulativeWeight += modelWeights[i];
+    for (let i = 0; i < enemyTypes.length; i++) {
+        cumulativeWeight += weights[i];
         if (randomValue <= cumulativeWeight) {
-            selectedModel = characterModels[i];
+            selectedType = enemyTypes[i];
             break;
         }
     }
     
-    // 異なる種類の敵ごとにHPを調整
-    let enemyHealth = 20; // デフォルト
-    
-    if (selectedModel === 'quadruped') {
-        enemyHealth = 30; // 四足歩行は強い
-    } else if (selectedModel === 'hexapod') {
-        enemyHealth = 25; // 六足歩行はやや強い
-    }
+    const enemyConfig = ENEMY_CONFIG[selectedType];
     
     enemies[enemyId] = {
         id: enemyId,
         position: position,
         rotation: { y: Math.random() * Math.PI * 2 },
-        health: enemyHealth,
-        type: randomType,
-        enemyType: selectedModel,
+        health: enemyConfig.health,
+        type: selectedType,
+        enemyType: enemyConfig.model,
         target: null,
         state: 'wandering',
-        lastAttack: 0
+        lastAttack: 0,
+        config: {
+            visionRange: enemyConfig.visionRange,
+            speed: enemyConfig.speed
+        }
     };
     
     io.emit('enemySpawned', enemies[enemyId]);
 }
-
 
 const randRange = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
 
@@ -222,8 +333,6 @@ const safeSpawnPositions = [
     { x: 150, y: 0, z: -150 },
     { x: -150, y: 0, z: -150 }
 ];
-
-
 
 // 安全なスポーン位置からの最小距離
 const SAFE_SPOT_DISTANCE = 20;
@@ -335,6 +444,9 @@ setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
 // 敵の更新
 function updateEnemies() {
     const now = Date.now();
+    const isNight = getCurrentTimeOfDay() === 'NIGHT';
+    const speedMultiplier = isNight ? NIGHT_MULTIPLIER : 1.0;
+    const visionMultiplier = isNight ? NIGHT_MULTIPLIER : 1.0;
     
     // すべての敵のリスト
     const enemyList = Object.values(enemies);
@@ -372,7 +484,6 @@ function updateEnemies() {
         let minDistance = Infinity;
         
         Object.values(players).forEach(player => {
-            // 死亡したプレイヤーは追跡対象から除外
             if (player.health <= 0) return;
             
             const dx = player.position.x - enemy.position.x;
@@ -389,15 +500,18 @@ function updateEnemies() {
         const oldPosition = { ...enemy.position };
         
         // 最も近いプレイヤーが一定距離以上離れている場合、更新頻度を下げる
-        const updateThreshold = 100; // この距離以上なら更新頻度を下げる
+        const updateThreshold = 100;
         const shouldUpdate = minDistance < updateThreshold || Math.random() < 0.2;
         
         if (!shouldUpdate) {
-            return; // 遠くの敵の更新をスキップ
+            return;
         }
 
+        // 視野範囲を取得（夜間は2倍）
+        const visionRange = enemy.config.visionRange * visionMultiplier;
+
         // プレイヤーが近くにいる場合、追いかける
-        if (closestPlayer && minDistance < 10) {
+        if (closestPlayer && minDistance < visionRange) {
             enemy.state = 'chasing';
             enemy.target = closestPlayer.id;
             
@@ -408,8 +522,8 @@ function updateEnemies() {
             
             enemy.rotation.y = angle;
             
-            // 移動速度を設定
-            const speed = 0.15;
+            // 移動速度を設定（夜間は2倍）
+            const speed = enemy.config.speed * speedMultiplier;
             
             // 移動方向と距離を計算
             const moveX = Math.sin(angle) * speed;
@@ -671,8 +785,6 @@ setInterval(updateEnemies, 100);
 
 // プレイヤーのスポーン位置を取得する関数
 function getSpawnPosition() {
-
-
     // 他のプレイヤーがいない場合は、安全なスポーン位置からランダムに選択
     if (Object.keys(players).length === 0) {
         console.log('他のプレイヤーがいないため、安全なスポーン位置を選択します');

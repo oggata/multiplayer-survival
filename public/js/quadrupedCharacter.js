@@ -1,4 +1,3 @@
-
 class QuadrupedCharacter {
     constructor(scene, type, game) {
         this.scene = scene;
@@ -284,7 +283,6 @@ class QuadrupedCharacter {
         this.isRunning = isRunning;
         this.animationSpeed = isRunning ? 3.0 : 2.0;
     }
-    updateLimbAnimation(deltaTime) {}
 
     dispose() {
         // キャラクターを削除
