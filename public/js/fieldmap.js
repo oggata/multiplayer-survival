@@ -855,7 +855,7 @@ class FieldMap {
 
         // 建物の生成
         const buildingCount = Math.floor(this.rng() * 5 * biomeSetting.buildingDensity);
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 3; i++) {
             if (this.rng() < biomeSetting.buildingDensity) {
                 let position;
                 let isSafe = false;
