@@ -187,6 +187,17 @@ class PlayerStatus {
         if (this.bleeding > 80) {
             damage += 1;
         }
+
+
+        // 空腹が20%を切った場合
+        if (this.hunger > 80) {
+            this.health += (this.hunger-80) * 0.05 * deltaTime;
+        }
+        
+        // 喉の渇きが20%を切った場合
+        if (this.thirst > 80) {
+            this.health += (this.thirs-80) * 0.05 * deltaTime;
+        }
         
         // ダメージを適用
         if (damage > 0) {
