@@ -85,8 +85,8 @@ const GameConfig = {
     // マップ設定
     MAP: {
         SIZE:   6000,
-        CHUNK_SIZE:   200,
-        VISLBLE_DISTANCE:   300,
+        CHUNK_SIZE:   220,
+        VISLBLE_DISTANCE:   250,
         BOUNDARY_WALL_HEIGHT:  0,
         FLOOR: {
             THICKNESS: 1,
