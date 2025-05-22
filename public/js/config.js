@@ -46,7 +46,7 @@ const GameConfig = {
     
     // アイテム設定
     ITEM: {
-        MAX_COUNT:      10,
+        MAX_COUNT:      5,
         COLLECTION_RADIUS: 1.0,
         SPAWN: {
             BUILDING_RADIUS: 15, // 建物からのスポーン半径
@@ -85,6 +85,8 @@ const GameConfig = {
     // マップ設定
     MAP: {
         SIZE:   6000,
+        CHUNK_SIZE:   200,
+        VISLBLE_DISTANCE:   300,
         BOUNDARY_WALL_HEIGHT:  0,
         FLOOR: {
             THICKNESS: 1,

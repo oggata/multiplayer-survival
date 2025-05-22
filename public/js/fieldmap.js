@@ -8,8 +8,8 @@ class FieldMap {
         this.biomes = [];
         this.objects = [];
         this.terrainChunks = []; // 地形チャンクを管理する配列
-        this.chunkSize = 100; // チャンクのサイズ
-        this.visibleDistance = 100; // 視界距離
+        this.chunkSize = GameConfig.MAP.CHUNK_SIZE; // チャンクのサイズ
+        this.visibleDistance = GameConfig.MAP.VISLBLE_DISTANCE; // 視界距離
         this.lodDistances = [100, 200, 300]; // LODの距離閾値
         this.lodSegments = [64, 32, 16]; // 各LODレベルのセグメント数
         this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
@@ -855,7 +855,7 @@ class FieldMap {
 
         // 建物の生成
         const buildingCount = Math.floor(this.rng() * 5 * biomeSetting.buildingDensity);
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 10; i++) {
             if (this.rng() < biomeSetting.buildingDensity) {
                 let position;
                 let isSafe = false;

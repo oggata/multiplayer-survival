@@ -158,6 +158,26 @@ class EnhancedEnemy {
         }, 100); // 0.1秒後に削除
     }
 
+    forceDie() {
+        if (this.isDead) return;
+        
+        this.isDead = true;
+        
+        // 死亡音を再生
+        this.game.audioManager.play('enemyDeath');
+        
+        // 死亡エフェクトを生成
+        this.createDeathEffect();
+
+        // サーバーに敵の死亡を通知
+        this.game.socket.emit('enemyDied', this.id);
+
+        // 敵を削除
+        setTimeout(() => {
+            this.dispose();
+        }, 100); // 0.1秒後に削除
+    }
+
 
     forcedDieByServer() {
         if (this.isDead) return;

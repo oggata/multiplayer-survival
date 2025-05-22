@@ -5,9 +5,6 @@ class FieldObject {
         this.seed = seed || Math.random();
         Math.seedrandom(this.seed.toString());
         this.rng = Math.random;
-
-
-
     }
 
     createBuilding(position, buildingType, height, width) {

@@ -671,8 +671,11 @@ setInterval(updateEnemies, 100);
 
 // プレイヤーのスポーン位置を取得する関数
 function getSpawnPosition() {
+
+
     // 他のプレイヤーがいない場合は、安全なスポーン位置からランダムに選択
     if (Object.keys(players).length === 0) {
+        console.log('他のプレイヤーがいないため、安全なスポーン位置を選択します');
         const randomPosition = safeSpawnPositions[Math.floor(Math.random() * safeSpawnPositions.length)];
         return {
             x: randomPosition.x,
@@ -704,10 +707,12 @@ function getSpawnPosition() {
         z: (Math.random() - 0.5) * 10  // -5から5の範囲でランダム
     };
 
+    console.log('選択した安全なスポーン位置:', closestSafePosition, 'オフセット:', offset);
+
     return {
-        x: closestSafePosition.x + offset.x,
+        x: randomPlayer.position.x,
         y: 0,
-        z: closestSafePosition.z + offset.z
+        z: randomPlayer.position.z
     };
 }
 
@@ -753,12 +758,15 @@ io.on('connection', (socket) => {
         playerHash: playerHash
     });
     
-    // 現在のプレイヤーと敵の情報を送信
-    socket.emit('currentPlayers', Object.values(players));
-    socket.emit('currentEnemies', Object.values(enemies));
-    
-    // 新しいプレイヤーの情報を他のプレイヤーに送信
-    socket.broadcast.emit('newPlayer', players[socket.id]);
+ // 少し遅らせてプレイヤー情報を送信（確実にgameConfigが処理された後）
+    setTimeout(() => {
+        // 現在のプレイヤーと敵の情報を送信
+        socket.emit('currentPlayers', Object.values(players));
+        socket.emit('currentEnemies', Object.values(enemies));
+        
+        // 新しいプレイヤーの情報を他のプレイヤーに送信
+        socket.broadcast.emit('newPlayer', players[socket.id]);
+    }, 100); // 100ms遅延
     
     // プレイヤーの移動を処理
     socket.on('playerMove', (data) => {
@@ -780,35 +788,6 @@ io.on('connection', (socket) => {
             weponId: data.weponId,
             bulletDamage:data.bulletDamage
         });
-        /*
-        // 敵との衝突判定
-        Object.values(enemies).forEach(enemy => {
-            const dx = enemy.position.x - data.position.x;
-            const dy = enemy.position.y - data.position.y;
-            const dz = enemy.position.z - data.position.z;
-            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            const bulletDamage = data.bulletDamage;
-            if (distance < 8) {
-                // 敵にダメージを与える
-                enemy.health -= bulletDamage;
-                
-                if (enemy.health <= 0) {
-                    // 敵の死亡を通知
-                    io.emit('enemyDied', enemy.id);
-                    // 敵を倒したことを通知
-                    io.emit('enemiesKilled', [enemy.id]);
-                    // 即座に敵を削除
-                    delete enemies[enemy.id];
-                } else {
-                    // 敵にダメージを与えた
-                    io.emit('enemyHit', {
-                        id: enemy.id,
-                        health: enemy.health
-                    });
-                }
-            }
-        });
-        */
     });
 
     // 敵の死亡イベントを処理
@@ -827,8 +806,6 @@ io.on('connection', (socket) => {
     socket.on('playerRestart', () => {
         if (players[socket.id]) {
             players[socket.id].health = 100;
-            //players[socket.id].position = { x: 0, y: 0, z: 0 };
-            //players[socket.id].rotation = { y: 0 };
             io.emit('playerRestarted', players[socket.id]);
         }
     });

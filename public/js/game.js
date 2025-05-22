@@ -547,6 +547,9 @@ this.devMode = true;
         const color = this.generateColorFromHash(this.playerHash);
         this.playerModel.setColor(color);
     }
+
+    // 初期位置は(0,0,0)に設定し、後でcurrentPlayersイベントで正しい位置に設定される
+    this.playerModel.setPosition(100, 0, 100);
     
     // Get initial position from server
     const serverPosition = this.playerModel.getPosition();
@@ -759,42 +762,58 @@ updateJoystickKnob() {
 }
     setupSocketEvents() {
         // ゲーム設定の受信
-        this.socket.on('gameConfig', (config) => {
-            this.seed = config.seed;
-            this.gameStartTime = config.gameStartTime;
-            this.playerHash = config.playerHash;
+    this.socket.on('gameConfig', (config) => {
+        this.seed = config.seed;
+        this.gameStartTime = config.gameStartTime;
+        this.playerHash = config.playerHash;
+        
+        // Setup scene after receiving config
+        this.setupScene(this.seed);
+        
+        // If player model already exists, update its color based on hash
+        if (this.playerModel && this.playerHash) {
+            const color = this.generateColorFromHash(this.playerHash);
+            this.playerModel.setColor(color);
+        }
+    });
+
+    this.socket.on('currentPlayers', (players) => {
+        console.log('現在のプレイヤー:', players);
+        
+        // 自分の初期位置を設定
+        const myPlayerData = players.find(player => player.id === this.socket.id);
+        if (myPlayerData && this.playerModel) {
+            // サーバーから送られてきた位置を設定
+            this.playerModel.setPosition(
+                myPlayerData.position.x,
+                myPlayerData.position.y,
+                myPlayerData.position.z
+            );
+            this.playerModel.setRotation(myPlayerData.rotation.y);
             
-            // Setup scene after receiving config
-            this.setupScene(this.seed);
-            
-            // If player model already exists, update its color based on hash
-            if (this.playerModel && this.playerHash) {
-                const color = this.generateColorFromHash(this.playerHash);
-                this.playerModel.setColor(color);
+            // カメラ位置も更新
+            this.updateCameraPosition();
+        }
+        
+        // 既存のプレイヤーをすべて削除（自分自身を除く）
+        this.players.forEach((player, playerId) => {
+            if (playerId !== this.socket.id) {
+                if (player.character) {
+                    this.scene.remove(player.character);
+                    player.dispose();
+                }
             }
         });
-
-        this.socket.on('currentPlayers', (players) => {
-            console.log('現在のプレイヤー:', players);
-            // 既存のプレイヤーをすべて削除（自分自身を除く）
-            this.players.forEach((player, playerId) => {
-                if (playerId !== this.socket.id) {
-                    if (player.character) {
-                        this.scene.remove(player.character);
-                        player.dispose();
-                    }
-                }
-            });
-            this.players.clear();
-            
-            // 新しいプレイヤーリストを追加（自分自身を除く）
-            players.forEach(player => {
-                if (player.id !== this.socket.id) {
-                    this.addPlayer(player);
-                }
-            });
-            this.updatePlayerCount();
+        this.players.clear();
+        
+        // 新しいプレイヤーリストを追加（自分自身を除く）
+        players.forEach(player => {
+            if (player.id !== this.socket.id) {
+                this.addPlayer(player);
+            }
         });
+        this.updatePlayerCount();
+    });
 
         this.socket.on('newPlayer', (player) => {
             console.log('新規のプレイヤー:', player);
@@ -903,8 +922,8 @@ updateJoystickKnob() {
                 const enemy = this.enemies.get(enemyId);
                 if (enemy) {
                     // 音を再生
-                    this.audioManager.play('enemyDeath');
-                    enemy.die();
+                    //this.audioManager.play('enemyDeath');
+                    enemy.forceDie();
                     this.enemies.delete(enemyId);
                 }
             });
@@ -1139,7 +1158,7 @@ addPlayer(playerData) {
         let isRunning = false;
         let isMoving = false;
 
-        if (this.isMobile) {
+        //if (this.isMobile) {
             if (this.leftJoystick.active) {
             // 上下で前後移動（方向を反転）
             moveZ = this.leftJoystick.y * this.moveSpeed;
@@ -1154,7 +1173,7 @@ addPlayer(playerData) {
                 isMoving = true;
             }
         }
-        } else {
+        //} else {
             // キーボードコントロール（AとDの方向を反転）
             if (this.keys['w']) moveZ = -this.moveSpeed;
             if (this.keys['s']) moveZ = this.moveSpeed;
@@ -1167,7 +1186,7 @@ addPlayer(playerData) {
             if (this.keys['w'] || this.keys['s']) {
                 isMoving = true;
             }
-        }
+       // }
         
          // 移動方向ベクトルを作成
     const moveDirection = new THREE.Vector3(moveX, 0, moveZ);
@@ -1182,7 +1201,7 @@ addPlayer(playerData) {
     
     // プレイヤーモデルの移動
     const moveSpeed2 = this.moveSpeed + this.playerStatus.moveSpeedMultiplier;
-    this.playerModel.move(moveDirection, isRunning ? moveSpeed2 * 3 : moveSpeed2, deltaTime);
+    this.playerModel.move(moveDirection, isRunning ? moveSpeed2 * 2 : moveSpeed2, deltaTime);
     this.playerModel.setRunning(isRunning);
     
     // 移動後の位置を取得
@@ -1865,11 +1884,16 @@ this.updateLightDirection();
     }
     
     spawnItems() {
+
+
         // 建物の位置を取得
         const buildings = this.fieldMap.objects.filter(obj => obj.userData && obj.userData.type === 'building');
         
         // アイテムを生成
         for (let i = 0; i < this.maxItems; i++) {
+
+
+            //console.log("アイテムを生成");
             // GameConfig.ITEMSからランダムにアイテムタイプを選択
             const itemTypes = Object.entries(GameConfig.ITEMS)
                 .filter(([_, item]) => item.dropChance !== undefined)
