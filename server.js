@@ -207,6 +207,30 @@ function spawnEnemy() {
 
 const randRange = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
 
+// 安全なスポーン位置のリスト
+const safeSpawnPositions = [
+    { x: 100, y: 0, z: 100 },
+    { x: -100, y: 0, z: 100 },
+    { x: 100, y: 0, z: -100 },
+    { x: -100, y: 0, z: -100 },
+    { x: 200, y: 0, z: 0 },
+    { x: -200, y: 0, z: 0 },
+    { x: 0, y: 0, z: 200 },
+    { x: 0, y: 0, z: -200 }
+];
+
+// 安全なスポーン位置からの最小距離
+const SAFE_SPOT_DISTANCE = 50;
+
+// 安全なスポーン位置かどうかをチェックする関数
+function isSafeSpot(x, z) {
+    return safeSpawnPositions.some(pos => {
+        const dx = x - pos.x;
+        const dz = z - pos.z;
+        const distance = Math.sqrt(dx * dx + dz * dz);
+        return distance < SAFE_SPOT_DISTANCE;
+    });
+}
 
 // 安全なスポーン位置を見つける関数
 function findSafeEnemyPosition() {
@@ -238,6 +262,11 @@ function findSafeEnemyPosition() {
         
         const x = predictedPosition.x + Math.cos(angle) * distance;
         const z = predictedPosition.z + Math.sin(angle) * distance;
+        
+        // 安全なスポーン位置との距離をチェック
+        if (isSafeSpot(x, z)) {
+            continue; // 安全なスポーン位置の近くなら、別の位置を試す
+        }
         
         // この位置が他の敵から十分離れているか確認
         let isSafe = true;
@@ -282,12 +311,18 @@ function findSafeEnemyPosition() {
     // 安全な場所が見つからなかった場合は、プレイヤーの予測位置の近くにスポーン
     const angle = Math.random() * Math.PI * 2;
     const distance = SPAWN_RANGE.MIN;
-    return {
-        x: predictedPosition.x + Math.cos(angle) * distance,
-        y: 0,
-        z: predictedPosition.z + Math.sin(angle) * distance
-    };
+    const x = predictedPosition.x + Math.cos(angle) * distance;
+    const z = predictedPosition.z + Math.sin(angle) * distance;
+    
+    // 最後のチェック：安全なスポーン位置との距離
+    if (!isSafeSpot(x, z)) {
+        return { x, y: 0, z };
+    }
+    
+    // それでも安全なスポーン位置の近くなら、デフォルトの位置を返す
+    return { x: 0, y: 0, z: 0 };
 }
+
 // 定期的に敵を生成
 setInterval(spawnEnemy, ENEMY_SPAWN_INTERVAL);
 
@@ -803,6 +838,9 @@ io.on('connection', (socket) => {
         
         // 他のプレイヤーに通知
         io.emit('playerDisconnected', socket.id);
+        
+        // 現在のプレイヤーリストを全員に送信
+        io.emit('currentPlayers', Object.values(players));
     });
     
     // プレイヤーがメッセージを送信した時の処理

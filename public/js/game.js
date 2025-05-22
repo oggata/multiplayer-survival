@@ -18,8 +18,8 @@ class AudioManager {
     play(soundName) {
         if (this.sounds[soundName]) {
             // 音声を最初から再生
-            this.sounds[soundName].currentTime = 0;
-            this.sounds[soundName].play();
+            //this.sounds[soundName].currentTime = 0;
+            //this.sounds[soundName].play();
         }
     }
 }
@@ -145,6 +145,7 @@ this.devMode = true;
         // UI要素の取得
         this.positionElement = document.getElementById('position');
         this.itemCountElement = document.getElementById('itemCount');
+        this.warpButton = document.getElementById('warpButton');
         
         // バックパックUI要素
         this.backpackElement = document.getElementById('backpack');
@@ -156,6 +157,7 @@ this.devMode = true;
         // バックパックボタンのイベントリスナー
         this.backpackButton.addEventListener('click', () => this.toggleBackpack());
         this.backpackCloseButton.addEventListener('click', () => this.toggleBackpack());
+        this.warpButton.addEventListener('click', () => this.warpToRandomPlayer());
         
         // ステータス表示の更新
         this.updateStatusDisplay();
@@ -272,6 +274,14 @@ this.devMode = true;
         
         // 電波塔の管理を追加
         this.radioTowerManager = new RadioTowerManager(this.scene);
+
+        // ページがアンロードされる時の処理
+        window.addEventListener('beforeunload', () => {
+            // サーバーに切断を通知
+            if (this.socket) {
+                this.socket.disconnect();
+            }
+        });
     }
 
     createMessageIndicatorContainer() {
@@ -749,33 +759,54 @@ updateJoystickKnob() {
 }
     setupSocketEvents() {
         // ゲーム設定の受信
-    // ゲーム設定の受信
-    this.socket.on('gameConfig', (config) => {
-        this.seed = config.seed;
-        this.gameStartTime = config.gameStartTime;
-        this.playerHash = config.playerHash;
-        
-        // Setup scene after receiving config
-        this.setupScene(this.seed);
-        
-        // If player model already exists, update its color based on hash
-        if (this.playerModel && this.playerHash) {
-            const color = this.generateColorFromHash(this.playerHash);
-            this.playerModel.setColor(color);
-        }
-    });
+        this.socket.on('gameConfig', (config) => {
+            this.seed = config.seed;
+            this.gameStartTime = config.gameStartTime;
+            this.playerHash = config.playerHash;
+            
+            // Setup scene after receiving config
+            this.setupScene(this.seed);
+            
+            // If player model already exists, update its color based on hash
+            if (this.playerModel && this.playerHash) {
+                const color = this.generateColorFromHash(this.playerHash);
+                this.playerModel.setColor(color);
+            }
+        });
 
-    this.socket.on('currentPlayers', (players) => {
-        console.log('現在のプレイヤー:', players);
-        players.forEach(player => this.addPlayer(player));
-        this.updatePlayerCount();
-    });
+        this.socket.on('currentPlayers', (players) => {
+            console.log('現在のプレイヤー:', players);
+            // 既存のプレイヤーをすべて削除（自分自身を除く）
+            this.players.forEach((player, playerId) => {
+                if (playerId !== this.socket.id) {
+                    if (player.character) {
+                        this.scene.remove(player.character);
+                        player.dispose();
+                    }
+                }
+            });
+            this.players.clear();
+            
+            // 新しいプレイヤーリストを追加（自分自身を除く）
+            players.forEach(player => {
+                if (player.id !== this.socket.id) {
+                    this.addPlayer(player);
+                }
+            });
+            this.updatePlayerCount();
+        });
 
-    this.socket.on('newPlayer', (player) => {
-        console.log('新規のプレイヤー:', player);
-        this.addPlayer(player);
-        this.updatePlayerCount();
-    });
+        this.socket.on('newPlayer', (player) => {
+            console.log('新規のプレイヤー:', player);
+            this.addPlayer(player);
+            this.updatePlayerCount();
+        });
+
+        this.socket.on('playerDisconnected', (playerId) => {
+            console.log('プレイヤーが切断しました:', playerId);
+            this.removePlayer(playerId);
+            this.updatePlayerCount();
+        });
 
         this.socket.on('playerMoved', (player) => {
             const existingPlayer = this.players.get(player.id);
@@ -792,11 +823,6 @@ updateJoystickKnob() {
                 existingPlayer.isMoving = player.isMoving || false;
                 existingPlayer.isRunning = player.isRunning || false;
             }
-        });
-
-        this.socket.on('playerDisconnected', (playerId) => {
-            this.removePlayer(playerId);
-            this.updatePlayerCount();
         });
 
         this.socket.on('bulletFired', (data) => {            
@@ -876,10 +902,9 @@ updateJoystickKnob() {
             enemyIds.forEach(enemyId => {
                 const enemy = this.enemies.get(enemyId);
                 if (enemy) {
-                    // 敵のモデルをシーンから削除
-                    enemy.forcedDieByServer();
-                    // 敵をMapから削除
-                    //console.log('敵を削除:', enemyId);
+                    // 音を再生
+                    this.audioManager.play('enemyDeath');
+                    enemy.die();
                     this.enemies.delete(enemyId);
                 }
             });
@@ -944,10 +969,13 @@ addPlayer(playerData) {
     removePlayer(playerId) {
         const player = this.players.get(playerId);
         if (player) {
+            if (player.character) {
+                this.scene.remove(player.character);
+            }
             player.dispose();
             this.players.delete(playerId);
+            this.updatePlayerCount();
         }
-        this.updatePlayerCount();
     }
 
     shoot() {
@@ -2958,6 +2986,54 @@ spawnEnemy(enemyData) {
         const position = item.position;
         const terrainHeight = this.getHeightAt(position.x, position.z);
         item.position.y = terrainHeight;
+    }
+
+    warpToRandomPlayer() {
+
+console.log(this.players.size);
+
+        if (this.players.size === 0) {
+            console.log('他のプレイヤーがいません');
+            return;
+        }
+
+        // ランダムに他のプレイヤーを選択
+        const playerArray = Array.from(this.players.values());
+        const randomPlayer = playerArray[Math.floor(Math.random() * playerArray.length)];
+        
+        // 選択したプレイヤーの位置を取得
+        const targetPosition = randomPlayer.getPosition();
+        
+        // プレイヤーの周囲にランダムなオフセットを加える
+        const offset = new THREE.Vector3(
+            (Math.random() - 0.5) * 5, // -2.5から2.5の範囲でランダム
+            0,
+            (Math.random() - 0.5) * 5  // -2.5から2.5の範囲でランダム
+        );
+        
+        // 新しい位置を計算
+        const newPosition = targetPosition.clone().add(offset);
+        
+        // マップの境界内に収める
+        newPosition.x = Math.max(-450, Math.min(450, newPosition.x));
+        newPosition.z = Math.max(-450, Math.min(450, newPosition.z));
+        
+        // 建物との衝突チェック
+        if (!this.fieldMap.checkCollision(newPosition, 1)) {
+            // プレイヤーの位置を更新
+            this.playerModel.setPosition(newPosition.x, newPosition.y, newPosition.z);
+            
+            // サーバーに位置情報を送信
+            this.socket.emit('playerMove', {
+                position: this.playerModel.getPosition(),
+                rotation: { y: this.playerModel.getRotation().y },
+                isMoving: false,
+                isRunning: false
+            });
+        } else {
+            // 衝突する場合は、もう一度試行
+            this.warpToRandomPlayer();
+        }
     }
 }
 

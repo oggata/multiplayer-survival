@@ -139,6 +139,26 @@
             font-size: 16px;
             z-index: 100;
         }
+        #warpButton {
+            position: fixed;
+            right: 20px;
+            bottom: 90px;
+            width: 60px;
+            height: 60px;
+            background-color: rgba(68, 170, 255, 0.8);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        #warpButton:active {
+            background-color: rgba(68, 170, 255, 1);
+        }
         #healthBar {
             position: fixed;
             top: 70px;
@@ -417,7 +437,8 @@
         </div>
 
         <button id="messageButton"><i class="fas fa-comment"></i></button>
-        <button id="backpackButton"><i class="fas fa-briefcase"></i></button>
+        <button id="backpackButton">🎒</button>
+        <button id="warpButton">🚀</button>
     </div>
     
     <div id="status" class="status-container">
@@ -464,6 +485,8 @@
         </table>
         <div id="emptyBackpack">Backpack is empty</div>
     </div>
+    
+    <div id="coordinates">X: 0, Y: 0, Z: 0</div>
     
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

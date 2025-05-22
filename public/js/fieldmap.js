@@ -15,6 +15,21 @@ class FieldMap {
         this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
         this.isLoading = true; // ローディング状態を管理
 
+        // 安全なスポーン位置のリスト
+        this.safeSpawnPositions = [
+            { x: 100, y: 0, z: 100 },
+            { x: -100, y: 0, z: 100 },
+            { x: 100, y: 0, z: -100 },
+            { x: -100, y: 0, z: -100 },
+            { x: 200, y: 0, z: 0 },
+            { x: -200, y: 0, z: 0 },
+            { x: 0, y: 0, z: 200 },
+            { x: 0, y: 0, z: -200 }
+        ];
+
+        // 安全なスポーン位置からの最小距離
+        this.SAFE_SPOT_DISTANCE = 50;
+
         // バイオームごとの色を定義
         this.biomeColors = {
             'urban': {
@@ -190,7 +205,7 @@ class FieldMap {
                     // マップの端は砂浜
                     biomeType = 'beach';
                 } else {
-                    // それ以外は通常のバイオーム
+                    // シード値を使用してバイオームを決定
                     const noise = this.rng();
                     biomeType = biomeTypes[Math.floor(noise * biomeTypes.length)];
                 }
@@ -473,14 +488,33 @@ class FieldMap {
             const x = vertices[i] + position.x;
             const y = vertices[i + 1] + position.z;
         
-            var baseHeight = 
-            Math.sin(x * 0.1) * Math.cos(y * 0.1) * 3 + 
-            Math.sin(x * 0.3 + 0.5) * Math.cos(y * 0.3 + 0.5) * 2 +
-            Math.sin(x * 0.03) * Math.cos(y * 0.03) * 5;
-        
-            if(baseHeight < 0) {
-                baseHeight = 0;
-            }
+            // シード値を使用した高さ計算（よりなだらかな地形）
+            const noise1 = this.rng() * 2 - 1; // -1から1の範囲のノイズ
+            const noise2 = this.rng() * 2 - 1;
+            const noise3 = this.rng() * 2 - 1;
+            
+            // より大きなスケールの波を追加
+            const largeScale = 
+                Math.sin(x * 0.02 + noise1) * Math.cos(y * 0.02 + noise1) * 2.0 + 
+                Math.sin(x * 0.05 + 0.5 + noise2) * Math.cos(y * 0.05 + 0.5 + noise2) * 1.5;
+            
+            // 中程度のスケールの波を追加
+            const mediumScale = 
+                Math.sin(x * 0.1 + noise2) * Math.cos(y * 0.1 + noise2) * 1.0 + 
+                Math.sin(x * 0.15 + 0.3 + noise3) * Math.cos(y * 0.15 + 0.3 + noise3) * 0.8;
+            
+            // 小さなスケールの波を追加
+            const smallScale = 
+                Math.sin(x * 0.3 + noise3) * Math.cos(y * 0.3 + noise3) * 0.5;
+            
+            // すべてのスケールを組み合わせる
+            var baseHeight = largeScale + mediumScale + smallScale;
+            
+            // 高さを制限して、極端な凹凸を防ぐ
+            baseHeight = Math.max(0, Math.min(baseHeight, 5));
+            
+            // なだらかな遷移のために、高さをスムージング
+            baseHeight = Math.pow(baseHeight, 0.8); // 高さの変化を緩やかにする
 
             vertices[i + 2] = baseHeight;
         }
@@ -564,14 +598,33 @@ class FieldMap {
                     const x = vertices[i] + chunk.mesh.position.x;
                     const y = vertices[i + 1] + chunk.mesh.position.z;
                     
-                    var baseHeight = 
-                        Math.sin(x * 0.1) * Math.cos(y * 0.1) * 3 + 
-                        Math.sin(x * 0.3 + 0.5) * Math.cos(y * 0.3 + 0.5) * 2 +
-                        Math.sin(x * 0.03) * Math.cos(y * 0.03) * 5;
+                    // シード値を使用した高さ計算
+                    const noise1 = this.rng() * 2 - 1; // -1から1の範囲のノイズ
+                    const noise2 = this.rng() * 2 - 1;
+                    const noise3 = this.rng() * 2 - 1;
                     
-                    if(baseHeight < 0) {
-                        baseHeight = 0;
-                    }
+                    // より大きなスケールの波を追加
+                    const largeScale = 
+                        Math.sin(x * 0.02 + noise1) * Math.cos(y * 0.02 + noise1) * 2.0 + 
+                        Math.sin(x * 0.05 + 0.5 + noise2) * Math.cos(y * 0.05 + 0.5 + noise2) * 1.5;
+                    
+                    // 中程度のスケールの波を追加
+                    const mediumScale = 
+                        Math.sin(x * 0.1 + noise2) * Math.cos(y * 0.1 + noise2) * 1.0 + 
+                        Math.sin(x * 0.15 + 0.3 + noise3) * Math.cos(y * 0.15 + 0.3 + noise3) * 0.8;
+                    
+                    // 小さなスケールの波を追加
+                    const smallScale = 
+                        Math.sin(x * 0.3 + noise3) * Math.cos(y * 0.3 + noise3) * 0.5;
+                    
+                    // すべてのスケールを組み合わせる
+                    var baseHeight = largeScale + mediumScale + smallScale;
+                    
+                    // 高さを制限して、極端な凹凸を防ぐ
+                    baseHeight = Math.max(0, Math.min(baseHeight, 5));
+                    
+                    // なだらかな遷移のために、高さをスムージング
+                    baseHeight = Math.pow(baseHeight, 0.8); // 高さの変化を緩やかにする
 
                     vertices[i + 2] = baseHeight;
                 }
@@ -769,6 +822,16 @@ class FieldMap {
         }
     }
 
+    // 安全なスポーン位置かどうかをチェックする関数
+    isSafeSpot(x, z) {
+        return this.safeSpawnPositions.some(pos => {
+            const dx = x - pos.x;
+            const dz = z - pos.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            return distance < this.SAFE_SPOT_DISTANCE;
+        });
+    }
+
     generateObjectsForChunk(chunkX, chunkZ) {
         const chunkKey = `${chunkX},${chunkZ}`;
         if (this.objectChunks.has(chunkKey)) {
@@ -800,11 +863,21 @@ class FieldMap {
                 const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
                 
                 while (!isSafe && attempts < maxAttempts) {
+                    // シード値を使用して位置を決定
+                    const offsetX = (this.rng() - 0.5) * this.chunkSize;
+                    const offsetZ = (this.rng() - 0.5) * this.chunkSize;
+                    
                     position = new THREE.Vector3(
-                        chunkPosition.x + (this.rng() - 0.5) * this.chunkSize,
+                        chunkPosition.x + offsetX,
                         0,
-                        chunkPosition.z + (this.rng() - 0.5) * this.chunkSize
+                        chunkPosition.z + offsetZ
                     );
+
+                    // 安全なスポーン位置との距離をチェック
+                    if (this.isSafeSpot(position.x, position.z)) {
+                        attempts++;
+                        continue;
+                    }
 
                     if (Math.abs(position.x - chunkPosition.x) > this.chunkSize/2 ||
                         Math.abs(position.z - chunkPosition.z) > this.chunkSize/2) {
@@ -824,13 +897,13 @@ class FieldMap {
                 }
                 
                 if (isSafe) {
-                    // バイオームに応じた建物タイプを選択
-                    const buildingTypeName = biomeSetting.buildingTypes[
-                        Math.floor(this.rng() * biomeSetting.buildingTypes.length)
-                    ];
+                    // バイオームに応じた建物タイプを選択（シード値を使用）
+                    const buildingTypeIndex = Math.floor(this.rng() * biomeSetting.buildingTypes.length);
+                    const buildingTypeName = biomeSetting.buildingTypes[buildingTypeIndex];
                     const buildingType = this.buildingTypes.find(type => type.name === buildingTypeName);
                     
                     if (buildingType) {
+                        // シード値を使用して高さと幅を決定
                         const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
                         const width = 15 + this.rng() * 25;
                         
