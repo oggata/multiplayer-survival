@@ -283,12 +283,7 @@ class FieldMap {
         
         // 地形の生成
         this.generateTerrain();
-        
-        // オブジェクトの生成
-        //this.generateObjects();
-        
-        // 境界壁の作成
-        //this.createBoundaryWalls();
+    
     }
     
     generateBiomes() {
@@ -592,59 +587,65 @@ class FieldMap {
 
         const terrainChunk = new THREE.Mesh(geometry, material);
         terrainChunk.rotation.x = -Math.PI / 2;
-        terrainChunk.receiveShadow = true;
+        //terrainChunk.receiveShadow = true;
         terrainChunk.position.copy(position);
 
-        // 頂点の高さを設定
-        const vertices = terrainChunk.geometry.attributes.position.array;
-        const segments = this.lodSegments[0];
-        const halfSize = this.chunkSize / 2;
+        // チャンクの下にboxを追加
+        const boxGeometry = new THREE.BoxGeometry(this.chunkSize, 10, this.chunkSize);
+        const boxMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                baseColor: { value: biomeColor.base },
+                highlightColor: { value: biomeColor.highlight },
+                midColor: { value: biomeColor.mid },
+                topColor: { value: biomeColor.top }
+            },
+            vertexShader: `
+                varying vec3 vPosition;
+                void main() {
+                    vPosition = position;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vPosition;
+                uniform vec3 baseColor;
+                uniform vec3 highlightColor;
+                uniform vec3 midColor;
+                uniform vec3 topColor;
 
-        for (let i = 0; i < vertices.length; i += 3) {
-            const x = vertices[i] + position.x;
-            const y = vertices[i + 1] + position.z;
-            
-            // チャンクの端からの距離を計算（0-1の範囲）
-            const distFromEdgeX = Math.abs(x - position.x) / halfSize;
-            const distFromEdgeZ = Math.abs(y - position.z) / halfSize;
-            
-            // 端からの距離に基づいて高さを調整する係数を計算
-            const edgeFactor = Math.pow(
-                Math.min(
-                    this.smoothstep(0, 0.4, distFromEdgeX),
-                    this.smoothstep(0, 0.4, distFromEdgeZ)
-                ),
-                3
-            );
-            
-            // 決定論的ノイズを使用して高さを計算
-            const scale1 = 0.02; // 大きなスケール
-            const scale2 = 0.05; // 中程度のスケール
-            const scale3 = 0.1;  // 小さなスケール
-            
-            const noise1 = this.noise.simplex2(x * scale1, y * scale1) * 2.0;
-            const noise2 = this.noise.simplex2(x * scale2, y * scale2) * 1.5;
-            const noise3 = this.noise.simplex2(x * scale3, y * scale3) * 0.5;
-            
-            // すべてのスケールを組み合わせる
-            var baseHeight = noise1 + noise2 + noise3;
-            
-            // 高さを制限して、極端な凹凸を防ぐ
-            baseHeight = Math.max(0, Math.min(baseHeight, 5));
-            
-            // なだらかな遷移のために、高さをスムージング
-            baseHeight = Math.pow(baseHeight, 0.8);
+                void main() {
+                    float height = vPosition.y;
+                    vec3 finalColor;
 
-            // 端の高さを0に近づける
-            vertices[i + 2] = baseHeight * edgeFactor;
-        }
+                    float heightFactor1 = smoothstep(0.0, 2.0, height);
+                    float heightFactor2 = smoothstep(2.0, 4.0, height);
+                    float heightFactor3 = smoothstep(4.0, 8.0, height);
 
-        terrainChunk.geometry.attributes.position.needsUpdate = true;
-        terrainChunk.geometry.computeVertexNormals();
+                    vec3 color1 = mix(baseColor, midColor, heightFactor1);
+                    vec3 color2 = mix(midColor, highlightColor, heightFactor2);
+                    vec3 color3 = mix(highlightColor, topColor, heightFactor3);
+
+                    if (height < 2.0) {
+                        finalColor = color1;
+                    } else if (height < 4.0) {
+                        finalColor = color2;
+                    } else {
+                        finalColor = color3;
+                    }
+
+                    gl_FragColor = vec4(finalColor, 1.0);
+                }
+            `,
+            side: THREE.DoubleSide
+        });
+        const box = new THREE.Mesh(boxGeometry, boxMaterial);
+        box.position.copy(position);
+        box.position.y = -7; // チャンクの下に配置
 
         // チャンクを管理配列に追加
         this.terrainChunks.push({
             mesh: terrainChunk,
+            box: box, // boxを追加
             chunkX: chunkX,
             chunkZ: chunkZ,
             geometry: geometry,
@@ -653,6 +654,7 @@ class FieldMap {
         });
 
         this.scene.add(terrainChunk);
+        this.scene.add(box);
     }
 
     updateTerrainVisibility(cameraPosition) {
@@ -666,6 +668,7 @@ class FieldMap {
             if (distance > this.visibleDistance) {
                 if (chunk.mesh.visible) {
                     chunk.mesh.visible = false;
+                    if (chunk.box) chunk.box.visible = false;
                     // チャンクに関連するオブジェクトも非表示にする
                     const chunkKey = `${chunk.chunkX},${chunk.chunkZ}`;
                     const chunkObjects = this.objectChunks.get(chunkKey);
@@ -683,6 +686,7 @@ class FieldMap {
             // 視界内のチャンクを表示
             if (!chunk.mesh.visible) {
                 chunk.mesh.visible = true;
+                if (chunk.box) chunk.box.visible = true;
                 // チャンクに関連するオブジェクトも表示する
                 const chunkKey = `${chunk.chunkX},${chunk.chunkZ}`;
                 const chunkObjects = this.objectChunks.get(chunkKey);
@@ -807,10 +811,15 @@ class FieldMap {
                     this.objectChunks.delete(chunkKey);
                 }
                 
-                // チャンクのメッシュを削除
+                // チャンクのメッシュとboxを削除
                 this.scene.remove(chunk.mesh);
+                this.scene.remove(chunk.box);
                 chunk.geometry.dispose();
                 chunk.material.dispose();
+                if (chunk.box) {
+                    chunk.box.geometry.dispose();
+                    chunk.box.material.dispose();
+                }
                 return false;
             }
             return true;
