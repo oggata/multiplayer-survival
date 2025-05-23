@@ -100,8 +100,11 @@ class FieldMap {
 
         this.scene = scene;
         this.seed = seed || Math.random();
-        Math.seedrandom(this.seed.toString());
-        this.rng = Math.random;
+
+        console.log("seed: " + this.seed);
+
+
+        this.rng = new Math.seedrandom(this.seed.toString());
         // ノイズ関数のシードを設定
         this.noise.seed(this.seed);
         this.mapSize = GameConfig.MAP.SIZE;
@@ -266,6 +269,12 @@ class FieldMap {
         
         // マップの初期化を即時実行
         this.createMap();
+
+        // オブジェクト生成用の決定論的な乱数生成関数
+        this.getDeterministicRandom = (x, z, type) => {
+            const combinedSeed = this.seed + x * 1000 + z * 1000 + type.charCodeAt(0);
+            return new Math.seedrandom(combinedSeed.toString())();
+        };
     }
     
     createMap() {
@@ -951,18 +960,18 @@ class FieldMap {
         if (!biomeSetting) return;
 
         // 建物の生成
-        const buildingCount = Math.floor(this.rng() * 2 * biomeSetting.buildingDensity);
+        const buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 30 * biomeSetting.buildingDensity);
         for (let i = 0; i < buildingCount; i++) {
-            if (this.rng() < biomeSetting.buildingDensity) {
+            if (this.getDeterministicRandom(chunkX, chunkZ, 'building' + i) < biomeSetting.buildingDensity) {
                 let position;
                 let isSafe = false;
                 let attempts = 0;
                 const maxAttempts = GameConfig.MAP.BUILDINGS.MAX_ATTEMPTS;
                 
                 while (!isSafe && attempts < maxAttempts) {
-                    // シード値を使用して位置を決定
-                    const offsetX = (this.rng() - 0.5) * this.chunkSize;
-                    const offsetZ = (this.rng() - 0.5) * this.chunkSize;
+                    // 決定論的な位置生成
+                    const offsetX = (this.getDeterministicRandom(chunkX, chunkZ, 'buildingX' + i) - 0.5) * this.chunkSize;
+                    const offsetZ = (this.getDeterministicRandom(chunkX, chunkZ, 'buildingZ' + i) - 0.5) * this.chunkSize;
                     
                     position = new THREE.Vector3(
                         chunkPosition.x + offsetX,
@@ -994,15 +1003,15 @@ class FieldMap {
                 }
                 
                 if (isSafe) {
-                    // バイオームに応じた建物タイプを選択（シード値を使用）
-                    const buildingTypeIndex = Math.floor(this.rng() * biomeSetting.buildingTypes.length);
+                    // 決定論的な建物タイプの選択
+                    const buildingTypeIndex = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'buildingType' + i) * biomeSetting.buildingTypes.length);
                     const buildingTypeName = biomeSetting.buildingTypes[buildingTypeIndex];
                     const buildingType = this.buildingTypes.find(type => type.name === buildingTypeName);
                     
                     if (buildingType) {
-                        // シード値を使用して高さと幅を決定
-                        const height = buildingType.minHeight + this.rng() * (buildingType.maxHeight - buildingType.minHeight);
-                        const width = 15 + this.rng() * 25;
+                        // 決定論的な高さと幅の生成
+                        const height = buildingType.minHeight + this.getDeterministicRandom(chunkX, chunkZ, 'buildingHeight' + i) * (buildingType.maxHeight - buildingType.minHeight);
+                        const width = 15 + this.getDeterministicRandom(chunkX, chunkZ, 'buildingWidth' + i) * 25;
                         
                         const building = this.fieldObject.createBuilding(position, buildingType, height, width);
                         if (building && building.mesh) {
@@ -1020,24 +1029,23 @@ class FieldMap {
         // 木の生成
         let treeCount;
         if (biome.type === 'forest') {
-            // forestバイオームでは木の数を大幅に増やす
-            treeCount = Math.floor(this.rng() * 50 * biomeSetting.treeDensity); // 50倍に増加
+            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 50 * biomeSetting.treeDensity);
         } else {
-            treeCount = Math.floor(this.rng() * 20 * biomeSetting.treeDensity);
+            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 20 * biomeSetting.treeDensity);
         }
 
         for (let i = 0; i < treeCount; i++) {
-            const x = chunkPosition.x + (this.rng() - 0.5) * this.chunkSize;
-            const z = chunkPosition.z + (this.rng() - 0.5) * this.chunkSize;
+            const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'treeX' + i) - 0.5) * this.chunkSize;
+            const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'treeZ' + i) - 0.5) * this.chunkSize;
             
-            // バイオームに応じた木のタイプを選択
+            // 決定論的な木のタイプ選択
             const treeTypeName = biomeSetting.treeTypes[
-                Math.floor(this.rng() * biomeSetting.treeTypes.length)
+                Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeType' + i) * biomeSetting.treeTypes.length)
             ];
             const treeType = this.treeTypes.find(type => type.name === treeTypeName);
             
             if (treeType) {
-                const height = Math.floor(this.rng() * 5) + 3;
+                const height = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeHeight' + i) * 5) + 3;
                 const tree = this.fieldObject.createTree(x, z, height, treeTypeName);
                 if (tree && tree.mesh) {
                     tree.mesh.position.set(x, this.getHeightAt(x, z), z);
@@ -1049,28 +1057,27 @@ class FieldMap {
         }
 
         // がれきの生成
-        const debrisCount = Math.floor(this.rng() * 10 * biomeSetting.debrisDensity); // がれきの数を増やす
+        const debrisCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'debrisCount') * 10 * biomeSetting.debrisDensity);
         for (let i = 0; i < debrisCount; i++) {
-            const x = chunkPosition.x + (this.rng() - 0.5) * this.chunkSize;
-            const z = chunkPosition.z + (this.rng() - 0.5) * this.chunkSize;
+            const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'debrisX' + i) - 0.5) * this.chunkSize;
+            const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'debrisZ' + i) - 0.5) * this.chunkSize;
             
-            // バイオームに応じたがれきのタイプを選択
+            // 決定論的ながれきのタイプ選択
             const debrisTypeName = biomeSetting.debrisTypes[
-                Math.floor(this.rng() * biomeSetting.debrisTypes.length)
+                Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'debrisType' + i) * biomeSetting.debrisTypes.length)
             ];
             const debrisType = this.debrisTypes.find(type => type.name === debrisTypeName);
             
             if (debrisType) {
-                // がれきのサイズをランダムに変更
-                const scale = 0.5 + this.rng() * 1.5; // 0.5から2.0の範囲でランダム
+                const scale = 0.5 + this.getDeterministicRandom(chunkX, chunkZ, 'debrisScale' + i) * 1.5;
                 const debris = this.fieldObject.createDebris(x, z, debrisType);
                 if (debris && debris.mesh) {
                     debris.mesh.position.set(x, this.getHeightAt(x, z), z);
                     debris.mesh.scale.set(scale, scale, scale);
-                    // ランダムな回転を追加
-                    debris.mesh.rotation.y = this.rng() * Math.PI * 2;
-                    debris.mesh.rotation.x = (this.rng() - 0.5) * 0.2;
-                    debris.mesh.rotation.z = (this.rng() - 0.5) * 0.2;
+                    // 決定論的な回転
+                    debris.mesh.rotation.y = this.getDeterministicRandom(chunkX, chunkZ, 'debrisRotY' + i) * Math.PI * 2;
+                    debris.mesh.rotation.x = (this.getDeterministicRandom(chunkX, chunkZ, 'debrisRotX' + i) - 0.5) * 0.2;
+                    debris.mesh.rotation.z = (this.getDeterministicRandom(chunkX, chunkZ, 'debrisRotZ' + i) - 0.5) * 0.2;
                     this.scene.add(debris.mesh);
                     chunkObjects.push(debris);
                     this.objects.push(debris);

@@ -10,6 +10,7 @@ app.use(express.static('public'));
 
 // サーバー起動時にシード値を生成
 const serverSeed = Math.random();
+//console.log(`Server seed: ${serverSeed}`);
 // サーバー起動時のゲーム開始時間を記録
 const gameStartTime = Date.now();
 
@@ -817,7 +818,7 @@ setInterval(updateEnemies, 100);
 function getSpawnPosition() {
     // 他のプレイヤーがいない場合は、安全なスポーン位置からランダムに選択
     if (Object.keys(players).length === 0) {
-        console.log('他のプレイヤーがいないため、安全なスポーン位置を選択します');
+        //console.log('他のプレイヤーがいないため、安全なスポーン位置を選択します');
         const randomPosition = safeSpawnPositions[Math.floor(Math.random() * safeSpawnPositions.length)];
         return {
             x: randomPosition.x,
@@ -849,7 +850,7 @@ function getSpawnPosition() {
         z: (Math.random() - 0.5) * 10  // -5から5の範囲でランダム
     };
 
-    console.log('選択した安全なスポーン位置:', closestSafePosition, 'オフセット:', offset);
+    //console.log('選択した安全なスポーン位置:', closestSafePosition, 'オフセット:', offset);
 
     return {
         x: randomPlayer.position.x,
