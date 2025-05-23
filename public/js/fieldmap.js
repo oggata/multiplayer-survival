@@ -499,6 +499,27 @@ class FieldMap {
         const segments = this.lodSegments[0];
         const halfSize = this.chunkSize / 2;
 
+        // 隣接チャンクの高さを取得する関数
+        const getNeighborHeight = (x, z) => {
+            const neighborChunkX = Math.floor(x / this.chunkSize);
+            const neighborChunkZ = Math.floor(z / this.chunkSize);
+            
+            if (neighborChunkX === chunkX && neighborChunkZ === chunkZ) {
+                return null; // 同じチャンク内
+            }
+
+            const neighborChunk = this.terrainChunks.find(
+                chunk => chunk.chunkX === neighborChunkX && chunk.chunkZ === neighborChunkZ
+            );
+
+            if (neighborChunk) {
+                const localX = x - neighborChunk.mesh.position.x;
+                const localZ = z - neighborChunk.mesh.position.z;
+                return this.getHeightAt(x, z);
+            }
+            return null;
+        };
+
         for (let i = 0; i < vertices.length; i += 3) {
             const x = vertices[i] + position.x;
             const y = vertices[i + 1] + position.z;
@@ -508,12 +529,15 @@ class FieldMap {
             const distFromEdgeZ = Math.abs(y - position.z) / halfSize;
             
             // 端からの距離に基づいて高さを調整する係数を計算
-            const edgeFactor = Math.min(
-                this.smoothstep(0, 0.2, distFromEdgeX),
-                this.smoothstep(0, 0.2, distFromEdgeZ)
+            const edgeFactor = Math.pow(
+                Math.min(
+                    this.smoothstep(0, 0.4, distFromEdgeX),
+                    this.smoothstep(0, 0.4, distFromEdgeZ)
+                ),
+                3  // 3乗することで、より強い収束効果を生む
             );
             
-            // シード値を使用した高さ計算（よりなだらかな地形）
+            // シード値を使用した高さ計算
             const noise1 = this.rng() * 2 - 1;
             const noise2 = this.rng() * 2 - 1;
             const noise3 = this.rng() * 2 - 1;
@@ -540,6 +564,19 @@ class FieldMap {
             
             // なだらかな遷移のために、高さをスムージング
             baseHeight = Math.pow(baseHeight, 0.8);
+
+            // 隣接チャンクとの境界での高さ調整
+            if (distFromEdgeX > 0.9 || distFromEdgeZ > 0.9) {
+                const neighborHeight = getNeighborHeight(x, y);
+                if (neighborHeight !== null) {
+                    // 隣接チャンクの高さとの補間
+                    const blendFactor = Math.max(
+                        this.smoothstep(0.9, 1.0, distFromEdgeX),
+                        this.smoothstep(0.9, 1.0, distFromEdgeZ)
+                    );
+                    baseHeight = baseHeight * (1 - blendFactor) + neighborHeight * blendFactor;
+                }
+            }
 
             // 端の高さを0に近づける
             vertices[i + 2] = baseHeight * edgeFactor;
@@ -644,7 +681,8 @@ class FieldMap {
                         Math.sin(x * 0.3 + noise3) * Math.cos(y * 0.3 + noise3) * 0.5;
                     
                     // すべてのスケールを組み合わせる
-                    var baseHeight = largeScale + mediumScale + smallScale;
+                    //var baseHeight = largeScale + mediumScale + smallScale;
+                    var baseHeight =smallScale;
                     
                     // 高さを制限して、極端な凹凸を防ぐ
                     baseHeight = Math.max(0, Math.min(baseHeight, 5));
@@ -880,7 +918,7 @@ class FieldMap {
         if (!biomeSetting) return;
 
         // 建物の生成
-        const buildingCount = Math.floor(this.rng() * 25 * biomeSetting.buildingDensity);
+        const buildingCount = Math.floor(this.rng() * 2 * biomeSetting.buildingDensity);
         for (let i = 0; i < buildingCount; i++) {
             if (this.rng() < biomeSetting.buildingDensity) {
                 let position;
@@ -950,7 +988,7 @@ class FieldMap {
         let treeCount;
         if (biome.type === 'forest') {
             // forestバイオームでは木の数を大幅に増やす
-            treeCount = Math.floor(this.rng() * 1000 * biomeSetting.treeDensity); // 100倍に増加
+            treeCount = Math.floor(this.rng() * 50 * biomeSetting.treeDensity); // 50倍に増加
         } else {
             treeCount = Math.floor(this.rng() * 20 * biomeSetting.treeDensity);
         }
@@ -978,7 +1016,7 @@ class FieldMap {
         }
 
         // がれきの生成
-        const debrisCount = Math.floor(this.rng() * 10 * biomeSetting.debrisDensity);
+        const debrisCount = Math.floor(this.rng() * 10 * biomeSetting.debrisDensity); // がれきの数を増やす
         for (let i = 0; i < debrisCount; i++) {
             const x = chunkPosition.x + (this.rng() - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.rng() - 0.5) * this.chunkSize;
@@ -990,9 +1028,16 @@ class FieldMap {
             const debrisType = this.debrisTypes.find(type => type.name === debrisTypeName);
             
             if (debrisType) {
+                // がれきのサイズをランダムに変更
+                const scale = 0.5 + this.rng() * 1.5; // 0.5から2.0の範囲でランダム
                 const debris = this.fieldObject.createDebris(x, z, debrisType);
                 if (debris && debris.mesh) {
                     debris.mesh.position.set(x, this.getHeightAt(x, z), z);
+                    debris.mesh.scale.set(scale, scale, scale);
+                    // ランダムな回転を追加
+                    debris.mesh.rotation.y = this.rng() * Math.PI * 2;
+                    debris.mesh.rotation.x = (this.rng() - 0.5) * 0.2;
+                    debris.mesh.rotation.z = (this.rng() - 0.5) * 0.2;
                     this.scene.add(debris.mesh);
                     chunkObjects.push(debris);
                     this.objects.push(debris);

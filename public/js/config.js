@@ -4,7 +4,7 @@
 const GameConfig = {
     // プレイヤー設定
     PLAYER: {
-        MOVE_SPEED: 4.0,
+        MOVE_SPEED: 4.5,
         ROTATION_SPEED: 0.05,
         MAX_HEALTH: 100,
         COLLISION_RADIUS: 1.0,
@@ -85,8 +85,8 @@ const GameConfig = {
     // マップ設定
     MAP: {
         SIZE:   6000,
-        CHUNK_SIZE:   220,
-        VISLBLE_DISTANCE:   250,
+        CHUNK_SIZE:     50,
+        VISLBLE_DISTANCE:   150,
         BOUNDARY_WALL_HEIGHT:  0,
         BIOME: {
             RADIUS: 500, // バイオームの半径
