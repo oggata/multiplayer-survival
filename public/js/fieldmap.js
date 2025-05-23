@@ -1,5 +1,13 @@
 class FieldMap {
     constructor(scene, seed) {
+        // smoothstep関数の定義
+        this.smoothstep = function(edge0, edge1, x) {
+            // 範囲を0-1に正規化
+            const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+            // 3次関数で滑らかな補間
+            return t * t * (3 - 2 * t);
+        };
+
         this.scene = scene;
         this.seed = seed || Math.random();
         Math.seedrandom(this.seed.toString());
@@ -75,10 +83,10 @@ class FieldMap {
                 debrisTypes: ['concrete', 'metal', 'glass', 'brick']
             },
             'forest': {
-                buildingDensity: 0.1,
+                buildingDensity: 0.05,
                 buildingTypes: ['residential', 'school'],
-                treeDensity: 0.8,
-                treeTypes: ['pine', 'oak', 'birch', 'maple', 'redwood'],
+                treeDensity: 0.95,
+                treeTypes: ['pine', 'oak', 'birch', 'maple', 'redwood', 'willow'],
                 debrisDensity: 0.1,
                 debrisTypes: ['wood', 'rock']
             },
@@ -184,7 +192,8 @@ class FieldMap {
     
     generateBiomes() {
         // バイオームの種類を定義
-        const biomeTypes = ['urban', 'forest', 'ruins', 'industrial'];
+        const biomeTypes = GameConfig.MAP.BIOME.TYPES;
+        const biomeRadius = GameConfig.MAP.BIOME.RADIUS;
         
         // マップの端から砂浜の幅を定義
         const beachWidth = 15; // 砂浜の幅
@@ -205,9 +214,12 @@ class FieldMap {
                     // マップの端は砂浜
                     biomeType = 'beach';
                 } else {
-                    // シード値を使用してバイオームを決定
-                    const noise = this.rng();
-                    biomeType = biomeTypes[Math.floor(noise * biomeTypes.length)];
+                    // 中心からの距離を計算
+                    const distanceFromCenter = Math.sqrt(x * x + z * z);
+                    
+                    // バイオームの種類を決定（距離に基づいて）
+                    const biomeIndex = Math.floor(distanceFromCenter / biomeRadius) % biomeTypes.length;
+                    biomeType = biomeTypes[biomeIndex];
                 }
                 
                 this.biomes.push({
@@ -400,10 +412,10 @@ class FieldMap {
         const material = new THREE.ShaderMaterial({
             uniforms: {
                 lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
-                lightIntensity: { value: 0.7 },  // 光の強さを弱める
-                ambientIntensity: { value: 0.3 }, // 環境光も弱める
-                lightColor: { value: new THREE.Color(0xCCCCCC) }, // 光の色を少し暗く
-                ambientColor: { value: new THREE.Color(0x999999) }, // 環境光の色も暗く
+                lightIntensity: { value: 0.7 },
+                ambientIntensity: { value: 0.3 },
+                lightColor: { value: new THREE.Color(0xCCCCCC) },
+                ambientColor: { value: new THREE.Color(0x999999) },
                 baseColor: { value: biomeColor.base },
                 highlightColor: { value: biomeColor.highlight },
                 midColor: { value: biomeColor.mid },
@@ -484,12 +496,25 @@ class FieldMap {
 
         // 頂点の高さを設定
         const vertices = terrainChunk.geometry.attributes.position.array;
+        const segments = this.lodSegments[0];
+        const halfSize = this.chunkSize / 2;
+
         for (let i = 0; i < vertices.length; i += 3) {
             const x = vertices[i] + position.x;
             const y = vertices[i + 1] + position.z;
-        
+            
+            // チャンクの端からの距離を計算（0-1の範囲）
+            const distFromEdgeX = Math.abs(x - position.x) / halfSize;
+            const distFromEdgeZ = Math.abs(y - position.z) / halfSize;
+            
+            // 端からの距離に基づいて高さを調整する係数を計算
+            const edgeFactor = Math.min(
+                this.smoothstep(0, 0.2, distFromEdgeX),
+                this.smoothstep(0, 0.2, distFromEdgeZ)
+            );
+            
             // シード値を使用した高さ計算（よりなだらかな地形）
-            const noise1 = this.rng() * 2 - 1; // -1から1の範囲のノイズ
+            const noise1 = this.rng() * 2 - 1;
             const noise2 = this.rng() * 2 - 1;
             const noise3 = this.rng() * 2 - 1;
             
@@ -514,9 +539,10 @@ class FieldMap {
             baseHeight = Math.max(0, Math.min(baseHeight, 5));
             
             // なだらかな遷移のために、高さをスムージング
-            baseHeight = Math.pow(baseHeight, 0.8); // 高さの変化を緩やかにする
+            baseHeight = Math.pow(baseHeight, 0.8);
 
-            vertices[i + 2] = baseHeight;
+            // 端の高さを0に近づける
+            vertices[i + 2] = baseHeight * edgeFactor;
         }
 
         terrainChunk.geometry.attributes.position.needsUpdate = true;
@@ -854,8 +880,8 @@ class FieldMap {
         if (!biomeSetting) return;
 
         // 建物の生成
-        const buildingCount = Math.floor(this.rng() * 5 * biomeSetting.buildingDensity);
-        for (let i = 0; i < 10; i++) {
+        const buildingCount = Math.floor(this.rng() * 25 * biomeSetting.buildingDensity);
+        for (let i = 0; i < buildingCount; i++) {
             if (this.rng() < biomeSetting.buildingDensity) {
                 let position;
                 let isSafe = false;
@@ -921,7 +947,14 @@ class FieldMap {
         }
 
         // 木の生成
-        const treeCount = Math.floor(this.rng() * 20 * biomeSetting.treeDensity);
+        let treeCount;
+        if (biome.type === 'forest') {
+            // forestバイオームでは木の数を大幅に増やす
+            treeCount = Math.floor(this.rng() * 1000 * biomeSetting.treeDensity); // 100倍に増加
+        } else {
+            treeCount = Math.floor(this.rng() * 20 * biomeSetting.treeDensity);
+        }
+
         for (let i = 0; i < treeCount; i++) {
             const x = chunkPosition.x + (this.rng() - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.rng() - 0.5) * this.chunkSize;
@@ -971,104 +1004,6 @@ class FieldMap {
         this.objectChunks.set(chunkKey, chunkObjects);
     }
     
-    createBoundaryWalls() {
-        const wallHeight = 0;
-        const wallThickness = 0;
-        
-        // 北の壁
-       // this.createWall(0, wallHeight/2, -this.mapSize/2, this.mapSize, wallThickness, wallHeight);
-        // 南の壁
-       // this.createWall(0, wallHeight/2, this.mapSize/2, this.mapSize, wallThickness, wallHeight);
-        // 東の壁
-       // this.createWall(this.mapSize/2, wallHeight/2, 0, wallThickness, this.mapSize, wallHeight);
-        // 西の壁
-       // this.createWall(-this.mapSize/2, wallHeight/2, 0, wallThickness, this.mapSize, wallHeight);
-
-        // 海の作成
-        //this.createOcean();
-    }
-    
-    createWall(x, y, z, width, depth, height) {
-        const geometry = new THREE.BoxGeometry(width, height, depth);
-        const material = new THREE.MeshStandardMaterial({
-            color: 0x808080,
-            roughness: 0.8,
-            metalness: 0.2
-        });
-        const wall = new THREE.Mesh(geometry, material);
-        wall.position.set(x, y, z);
-        wall.castShadow = true;
-        wall.receiveShadow = true;
-        this.scene.add(wall);
-        this.objects.push(wall);
-    }
-    
-    createOcean() {
-        // 海の平面を作成（マップの2倍の大きさ）
-        const oceanSize = this.mapSize * 2
-        const oceanGeometry = new THREE.PlaneGeometry(oceanSize, oceanSize, 100, 100);
-        
-        // 海のマテリアルを作成
-        const oceanMaterial = new THREE.MeshStandardMaterial({
-            color: 0x004DB3, 
-            transparent: true,
-            //opacity: 1,
-            side: THREE.DoubleSide // 両面を表示
-        });
-        
-        // 海のメッシュを作成
-        //const ocean = new THREE.Mesh(oceanGeometry, oceanMaterial);
-        //ocean.rotation.x = -Math.PI / 2; // 平面を水平に
-        //ocean.position.y = 0.1; // 地面より少し下に配置
-        
-        // 波のアニメーション用の頂点を取得
-        //const positions = oceanGeometry.attributes.position.array;
-        //const originalPositions = new Float32Array(positions);
-        /*
-        // アニメーション関数を定義
-        const animateOcean = () => {
-            const time = Date.now() * 0.001; // 秒単位の時間
-            
-            for (let i = 0; i < positions.length; i += 3) {
-                const x = originalPositions[i];
-                const z = originalPositions[i + 2];
-                
-                // 複雑な波のパターンを計算
-                const distance = Math.sqrt(x * x + z * z);
-                const angle = Math.atan2(z, x);
-                
-                // 主な波の動き
-                const mainWave = Math.sin(distance * 0.1 - time * 2) * 0.3;
-                
-                // 二次的な波の動き
-                const secondaryWave = Math.sin(distance * 0.2 + time) * 0.15;
-                
-                // 方向性のある波
-                const directionalWave = Math.sin(angle * 3 + time * 1.5) * 0.2;
-                
-                // 小さな波紋
-                const ripple = Math.sin(distance * 0.5 - time * 3) * 0.1;
-                
-                // すべての波を組み合わせる
-                const waveHeight = mainWave + secondaryWave + directionalWave + ripple;
-                
-                // 波の高さを適用
-                positions[i + 1] = waveHeight;
-            }
-            
-            oceanGeometry.attributes.position.needsUpdate = true;
-            oceanGeometry.computeVertexNormals();
-            requestAnimationFrame(animateOcean);
-        };
-        */
-        
-        // アニメーションを開始
-        //animateOcean();
-        
-        // 海をシーンに追加
-        //this.scene.add(ocean);
-        //this.objects.push(ocean);
-    }
     
     getBiomeAt(x, z) {
         // 最も近いバイオームを返す
@@ -1085,6 +1020,14 @@ class FieldMap {
                 closestBiome = biome;
             }
         });
+
+        // プレイヤーの位置とバイオーム情報を表示
+        if (this.game && this.game.playerModel) {
+            const playerPos = this.game.playerModel.getPosition();
+            if (Math.abs(playerPos.x - x) < 1 && Math.abs(playerPos.z - z) < 1) {
+                console.log('現在のバイオーム:', closestBiome.type, '位置:', {x: x, z: z});
+            }
+        }
         
         return closestBiome;
     }
@@ -1136,6 +1079,7 @@ class FieldMap {
             return true;
         }
         
+        /*
         // オブジェクトとの衝突判定
         for (const object of this.objects) {
             const dx = position.x - object.position.x;
@@ -1146,7 +1090,8 @@ class FieldMap {
                 return true;
             }
         }
-        
+        */
+
         return false;
     }
 

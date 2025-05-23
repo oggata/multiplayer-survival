@@ -98,79 +98,99 @@ const NIGHT_MULTIPLIER = 1.2;
 
 // バイオームの設定
 const BIOME_CONFIG = {
-    PLAINS: {
-        name: 'PLAINS',
-        color: 0x7CFC00,
-        enemyWeights: {
-            NORMAL: 0.7,
-            FAST: 0.2,
-            SHOOTER: 0.1
-        }
-    },
-    FOREST: {
-        name: 'FOREST',
-        color: 0x228B22,
-        enemyWeights: {
-            NORMAL: 0.5,
-            FAST: 0.4,
-            SHOOTER: 0.1
-        }
-    },
-    DESERT: {
-        name: 'DESERT',
-        color: 0xDAA520,
-        enemyWeights: {
-            NORMAL: 0.3,
-            FAST: 0.6,
-            SHOOTER: 0.1
-        }
-    },
-    SNOW: {
-        name: 'SNOW',
-        color: 0xFFFFFF,
-        enemyWeights: {
-            NORMAL: 0.4,
-            FAST: 0.3,
-            SHOOTER: 0.3
+    TYPES: ['urban', 'forest', 'ruins', 'industrial'],
+    RADIUS: 200,  // バイオームの半径
+    BEACH_WIDTH: 15,  // 砂浜の幅
+    BIOMES: {
+        urban: {
+            name: 'urban',
+            color: 0x2C2C2C,
+            enemyWeights: {
+                NORMAL: 1.0,
+                FAST: 0,
+                SHOOTER: 0
+            }
+        },
+        forest: {
+            name: 'forest',
+            color: 0x1B3D1B,
+            enemyWeights: {
+                NORMAL: 0,
+                FAST: 1,
+                SHOOTER: 0
+            }
+        },
+        ruins: {
+            name: 'ruins',
+            color: 0x4A3A2A,
+            enemyWeights: {
+                NORMAL: 0,
+                FAST: 0,
+                SHOOTER: 1
+            }
+        },
+        industrial: {
+            name: 'industrial',
+            color: 0x2A2A2A,
+            enemyWeights: {
+                NORMAL: 0.6,
+                FAST: 0.2,
+                SHOOTER: 0.2
+            }
+        },
+        beach: {
+            name: 'beach',
+            color: 0x3A3A2A,
+            enemyWeights: {
+                NORMAL: 0.3,
+                FAST: 0.6,
+                SHOOTER: 0.1
+            }
         }
     }
 };
 
 // バイオームの生成
-function generateBiomes(seed) {
-    const biomes = [];
-    const noise2D = createNoise2D(() => seed);
+function generateBiomes() {
+    const biomes = [];  // ローカルな配列を作成
+    const mapSize = MAP_SIZE;
+    const biomeRadius = BIOME_CONFIG.RADIUS;
+    const beachWidth = BIOME_CONFIG.BEACH_WIDTH;
     
-    for (let x = 0; x < MAP_SIZE; x += 100) {
-        for (let z = 0; z < MAP_SIZE; z += 100) {
-            const nx = x / MAP_SIZE - 0.5;
-            const nz = z / MAP_SIZE - 0.5;
+    // バイオームの配置を決定
+    for (let x = -mapSize/2; x < mapSize/2; x += 100) {
+        for (let z = -mapSize/2; z < mapSize/2; z += 100) {
+            // マップの端からbeachWidth以内の距離かどうかをチェック
+            const distanceFromEdge = Math.min(
+                Math.abs(x + mapSize/2),
+                Math.abs(x - mapSize/2),
+                Math.abs(z + mapSize/2),
+                Math.abs(z - mapSize/2)
+            );
             
-            // ノイズ値を取得
-            const elevation = noise2D(nx * 2, nz * 2);
-            const moisture = noise2D(nx * 3, nz * 3);
-            
-            // バイオームを決定
-            let biome;
-            if (elevation > 0.3) {
-                biome = BIOME_CONFIG.SNOW;
-            } else if (elevation < -0.2) {
-                biome = BIOME_CONFIG.DESERT;
-            } else if (moisture > 0.2) {
-                biome = BIOME_CONFIG.FOREST;
+            let biomeType;
+            if (distanceFromEdge < beachWidth) {
+                // マップの端は砂浜
+                biomeType = 'beach';
             } else {
-                biome = BIOME_CONFIG.PLAINS;
+                // 中心からの距離を計算
+                const distanceFromCenter = Math.sqrt(x * x + z * z);
+                
+                // バイオームの種類を決定（距離に基づいて）
+                const biomeIndex = Math.floor(distanceFromCenter / biomeRadius) % BIOME_CONFIG.TYPES.length;
+                biomeType = BIOME_CONFIG.TYPES[biomeIndex];
             }
             
             biomes.push({
+                type: biomeType,
                 x: x,
                 z: z,
-                biome: biome
+                size: 50
             });
         }
     }
     
-    return biomes;
+    return biomes;  // 生成したバイオーム配列を返す
 }
 
 // 座標からバイオームを取得
@@ -179,11 +199,11 @@ function getBiomeAt(x, z, biomes) {
     const gridZ = Math.floor(z / 100) * 100;
     
     const biome = biomes.find(b => b.x === gridX && b.z === gridZ);
-    return biome ? biome.biome : BIOME_CONFIG.PLAINS;
+    return biome ? BIOME_CONFIG.BIOMES[biome.type] : BIOME_CONFIG.BIOMES.urban;
 }
 
 // サーバー起動時にバイオームを生成
-const biomes = generateBiomes(serverSeed);
+const biomes = generateBiomes();
 
 // プレイヤーのハッシュを生成する関数
 function generatePlayerHash() {

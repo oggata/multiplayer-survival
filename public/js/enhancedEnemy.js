@@ -81,11 +81,11 @@ class EnhancedEnemy {
     getCollisionRadius() {
         switch (this.enemyType) {
             case 'quadruped':
-                return 1.2; // 四足歩行は少し大きめ
+                return 1.6; // 四足歩行は少し大きめ
             case 'hexapod':
-                return 1.2; // 六足歩行も少し大きめ
+                return 1.6; // 六足歩行も少し大きめ
             default:
-                return 1.2; // 人型はデフォルト
+                return 1.6; // 人型はデフォルト
         }
     }
 
@@ -293,17 +293,18 @@ class EnhancedEnemy {
             console.log(data.state);
         }
 
-
-
         if (data.position) {
             // 前回の位置を保存
             this.lastPosition.copy(this.model.getPosition());
             
-            // 地形の高さを取得
-            var height = this.game.fieldMap.getHeightAt(data.position.x, data.position.z);
-            if (height != null) {
-                var posy = height + 0.5;
-            }   
+            // 地形の高さを取得（fieldMapが存在する場合のみ）
+            let posy = 0.5; // デフォルトの高さ
+            if (this.game && this.game.fieldMap) {
+                const height = this.game.fieldMap.getHeightAt(data.position.x, data.position.z);
+                if (height != null) {
+                    posy = height + 0.5;
+                }
+            }
 
             // 新しい位置を設定
             this.model.setPosition(
@@ -321,21 +322,13 @@ class EnhancedEnemy {
             // 移動しているかどうかを判定
             this.isMoving = direction.length() > 0.01;
             
-            // 移動している場合は歩行アニメーションを再生
-
-        //console.log(data.state)
-        if (data.state) {
-            this.state = data.state;
-            // 攻撃状態に入った場合
-            if (this.state == 'attacking' && this.model.startAttack) {
-                this.model.startAttack();
-            }
-        }else 
-
-
-
-
-            if (this.isMoving) {
+            if (data.state) {
+                this.state = data.state;
+                // 攻撃状態に入った場合
+                if (this.state == 'attacking' && this.model.startAttack) {
+                    this.model.startAttack();
+                }
+            } else if (this.isMoving) {
                 this.model.isMoving = true;
                 
                 // 移動方向に体を向ける
@@ -353,8 +346,6 @@ class EnhancedEnemy {
         if (data.rotation) {
             this.model.setRotation(data.rotation.y);
         }
-        
-
     }
 
     dispose() {

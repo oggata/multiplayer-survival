@@ -4,7 +4,7 @@
 const GameConfig = {
     // プレイヤー設定
     PLAYER: {
-        MOVE_SPEED: 5.0,
+        MOVE_SPEED: 4.0,
         ROTATION_SPEED: 0.05,
         MAX_HEALTH: 100,
         COLLISION_RADIUS: 1.0,
@@ -88,6 +88,10 @@ const GameConfig = {
         CHUNK_SIZE:   220,
         VISLBLE_DISTANCE:   250,
         BOUNDARY_WALL_HEIGHT:  0,
+        BIOME: {
+            RADIUS: 500, // バイオームの半径
+            TYPES: ['urban', 'forest', 'ruins', 'industrial'] // バイオームの種類
+        },
         FLOOR: {
             THICKNESS: 1,
             COLOR: 0x808080,
