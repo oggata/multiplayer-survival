@@ -203,6 +203,7 @@ this.devMode = true;
         // 射撃関連の変数を追加
         this.shootCooldown = 0.7; // クールダウン時間（秒）
         this.shootTimer = 0; // 現在のクールダウンタイマー
+        this.lastShootTime = 0; // 最後の発射時間
         this.canShoot = true; // 射撃可能かどうか
         
         // メッセージ表示用の要素を追加
@@ -600,6 +601,14 @@ this.devMode = true;
         });
 
         this.setupMobileControls();
+/*
+        // キーボード入力の処理を修正
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space' && this.canShoot()) {
+                this.shoot();
+            }
+        });
+        */
     }
 
 setupMobileControls() {
@@ -859,7 +868,8 @@ updateJoystickKnob() {
                 data.position.z  //前方に少しずらす
             );
 
-            this.createBullet(position, direction, data.playerId,data.weponId);
+            const bullet = this.createBullet(position, direction, data.playerId, data.weponId);
+            this.bullets.push(bullet);
         });
         /*
         // ダメージを受けた時のイベント
@@ -998,155 +1008,169 @@ addPlayer(playerData) {
     }
 
     shoot() {
-    if (this.isGameOver || !this.canShoot) return;
-    
-    // 音を再生
-    //this.audioManager.play('gunShot');
-    
-    // 現在の武器タイプを取得
-    const currentWeponTypes = this.playerStatus.getCurrentWeponType();
-    const weponId = currentWeponTypes.length > 0 ? currentWeponTypes[0] : "wepon001";
-    
-    // プレイヤーの向きに基づいて弾を発射
-    const direction = new THREE.Vector3(0, 0, -1);
-    direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerModel.getRotation().y);
-    
-    // プレイヤーの位置から少し前方に弾を発射
-    const bulletPosition = this.playerModel.getPosition().clone();
-    bulletPosition.y += 0.5; // プレイヤーの目の高さ
-    
-    // プレイヤーの前方に弾丸の位置をずらす（方向に基づいて計算）
-    const offset = 1.5; // 前方へのオフセット距離
-    bulletPosition.add(direction.clone().multiplyScalar(offset));
-    
-    //console.log(weponId);
-    this.socket.emit('shoot', {
-        weponId: weponId,
-        position: bulletPosition,
-        direction: direction,
-        bulletDamage:10
-    });
-    
-    this.createBullet(bulletPosition, direction, this.socket.id, weponId);
-    
-    // 射撃後はクールダウンを開始
-    this.canShoot = false;
-    this.shootTimer = 0;
-}
-    createBullet(position, direction, playerId, weponId) {
-
-        if(weponId=="wepon001"){
-            const bullet = new Bullet(this.scene, position, direction, playerId,"bullet001");
-            this.bullets.push(bullet);
-        }
-        if (weponId == "shotgun") {
-            const spreadAngle = Math.PI / 8; // 放射の角度（ラジアン単位、ここでは22.5度）
-            const bulletCount = 4; // 弾丸の数
-        
-            for (let i = 0; i < bulletCount; i++) {
-                // 放射状に広がる方向を計算
-                const angleOffset = spreadAngle * (i - (bulletCount - 1) / 2); // 中心から左右に広がる
-                const spreadDirection = direction.clone().applyAxisAngle(new THREE.Vector3(0, 0.5, 0), angleOffset);
-                // 弾丸を生成
-                const bullet = new Bullet(this.scene, position, spreadDirection, playerId,"shotgun");
-                this.bullets.push(bullet);
-            }
-        }
-        if(weponId=="magnum"){
-            const bullet = new Bullet(this.scene, position, direction, playerId,"magnum");
-            this.bullets.push(bullet);
-        }
-        if (weponId == "machinegun") {
-            const bulletCount = 5; // 弾丸の数
-            const delay = 200; // 各弾丸の発射間隔（ミリ秒）
-        
-            for (let i = 0; i < bulletCount; i++) {
-                setTimeout(() => {
-                    // 弾丸を生成
-                    const bullet = new Bullet(this.scene, position.clone(), direction.clone(), playerId,"machinegun");
-                    this.bullets.push(bullet);
-                }, i * delay); // 時間差を設定
-            }
-        }
-        if (weponId == "sniperrifle") {
-            const bulletCount = 2; // 弾丸の数
-            const delay = 200; // 各弾丸の発射間隔（ミリ秒）
-        
-            for (let i = 0; i < bulletCount; i++) {
-                setTimeout(() => {
-                    // 弾丸を生成
-                    const bullet = new Bullet(this.scene, position.clone(), direction.clone(), playerId,"machinegun");
-                    this.bullets.push(bullet);
-                }, i * delay); // 時間差を設定
-            }
-        }
-        if (weponId == "rocketlauncher") {
-            const spreadAngle = Math.PI / 12; // 放射の角度（ラジアン単位、ここでは22.5度）
-            const bulletCount = 12; // 弾丸の数
-        
-            for (let i = 0; i < bulletCount; i++) {
-                // 放射状に広がる方向を計算
-                const angleOffset = spreadAngle * (i - (bulletCount - 1) / 2); // 中心から左右に広がる
-                const spreadDirection = direction.clone().applyAxisAngle(new THREE.Vector3(0, 0.5, 0), angleOffset);
-                // 弾丸を生成
-                const bullet = new Bullet(this.scene, position, spreadDirection, playerId,"rocketlauncher");
-                this.bullets.push(bullet);
-            }
+        // 発射間隔チェック
+        const now = Date.now();
+        if (now - this.lastShootTime < 800) { // 0.8秒（800ミリ秒）の間隔
+            return;
         }
 
-        
+        const weaponId = this.playerStatus.currentWeapon || 'bullet001';
+        const shootPosition = this.playerModel.getPosition().clone();
+        shootPosition.y += 1.1; // 発射位置を少し上げる
+
+        // プレイヤーの向きを取得
+        const direction = new THREE.Vector3(0, 0, -1);
+        direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerModel.getRotation().y);
+
+        // 武器タイプに応じた発射パターン
+        switch (weaponId) {
+            case 'lasergun':
+                // レーザーガン：3発連続発射
+                for (let i = 0; i < 3; i++) {
+                    const bullet = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
+                    this.bullets.push(bullet);
+                }
+                break;
+
+            case 'grenadelauncher':
+                // グレネードランチャー：爆発性の弾
+                const grenade = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
+                grenade.explosionRadius = 5;
+                grenade.explosionDamage = 30;
+                this.bullets.push(grenade);
+                break;
+
+            case 'flamethrower':
+                // フレイムスローワー：広範囲に広がる炎
+                for (let i = -2; i <= 2; i++) {
+                    const spreadDirection = direction.clone();
+                    spreadDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), i * 0.2);
+                    const bullet = this.createBullet(shootPosition, spreadDirection, this.socket.id, weaponId);
+                    this.bullets.push(bullet);
+                }
+                break;
+
+            case 'plasmacannon':
+                // プラズマキャノン：チェーンライトニング効果
+                const plasma = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
+                plasma.chainLightning = true;
+                plasma.chainRange = 5;
+                plasma.chainDamage = 15;
+                this.bullets.push(plasma);
+                break;
+
+            case 'missilelauncher':
+                // ミサイルランチャー：追尾ミサイル
+                const missile = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
+                missile.homing = true;
+                missile.homingRange = 20;
+                missile.homingSpeed = 0.1;
+                this.bullets.push(missile);
+                break;
+
+            case 'shotgun':
+                // ショットガン：広範囲に広がる弾
+                for (let i = -2; i <= 2; i++) {
+                    const spreadDirection = direction.clone();
+                    spreadDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), i * 0.2);
+                    const bullet = this.createBullet(shootPosition, spreadDirection, this.socket.id, weaponId);
+                    this.bullets.push(bullet);
+                }
+                break;
+
+            case 'machinegun':
+                // マシンガン：5発連続発射
+                for (let i = 0; i < 5; i++) {
+                    const bullet = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
+                    this.bullets.push(bullet);
+                }
+                break;
+
+            default:
+                // デフォルト武器：通常の弾
+                const bullet = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
+                this.bullets.push(bullet);
+                break;
+        }
+
+        // 発射音を再生
+        this.audioManager.play('shoot');
+
+        // サーバーに発射情報を送信
+        this.socket.emit('shoot', {
+            position: shootPosition,
+            direction: direction,
+            weponId: weaponId,
+            bulletDamage: this.bullets[this.bullets.length - 1].getDamage()
+        });
+
+        // 最後の発射時間を更新
+        this.lastShootTime = Date.now();
     }
 
     updateBullets(deltaTime) {
         for (let i = this.bullets.length - 1; i >= 0; i--) {
             const bullet = this.bullets[i];
-            
-            // 弾丸を更新
-            const isAlive = bullet.update(deltaTime);
-            
-            // 弾丸が寿命を迎えた場合は削除
-            if (!isAlive) {
+            if (!bullet.update(deltaTime)) {
+                // 弾が寿命を迎えた場合
+                this.scene.remove(bullet.model);
                 this.bullets.splice(i, 1);
                 continue;
             }
 
-            // 敵との衝突判定
-            this.enemies.forEach((enemy, enemyId) => {
-                // 敵が死亡している場合はスキップ
-                if (!enemy || enemy.isDead) return;
-                
-                if (enemy.checkBulletCollision(bullet.model.position)) {
-                    var age = bullet.getAge();
-                    //if(age>0.2){
-                        // ダメージを送信
-                        this.socket.emit('enemyHit', { 
-                            targetId: enemyId,
-                            damage: bullet.damage
-                        });
-                    //}
-                    // 敵にダメージを与える
-                    enemy.takeDamage(bullet.damage);
-                    bullet.dispose();
-                    this.bullets.splice(i, 1);
-                }
-            });
-
-            // プレイヤーとの衝突判定
-            this.players.forEach((player, playerId) => {
-                if (playerId !== bullet.playerId) {
-                    const distance = bullet.checkCollision(player.getPosition(), 1);
-                    if (distance) {
-                        // ダメージを送信
-                        this.socket.emit('playerHit', { 
-                            targetId: playerId,
-                            damage: bullet.damage
-                        });
-                        bullet.dispose();
+            // 敵との当たり判定
+            for (const [enemyId, enemy] of this.enemies) {
+                if (enemy && enemy.health > 0) {
+                    const distance = bullet.model.position.distanceTo(enemy.model.position);
+                    if (distance < 5.0) { // 当たり判定の距離
+                        // 敵にダメージを与える
+                        enemy.takeDamage(bullet.getDamage());
+                        
+                        // 弾を削除
+                        this.scene.remove(bullet.model);
                         this.bullets.splice(i, 1);
+
+                        // 敵が死亡した場合の処理
+                        if (enemy.health <= 0) {
+                            this.handleEnemyDeath(enemy.model.position);
+                            this.socket.emit('enemyDied', enemyId);
+                        }
+                        break;
                     }
                 }
-            });
+            }
+
+            // 爆発性の弾の処理
+            if (bullet.explosionRadius && bullet.getAge() >= bullet.lifetime) {
+                this.createExplosion(bullet.model.position, bullet.explosionRadius, bullet.explosionDamage);
+                this.scene.remove(bullet.model);
+                this.bullets.splice(i, 1);
+                continue;
+            }
+
+            // チェーンライトニングの処理
+            if (bullet.chainLightning) {
+                const nearbyEnemies = this.getNearbyEnemies(bullet.model.position, bullet.chainRange);
+                for (const enemy of nearbyEnemies) {
+                    enemy.takeDamage(bullet.chainDamage);
+                    this.createLightningEffect(bullet.model.position, enemy.model.position);
+                }
+            }
+
+            // 追尾ミサイルの処理
+            if (bullet.homing) {
+                const target = this.findNearestEnemy(bullet.model.position, bullet.homingRange);
+                if (target) {
+                    const targetDirection = target.model.position.clone().sub(bullet.model.position).normalize();
+                    bullet.direction.lerp(targetDirection, bullet.homingSpeed);
+                }
+            }
         }
+    }
+
+    createBullet(position, direction, playerId, weaponId) {
+        const bullet = new Bullet(this.scene, position, direction, playerId, weaponId);
+        return bullet;
     }
 
     updatePlayer(deltaTime) {
@@ -1774,31 +1798,24 @@ getSafeMapPosition() {
     update(deltaTime) {
         if (this.isGameOver) return;
         
-        
-
         // プレイヤーの位置に基づいてバイオーム名を表示
         const biome = this.fieldMap.getBiomeAt(this.playerModel.position.x, this.playerModel.position.z);
-        //console.log('現在のバイオーム:', biome.type);
         
-    // 敵の表示/非表示を更新
-    var  a = 0;
-    this.enemies.forEach(enemy => {
+        // 敵の表示/非表示を更新
+        var a = 0;
+        this.enemies.forEach(enemy => {
+            // スキップフラグがある場合は更新しない
+            if (enemy.skipUpdate) return;
+            
+            // 更新優先度が低い敵は3フレームに1回だけ更新
+            if (enemy.updatePriority === 'low' && this.frameCount % 3 !== 0) return;
+            
+            // アニメーションの更新
+            enemy.model.updateLimbAnimation(deltaTime);
+            a++;
+        });
 
-        //console.log(enemy)
-        // スキップフラグがある場合は更新しない
-        if (enemy.skipUpdate) return;
-        
-        // 更新優先度が低い敵は3フレームに1回だけ更新
-        if (enemy.updatePriority === 'low' && this.frameCount % 3 !== 0) return;
-        
-        // アニメーションの更新
-        enemy.model.updateLimbAnimation(deltaTime);
-        a++;
-    });
-
-   // console.log("enemy count = " + a);
-
-this.updateLightDirection();
+        this.updateLightDirection();
 
         // 射撃のクールダウンを更新
         if (!this.canShoot) {
@@ -1825,15 +1842,10 @@ this.updateLightDirection();
         // 天気の更新
         this.weather.update(deltaTime, this.gameTime, this.timeOfDay);
 
-        /*
-        // 敵の弾丸の更新
-        this.enemyBullets.forEach(bullet => {
-            bullet.update(deltaTime);3
-        });
-*/
+        // 弾丸の更新を追加
+        this.updateBullets(deltaTime);
+
         // 敵の表示/非表示を更新
-
-
         //itemの更新
         this.items.forEach(item => {
             item.update(deltaTime);
@@ -1842,7 +1854,6 @@ this.updateLightDirection();
         // アイテム効果の表示を更新
         this.updateEffectsDisplay();
 
-    // 自動射撃の処理
     if (this.autoShootEnabled && !this.isGameOver && this.canShoot) {
         const playerPosition = this.playerModel.getPosition();
         let nearestEnemy = null;
@@ -2798,22 +2809,8 @@ isInViewFrustum(position) {
     
 spawnEnemy(enemyData) {
     // EnhancedEnemy が定義されていない場合は従来の Enemy クラスを使用
-    try {
-        // 新しいクラスが利用可能ならそれを使用
-        if (typeof EnhancedEnemy === 'function') {
             const enemy = new EnhancedEnemy(this.scene, enemyData, this);
             this.enemies.set(enemyData.id, enemy);
-        } else {
-            // 従来のクラスにフォールバック
-            const enemy = new Enemy(this.scene, enemyData, this);
-            this.enemies.set(enemyData.id, enemy);
-        }
-    } catch (e) {
-        console.error("Error spawning enemy:", e);
-        // エラーが発生した場合は従来のクラスを使用
-        const enemy = new Enemy(this.scene, enemyData, this);
-        this.enemies.set(enemyData.id, enemy);
-    }
     
     this.updateEnemyCount();
 }
@@ -3058,6 +3055,119 @@ console.log(this.players.size);
             // 衝突する場合は、もう一度試行
             this.warpToRandomPlayer();
         }
+    }
+
+    createExplosion(position, radius, damage) {
+        // 爆発エフェクトのジオメトリを作成
+        const geometry = new THREE.SphereGeometry(radius, 32, 32);
+        const material = new THREE.MeshPhongMaterial({
+            color: 0xff6600,
+            emissive: 0xff3300,
+            emissiveIntensity: 0.8,
+            transparent: true,
+            opacity: 0.8
+        });
+        const explosion = new THREE.Mesh(geometry, material);
+        explosion.position.copy(position);
+        this.scene.add(explosion);
+
+        // 爆発のアニメーション
+        const duration = 0.5;
+        const startTime = Date.now();
+        const animate = () => {
+            const elapsed = (Date.now() - startTime) / 1000;
+            if (elapsed < duration) {
+                const scale = 1 + elapsed * 2;
+                explosion.scale.set(scale, scale, scale);
+                explosion.material.opacity = 0.8 * (1 - elapsed / duration);
+                requestAnimationFrame(animate);
+            } else {
+                this.scene.remove(explosion);
+            }
+        };
+        animate();
+
+        // 範囲内の敵にダメージを与える
+        this.enemies.forEach((enemy, enemyId) => {
+            if (!enemy || enemy.isDead) return;
+            const distance = enemy.model.position.distanceTo(position);
+            if (distance <= radius) {
+                const damageRatio = 1 - (distance / radius);
+                const actualDamage = Math.floor(damage * damageRatio);
+                enemy.takeDamage(actualDamage);
+                this.socket.emit('enemyHit', {
+                    targetId: enemyId,
+                    damage: actualDamage
+                });
+            }
+        });
+    }
+
+    createLightningEffect(startPosition, endPosition) {
+        // 稲妻のジオメトリを作成
+        const points = [];
+        const segments = 10;
+        for (let i = 0; i <= segments; i++) {
+            const t = i / segments;
+            const point = new THREE.Vector3().lerpVectors(startPosition, endPosition, t);
+            if (i > 0 && i < segments) {
+                point.x += (Math.random() - 0.5) * 0.5;
+                point.y += (Math.random() - 0.5) * 0.5;
+                point.z += (Math.random() - 0.5) * 0.5;
+            }
+            points.push(point);
+        }
+
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.8
+        });
+        const lightning = new THREE.Line(geometry, material);
+        this.scene.add(lightning);
+
+        // 稲妻のアニメーション
+        const duration = 0.2;
+        const startTime = Date.now();
+        const animate = () => {
+            const elapsed = (Date.now() - startTime) / 1000;
+            if (elapsed < duration) {
+                lightning.material.opacity = 0.8 * (1 - elapsed / duration);
+                requestAnimationFrame(animate);
+            } else {
+                this.scene.remove(lightning);
+            }
+        };
+        animate();
+    }
+
+    findNearestEnemy(position, range) {
+        let nearestEnemy = null;
+        let minDistance = range;
+
+        this.enemies.forEach((enemy, enemyId) => {
+            if (!enemy || enemy.isDead) return;
+            const distance = enemy.model.position.distanceTo(position);
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestEnemy = enemy;
+            }
+        });
+
+        return nearestEnemy;
+    }
+
+    getNearbyEnemies(position, range) {
+        const nearbyEnemies = [];
+        this.enemies.forEach((enemy, enemyId) => {
+            if (!enemy || enemy.isDead) return;
+            const distance = enemy.model.position.distanceTo(position);
+            if (distance <= range) {
+                nearbyEnemies.push(enemy);
+            }
+        });
+        return nearbyEnemies;
     }
 }
 

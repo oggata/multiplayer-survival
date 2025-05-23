@@ -30,12 +30,15 @@ class EnhancedEnemy {
         // エネミータイプに応じた設定
         const enemyTypeConfig = this.getEnemyConfig(enemyData.type, this.enemyType);
         
+        
         // 敵の色を設定
-        if (enemyTypeConfig) {
-            this.model.setEnemyColor(enemyTypeConfig.color);
-            this.color = enemyTypeConfig.color; // 色を保存
-            this.moveSpeed = enemyTypeConfig.moveSpeed;
-            this.damage = enemyTypeConfig.damage;
+        if(this.enemyType == "humanoid"){
+            if (enemyTypeConfig) {
+                this.model.setEnemyColor(enemyTypeConfig.color);
+                this.color = enemyTypeConfig.color; // 色を保存
+                this.moveSpeed = enemyTypeConfig.moveSpeed;
+                this.damage = enemyTypeConfig.damage;
+            }
         }
         
         this.health = enemyData.health;

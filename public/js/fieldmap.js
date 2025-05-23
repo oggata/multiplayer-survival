@@ -757,9 +757,10 @@ class FieldMap {
                 
                 // 生成半径内のチャンクのみを生成
                 if (distToPlayer <= generationRadius) {
-                    // チャンクが既に存在するかチェック
+                    // チャンクが既に存在するかチェック（より厳密なチェック）
+                    const chunkKey = `${x},${z}`;
                     const existingChunk = this.terrainChunks.find(
-                        chunk => chunk.chunkX === x && chunk.chunkZ === z
+                        chunk => chunk.chunkX === x && chunk.chunkZ === z && chunk.mesh
                     );
                     
                     if (!existingChunk) {

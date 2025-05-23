@@ -90,6 +90,41 @@ const ENEMY_CONFIG = {
         speed: 0.8,
         health: 25,
         weight: 0.15
+    },
+    GIANT: {
+        model: 'giant',
+        visionRange: 25,
+        speed: 0.1,
+        health: 100,
+        weight: 0.1
+    },
+    CRAB: {
+        model: 'crab',
+        visionRange: 12,
+        speed: 0.3,
+        health: 35,
+        weight: 0.2
+    },
+    FLYING: {
+        model: 'flying',
+        visionRange: 30,
+        speed: 0.7,
+        health: 15,
+        weight: 0.15
+    },
+    SLIME: {
+        model: 'slime',
+        visionRange: 8,
+        speed: 0.2,
+        health: 40,
+        weight: 0.3
+    },
+    BOSS: {
+        model: 'boss',
+        visionRange: 40,
+        speed: 0.2,
+        health: 200,
+        weight: 0.05
     }
 };
 
