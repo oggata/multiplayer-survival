@@ -8,10 +8,102 @@ class FieldMap {
             return t * t * (3 - 2 * t);
         };
 
+        // 決定論的ノイズ関数の追加
+        const grad3 = [
+            [1,1,0], [-1,1,0], [1,-1,0], [-1,-1,0],
+            [1,0,1], [-1,0,1], [1,0,-1], [-1,0,-1],
+            [0,1,1], [0,-1,1], [0,1,-1], [0,-1,-1]
+        ];
+
+        this.noise = {
+            p: new Array(256),
+            perm: new Array(512),
+            gradP: new Array(512),
+
+            // シード値に基づいてパーミュテーションテーブルを初期化
+            seed: function(seed) {
+                if(seed > 0 && seed < 1) {
+                    seed *= 65536;
+                }
+                seed = Math.floor(seed);
+                if(seed < 256) {
+                    seed |= seed << 8;
+                }
+
+                for(let i = 0; i < 256; i++) {
+                    let v;
+                    if (i & 1) {
+                        v = this.p[i] ^ (seed & 255);
+                    } else {
+                        v = this.p[i] ^ ((seed>>8) & 255);
+                    }
+                    this.perm[i] = this.perm[i + 256] = v;
+                    this.gradP[i] = this.gradP[i + 256] = grad3[v % 12];
+                }
+            },
+
+            // 2Dノイズ関数
+            simplex2: function(xin, yin) {
+                let n0, n1, n2;
+                const F2 = 0.5*(Math.sqrt(3)-1);
+                const s = (xin+yin)*F2;
+                const i = Math.floor(xin+s);
+                const j = Math.floor(yin+s);
+                const G2 = (3-Math.sqrt(3))/6;
+                const t = (i+j)*G2;
+                const X0 = i-t;
+                const Y0 = j-t;
+                const x0 = xin-X0;
+                const y0 = yin-Y0;
+
+                let i1, j1;
+                if(x0>y0) { i1=1; j1=0; }
+                else { i1=0; j1=1; }
+
+                const x1 = x0 - i1 + G2;
+                const y1 = y0 - j1 + G2;
+                const x2 = x0 - 1.0 + 2.0 * G2;
+                const y2 = y0 - 1.0 + 2.0 * G2;
+
+                const ii = i & 255;
+                const jj = j & 255;
+
+                const t0 = 0.5 - x0*x0-y0*y0;
+                if(t0 < 0) n0 = 0.0;
+                else {
+                    const gi0 = this.perm[ii+this.perm[jj]] % 12;
+                    n0 = t0 * t0 * t0 * t0 * (grad3[gi0][0]*x0 + grad3[gi0][1]*y0);
+                }
+
+                const t1 = 0.5 - x1*x1-y1*y1;
+                if(t1 < 0) n1 = 0.0;
+                else {
+                    const gi1 = this.perm[ii+i1+this.perm[jj+j1]] % 12;
+                    n1 = t1 * t1 * t1 * t1 * (grad3[gi1][0]*x1 + grad3[gi1][1]*y1);
+                }
+
+                const t2 = 0.5 - x2*x2-y2*y2;
+                if(t2 < 0) n2 = 0.0;
+                else {
+                    const gi2 = this.perm[ii+1+this.perm[jj+1]] % 12;
+                    n2 = t2 * t2 * t2 * t2 * (grad3[gi2][0]*x2 + grad3[gi2][1]*y2);
+                }
+
+                return 70.0 * (n0 + n1 + n2);
+            }
+        };
+
+        // パーミュテーションテーブルの初期化
+        for(let i = 0; i < 256; i++) {
+            this.noise.p[i] = Math.floor(Math.random() * 256);
+        }
+
         this.scene = scene;
         this.seed = seed || Math.random();
         Math.seedrandom(this.seed.toString());
         this.rng = Math.random;
+        // ノイズ関数のシードを設定
+        this.noise.seed(this.seed);
         this.mapSize = GameConfig.MAP.SIZE;
         this.biomes = [];
         this.objects = [];
@@ -499,27 +591,6 @@ class FieldMap {
         const segments = this.lodSegments[0];
         const halfSize = this.chunkSize / 2;
 
-        // 隣接チャンクの高さを取得する関数
-        const getNeighborHeight = (x, z) => {
-            const neighborChunkX = Math.floor(x / this.chunkSize);
-            const neighborChunkZ = Math.floor(z / this.chunkSize);
-            
-            if (neighborChunkX === chunkX && neighborChunkZ === chunkZ) {
-                return null; // 同じチャンク内
-            }
-
-            const neighborChunk = this.terrainChunks.find(
-                chunk => chunk.chunkX === neighborChunkX && chunk.chunkZ === neighborChunkZ
-            );
-
-            if (neighborChunk) {
-                const localX = x - neighborChunk.mesh.position.x;
-                const localZ = z - neighborChunk.mesh.position.z;
-                return this.getHeightAt(x, z);
-            }
-            return null;
-        };
-
         for (let i = 0; i < vertices.length; i += 3) {
             const x = vertices[i] + position.x;
             const y = vertices[i + 1] + position.z;
@@ -534,49 +605,26 @@ class FieldMap {
                     this.smoothstep(0, 0.4, distFromEdgeX),
                     this.smoothstep(0, 0.4, distFromEdgeZ)
                 ),
-                3  // 3乗することで、より強い収束効果を生む
+                3
             );
             
-            // シード値を使用した高さ計算
-            const noise1 = this.rng() * 2 - 1;
-            const noise2 = this.rng() * 2 - 1;
-            const noise3 = this.rng() * 2 - 1;
+            // 決定論的ノイズを使用して高さを計算
+            const scale1 = 0.02; // 大きなスケール
+            const scale2 = 0.05; // 中程度のスケール
+            const scale3 = 0.1;  // 小さなスケール
             
-            // より大きなスケールの波を追加
-            const largeScale = 
-                Math.sin(x * 0.02 + noise1) * Math.cos(y * 0.02 + noise1) * 2.0 + 
-                Math.sin(x * 0.05 + 0.5 + noise2) * Math.cos(y * 0.05 + 0.5 + noise2) * 1.5;
-            
-            // 中程度のスケールの波を追加
-            const mediumScale = 
-                Math.sin(x * 0.1 + noise2) * Math.cos(y * 0.1 + noise2) * 1.0 + 
-                Math.sin(x * 0.15 + 0.3 + noise3) * Math.cos(y * 0.15 + 0.3 + noise3) * 0.8;
-            
-            // 小さなスケールの波を追加
-            const smallScale = 
-                Math.sin(x * 0.3 + noise3) * Math.cos(y * 0.3 + noise3) * 0.5;
+            const noise1 = this.noise.simplex2(x * scale1, y * scale1) * 2.0;
+            const noise2 = this.noise.simplex2(x * scale2, y * scale2) * 1.5;
+            const noise3 = this.noise.simplex2(x * scale3, y * scale3) * 0.5;
             
             // すべてのスケールを組み合わせる
-            var baseHeight = largeScale + mediumScale + smallScale;
+            var baseHeight = noise1 + noise2 + noise3;
             
             // 高さを制限して、極端な凹凸を防ぐ
             baseHeight = Math.max(0, Math.min(baseHeight, 5));
             
             // なだらかな遷移のために、高さをスムージング
             baseHeight = Math.pow(baseHeight, 0.8);
-
-            // 隣接チャンクとの境界での高さ調整
-            if (distFromEdgeX > 0.9 || distFromEdgeZ > 0.9) {
-                const neighborHeight = getNeighborHeight(x, y);
-                if (neighborHeight !== null) {
-                    // 隣接チャンクの高さとの補間
-                    const blendFactor = Math.max(
-                        this.smoothstep(0.9, 1.0, distFromEdgeX),
-                        this.smoothstep(0.9, 1.0, distFromEdgeZ)
-                    );
-                    baseHeight = baseHeight * (1 - blendFactor) + neighborHeight * blendFactor;
-                }
-            }
 
             // 端の高さを0に近づける
             vertices[i + 2] = baseHeight * edgeFactor;
@@ -661,34 +709,18 @@ class FieldMap {
                     const x = vertices[i] + chunk.mesh.position.x;
                     const y = vertices[i + 1] + chunk.mesh.position.z;
                     
-                    // シード値を使用した高さ計算
-                    const noise1 = this.rng() * 2 - 1; // -1から1の範囲のノイズ
-                    const noise2 = this.rng() * 2 - 1;
-                    const noise3 = this.rng() * 2 - 1;
+                    // 決定論的ノイズを使用して高さを計算
+                    const scale1 = 0.02;
+                    const scale2 = 0.05;
+                    const scale3 = 0.1;
                     
-                    // より大きなスケールの波を追加
-                    const largeScale = 
-                        Math.sin(x * 0.02 + noise1) * Math.cos(y * 0.02 + noise1) * 2.0 + 
-                        Math.sin(x * 0.05 + 0.5 + noise2) * Math.cos(y * 0.05 + 0.5 + noise2) * 1.5;
+                    const noise1 = this.noise.simplex2(x * scale1, y * scale1) * 2.0;
+                    const noise2 = this.noise.simplex2(x * scale2, y * scale2) * 1.5;
+                    const noise3 = this.noise.simplex2(x * scale3, y * scale3) * 0.5;
                     
-                    // 中程度のスケールの波を追加
-                    const mediumScale = 
-                        Math.sin(x * 0.1 + noise2) * Math.cos(y * 0.1 + noise2) * 1.0 + 
-                        Math.sin(x * 0.15 + 0.3 + noise3) * Math.cos(y * 0.15 + 0.3 + noise3) * 0.8;
-                    
-                    // 小さなスケールの波を追加
-                    const smallScale = 
-                        Math.sin(x * 0.3 + noise3) * Math.cos(y * 0.3 + noise3) * 0.5;
-                    
-                    // すべてのスケールを組み合わせる
-                    //var baseHeight = largeScale + mediumScale + smallScale;
-                    var baseHeight =smallScale;
-                    
-                    // 高さを制限して、極端な凹凸を防ぐ
+                    var baseHeight = noise1 + noise2 + noise3;
                     baseHeight = Math.max(0, Math.min(baseHeight, 5));
-                    
-                    // なだらかな遷移のために、高さをスムージング
-                    baseHeight = Math.pow(baseHeight, 0.8); // 高さの変化を緩やかにする
+                    baseHeight = Math.pow(baseHeight, 0.8);
 
                     vertices[i + 2] = baseHeight;
                 }
