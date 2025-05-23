@@ -35,19 +35,19 @@ const players = {};
 const enemies = {};
 
 // 敵の生成間隔（ミリ秒）
-const ENEMY_SPAWN_INTERVAL = 10;
+const ENEMY_SPAWN_INTERVAL = 500; // 5秒ごとに敵を生成
 
 // プレイヤーの視界範囲（単位）
 const PLAYER_VISION_RANGE = 100;
 
 // 敵のスポーン範囲（プレイヤーからの距離）
 const SPAWN_RANGE = {
-    MIN: 40,  // 最小距離を20から15に短縮
-    MAX: 100   // 最大距離を40から35に短縮
+    MIN: 30,  // 最小距離を短縮
+    MAX: 80   // 最大距離を短縮
 };
 
 // プレイヤーの移動先予測範囲
-const PLAYER_PREDICTION_RANGE = 100;
+const PLAYER_PREDICTION_RANGE = 50; // 予測範囲を短縮
 
 // 時間帯ごとの敵の最大数
 const MAX_ENEMIES = {
@@ -99,7 +99,7 @@ const NIGHT_MULTIPLIER = 1.2;
 // バイオームの設定
 const BIOME_CONFIG = {
     TYPES: ['urban', 'forest', 'ruins', 'industrial'],
-    RADIUS: 200,  // バイオームの半径
+    RADIUS: 500,  // バイオームの半径
     BEACH_WIDTH: 15,  // 砂浜の幅
     BIOMES: {
         urban: {
@@ -367,7 +367,7 @@ function isSafeSpot(x, z) {
 // 安全なスポーン位置を見つける関数
 function findSafeEnemyPosition() {
     const safeDistance = 5;
-    const spawnSafeDistance = 20; // プレイヤーのスポーン地点からの安全距離
+    const spawnSafeDistance = 20;
     const maxAttempts = 20;
 
     const activePlayers = Object.values(players).filter(player => player.health > 0);
@@ -377,27 +377,19 @@ function findSafeEnemyPosition() {
 
     // ランダムにプレイヤーを選択
     const targetPlayer = activePlayers[Math.floor(Math.random() * activePlayers.length)];
-
-    // プレイヤーの移動方向を予測
-    let predictedPosition = { ...targetPlayer.position };
-    if (targetPlayer.isMoving) {
-        const moveX = Math.sin(targetPlayer.rotation.y) * PLAYER_PREDICTION_RANGE;
-        const moveZ = Math.cos(targetPlayer.rotation.y) * PLAYER_PREDICTION_RANGE;
-        predictedPosition.x += moveX;
-        predictedPosition.z += moveZ;
-    }
+    const playerPosition = { ...targetPlayer.position };
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        // プレイヤーの予測位置の周囲にランダムな角度でスポーン
+        // プレイヤーの現在位置の周囲にランダムな角度でスポーン
         const angle = Math.random() * Math.PI * 2;
         const distance = SPAWN_RANGE.MIN + Math.random() * (SPAWN_RANGE.MAX - SPAWN_RANGE.MIN);
         
-        const x = predictedPosition.x + Math.cos(angle) * distance;
-        const z = predictedPosition.z + Math.sin(angle) * distance;
+        const x = playerPosition.x + Math.cos(angle) * distance;
+        const z = playerPosition.z + Math.sin(angle) * distance;
         
         // 安全なスポーン位置との距離をチェック
         if (isSafeSpot(x, z)) {
-            continue; // 安全なスポーン位置の近くなら、別の位置を試す
+            continue;
         }
         
         // この位置が他の敵から十分離れているか確認
@@ -421,15 +413,7 @@ function findSafeEnemyPosition() {
             const dz = player.position.z - z;
             const distance = Math.sqrt(dx * dx + dz * dz);
             
-            // プレイヤーのスポーン時間をチェック
-            const playerSpawnTime = player.spawnTime || 0;
-            const currentTime = Date.now();
-            const timeSinceSpawn = currentTime - playerSpawnTime;
-            
-            // スポーンしてから30秒以内のプレイヤーは安全ゾーンを持つ
-            if (timeSinceSpawn < 30000 && distance < spawnSafeDistance) {
-                isSafe = false;
-            } else if (distance < safeDistance * 3) {
+            if (distance < safeDistance * 3) {
                 isSafe = false;
             }
         });
@@ -440,19 +424,13 @@ function findSafeEnemyPosition() {
         }
     }
 
-    // 安全な場所が見つからなかった場合は、プレイヤーの予測位置の近くにスポーン
+    // 安全な場所が見つからなかった場合は、プレイヤーの位置の近くにスポーン
     const angle = Math.random() * Math.PI * 2;
     const distance = SPAWN_RANGE.MIN;
-    const x = predictedPosition.x + Math.cos(angle) * distance;
-    const z = predictedPosition.z + Math.sin(angle) * distance;
+    const x = playerPosition.x + Math.cos(angle) * distance;
+    const z = playerPosition.z + Math.sin(angle) * distance;
     
-    // 最後のチェック：安全なスポーン位置との距離
-    if (!isSafeSpot(x, z)) {
-        return { x, y: 0, z };
-    }
-    
-    // それでも安全なスポーン位置の近くなら、デフォルトの位置を返す
-    return { x: 0, y: 0, z: 0 };
+    return { x, y: 0, z };
 }
 
 // 定期的に敵を生成
