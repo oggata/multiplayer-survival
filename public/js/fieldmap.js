@@ -114,7 +114,7 @@ class FieldMap {
         this.chunkSize = GameConfig.MAP.CHUNK_SIZE; // チャンクのサイズ
         this.visibleDistance = GameConfig.MAP.VISLBLE_DISTANCE; // 視界距離
         this.lodDistances = [100, 200, 300]; // LODの距離閾値
-        this.lodSegments = [64, 32, 16]; // 各LODレベルのセグメント数
+        this.lodSegments = [8, 4, 2]; // 各LODレベルのセグメント数（64, 32, 16から32, 16, 8に変更）
         this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
         this.isLoading = true; // ローディング状態を管理
 
