@@ -103,7 +103,7 @@ const GameConfig = {
             //COUNT: 999,
             //CAR_COUNT:100,
             DENSITY: 1,  // 建物の生成確率（0-1）
-            MIN_DISTANCE: 40,  // 建物間の最小距離
+            MIN_DISTANCE: 80,  // 建物間の最小距離（建物の最大幅40の2倍）
             MAX_ATTEMPTS: 100  // 建物配置の最大試行回数
         }
     },

@@ -2599,12 +2599,14 @@ class Game {
 				} else if (distance > fadeStart) {
 					// フェード開始距離を超えている場合は透明度を調整
 					const opacity = 1 - ((distance - fadeStart) / (maxDistance - fadeStart));
-					object.traverse(child => {
-						if (child.isMesh && child.material) {
-							child.material.opacity = opacity;
-							child.material.transparent = true;
-						}
-					});
+					if (object instanceof THREE.Object3D) {
+						object.traverse(child => {
+							if (child.isMesh && child.material) {
+								child.material.opacity = opacity;
+								child.material.transparent = true;
+							}
+						});
+					}
 					object.visible = true;
 					if (this.visibleObjects) {
 						this.visibleObjects.add(object);
@@ -2612,12 +2614,14 @@ class Game {
 				} else {
 					// 通常表示
 					object.visible = true;
-					object.traverse(child => {
-						if (child.isMesh && child.material) {
-							child.material.opacity = 1;
-							child.material.transparent = false;
-						}
-					});
+					if (object instanceof THREE.Object3D) {
+						object.traverse(child => {
+							if (child.isMesh && child.material) {
+								child.material.opacity = 1;
+								child.material.transparent = false;
+							}
+						});
+					}
 					if (this.visibleObjects) {
 						this.visibleObjects.add(object);
 					}
@@ -2734,12 +2738,14 @@ class Game {
 				} else if (distance > fadeStart) {
 					// フェード開始距離を超えている場合は透明度を調整
 					const opacity = 1 - ((distance - fadeStart) / (maxDistance - fadeStart));
-					object.traverse(child => {
-						if (child.isMesh && child.material) {
-							child.material.opacity = opacity;
-							child.material.transparent = true;
-						}
-					});
+					if (object instanceof THREE.Object3D) {
+						object.traverse(child => {
+							if (child.isMesh && child.material) {
+								child.material.opacity = opacity;
+								child.material.transparent = true;
+							}
+						});
+					}
 					object.visible = true;
 					if (this.visibleObjects) {
 						this.visibleObjects.add(object);
@@ -2747,12 +2753,14 @@ class Game {
 				} else {
 					// 通常表示
 					object.visible = true;
-					object.traverse(child => {
-						if (child.isMesh && child.material) {
-							child.material.opacity = 1;
-							child.material.transparent = false;
-						}
-					});
+					if (object instanceof THREE.Object3D) {
+						object.traverse(child => {
+							if (child.isMesh && child.material) {
+								child.material.opacity = 1;
+								child.material.transparent = false;
+							}
+						});
+					}
 					if (this.visibleObjects) {
 						this.visibleObjects.add(object);
 					}

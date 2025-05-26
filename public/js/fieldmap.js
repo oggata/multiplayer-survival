@@ -1125,6 +1125,20 @@ class FieldMap {
                         }
                     }
                     
+                    // 建物の幅を考慮した距離チェックを追加
+                    if (isSafe) {
+                        const buildingWidth = 15 + this.getDeterministicRandom(chunkX, chunkZ, 'buildingWidth' + i) * 25;
+                        const minDistance = Math.max(GameConfig.MAP.BUILDINGS.MIN_DISTANCE, buildingWidth * 2);
+                        
+                        for (const obj of chunkObjects) {
+                            const distance = obj.position.distanceTo(position);
+                            if (distance < minDistance) {
+                                isSafe = false;
+                                break;
+                            }
+                        }
+                    }
+                    
                     attempts++;
                 }
                 
