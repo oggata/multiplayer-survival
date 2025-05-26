@@ -492,13 +492,59 @@ class FieldMap {
         );
         if (existingChunk) return;
 
-        // 高解像度のジオメトリを作成
-        const geometry = new THREE.PlaneGeometry(
-            this.chunkSize,
-            this.chunkSize,
-            this.lodSegments[0],
-            this.lodSegments[0]
-        );
+        // 頂点データを生成
+        const segments = this.lodSegments[0];
+        const vertices = [];
+        const indices = [];
+        const uvs = [];
+
+        // 頂点の生成
+        for (let z = 0; z <= segments; z++) {
+            for (let x = 0; x <= segments; x++) {
+                // グリッド上の位置を計算
+                const gridX = x / segments;
+                const gridZ = z / segments;
+
+                // ワールド座標を計算
+                const worldX = position.x + gridX * this.chunkSize;
+                const worldZ = position.z + gridZ * this.chunkSize;
+
+                // 高さを計算
+                const height = this.calculateHeightAt(worldX, worldZ);
+
+                // 頂点を追加
+                vertices.push(
+                    gridX * this.chunkSize,  // x
+                    height,                  // y (height)
+                    gridZ * this.chunkSize   // z
+                );
+
+                // UV座標を追加
+                uvs.push(gridX, gridZ);
+            }
+        }
+
+        // インデックスの生成
+        for (let z = 0; z < segments; z++) {
+            for (let x = 0; x < segments; x++) {
+                const a = x + z * (segments + 1);
+                const b = x + 1 + z * (segments + 1);
+                const c = x + (z + 1) * (segments + 1);
+                const d = x + 1 + (z + 1) * (segments + 1);
+
+                // 最初の三角形
+                indices.push(a, b, c);
+                // 2番目の三角形
+                indices.push(b, d, c);
+            }
+        }
+
+        // ジオメトリの作成
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
 
         // バイオームを取得
         const biome = this.getBiomeAt(position.x, position.z);
@@ -507,11 +553,11 @@ class FieldMap {
         // マテリアルの設定
         const material = new THREE.ShaderMaterial({
             uniforms: {
-                lightDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
-                lightIntensity: { value: 0.7 },
-                ambientIntensity: { value: 0.3 },
-                lightColor: { value: new THREE.Color(0xCCCCCC) },
-                ambientColor: { value: new THREE.Color(0x999999) },
+                lightDirection: { value: new THREE.Vector3(0.5, 1, 0.5).normalize() },
+                lightIntensity: { value: 0.8 },
+                ambientIntensity: { value: 0.5 },
+                lightColor: { value: new THREE.Color(0xFFFFFF) },
+                ambientColor: { value: new THREE.Color(0xCCCCCC) },
                 baseColor: { value: biomeColor.base },
                 highlightColor: { value: biomeColor.highlight },
                 midColor: { value: biomeColor.mid },
@@ -521,11 +567,13 @@ class FieldMap {
                 varying vec3 vPosition;
                 varying vec3 vNormal;
                 varying float vHeight;
+                varying vec2 vUv;
 
                 void main() {
                     vPosition = position;
                     vNormal = normal;
-                    vHeight = position.z;
+                    vHeight = position.y;
+                    vUv = uv;
                     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                 }
             `,
@@ -533,6 +581,7 @@ class FieldMap {
                 varying vec3 vPosition;
                 varying vec3 vNormal;
                 varying float vHeight;
+                varying vec2 vUv;
                 uniform vec3 lightDirection;
                 uniform float lightIntensity;
                 uniform float ambientIntensity;
@@ -565,20 +614,30 @@ class FieldMap {
                         terrainColor = color3;
                     }
 
-                    // ノイズを追加して荒廃感を出す
-                    float noise = fract(sin(dot(vPosition.xy, vec2(12.9898, 78.233))) * 43758.5453);
-                    terrainColor = mix(terrainColor, terrainColor * 0.8, noise * 0.2);
+                    // ノイズを追加して荒廃感を出す（強度を下げる）
+                    float noise = fract(sin(dot(vUv, vec2(12.9898, 78.233))) * 43758.5453);
+                    terrainColor = mix(terrainColor, terrainColor * 0.9, noise * 0.1);
 
                     // ライティング計算
                     vec3 normalizedNormal = normalize(vNormal);
                     vec3 normalizedLightDirection = normalize(lightDirection);
-                    float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
-                    directionalFactor = max(directionalFactor, 0.1);
                     
-                    vec3 directionalContribution = lightColor * directionalFactor;
+                    // 直接光の計算
+                    float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
+                    
+                    // 最低限の明るさを保証
+                    directionalFactor = max(directionalFactor, 0.3);
+                    
+                    // 環境光の計算（より明るく）
                     vec3 ambientContribution = ambientColor * ambientIntensity;
                     
+                    // 最終的な色の計算
+                    vec3 directionalContribution = lightColor * directionalFactor;
                     finalColor = terrainColor * (directionalContribution + ambientContribution);
+                    
+                    // 最低限の明るさを保証
+                    finalColor = max(finalColor, vec3(0.2));
+                    
                     gl_FragColor = vec4(finalColor, 1.0);
                 }
             `,
@@ -586,8 +645,6 @@ class FieldMap {
         });
 
         const terrainChunk = new THREE.Mesh(geometry, material);
-        terrainChunk.rotation.x = -Math.PI / 2;
-        //terrainChunk.receiveShadow = true;
         terrainChunk.position.copy(position);
 
         // チャンクの下にboxを追加
@@ -597,21 +654,34 @@ class FieldMap {
                 baseColor: { value: biomeColor.base },
                 highlightColor: { value: biomeColor.highlight },
                 midColor: { value: biomeColor.mid },
-                topColor: { value: biomeColor.top }
+                topColor: { value: biomeColor.top },
+                lightDirection: { value: new THREE.Vector3(0.5, 1, 0.5).normalize() },
+                lightIntensity: { value: 0.8 },
+                ambientIntensity: { value: 0.5 },
+                lightColor: { value: new THREE.Color(0xFFFFFF) },
+                ambientColor: { value: new THREE.Color(0xCCCCCC) }
             },
             vertexShader: `
                 varying vec3 vPosition;
+                varying vec3 vNormal;
                 void main() {
                     vPosition = position;
+                    vNormal = normal;
                     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                 }
             `,
             fragmentShader: `
                 varying vec3 vPosition;
+                varying vec3 vNormal;
                 uniform vec3 baseColor;
                 uniform vec3 highlightColor;
                 uniform vec3 midColor;
                 uniform vec3 topColor;
+                uniform vec3 lightDirection;
+                uniform float lightIntensity;
+                uniform float ambientIntensity;
+                uniform vec3 lightColor;
+                uniform vec3 ambientColor;
 
                 void main() {
                     float height = vPosition.y;
@@ -633,6 +703,18 @@ class FieldMap {
                         finalColor = color3;
                     }
 
+                    // ライティング計算
+                    vec3 normalizedNormal = normalize(vNormal);
+                    vec3 normalizedLightDirection = normalize(lightDirection);
+                    float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
+                    directionalFactor = max(directionalFactor, 0.3);
+                    
+                    vec3 directionalContribution = lightColor * directionalFactor;
+                    vec3 ambientContribution = ambientColor * ambientIntensity;
+                    
+                    finalColor = finalColor * (directionalContribution + ambientContribution);
+                    finalColor = max(finalColor, vec3(0.2));
+                    
                     gl_FragColor = vec4(finalColor, 1.0);
                 }
             `,
@@ -645,7 +727,7 @@ class FieldMap {
         // チャンクを管理配列に追加
         this.terrainChunks.push({
             mesh: terrainChunk,
-            box: box, // boxを追加
+            box: box,
             chunkX: chunkX,
             chunkZ: chunkZ,
             geometry: geometry,
@@ -655,6 +737,28 @@ class FieldMap {
 
         this.scene.add(terrainChunk);
         this.scene.add(box);
+    }
+
+    // 指定された座標での高さを計算
+    calculateHeightAt(x, z) {
+        // 複数のノイズレイヤーを組み合わせる
+        const scale1 = 0.02;
+        const scale2 = 0.05;
+        const scale3 = 0.1;
+        
+        // 基本のノイズ
+        const noise1 = this.noise.simplex2(x * scale1, z * scale1) * 2.0;
+        const noise2 = this.noise.simplex2(x * scale2, z * scale2) * 1.5;
+        const noise3 = this.noise.simplex2(x * scale3, z * scale3) * 0.5;
+        
+        // ノイズを組み合わせる
+        const baseHeight = noise1 + noise2 + noise3;
+        
+        // 高さを正規化
+        const normalizedHeight = Math.max(0, Math.min(baseHeight, 5));
+        
+        // 高さの変化を滑らかにする
+        return Math.pow(normalizedHeight, 0.8);
     }
 
     updateTerrainVisibility(cameraPosition) {
@@ -709,36 +813,10 @@ class FieldMap {
 
             // 現在のLODレベルに応じてジオメトリを更新
             if (chunk.currentLodLevel !== lodLevel) {
-                const newGeometry = new THREE.PlaneGeometry(
-                    this.chunkSize,
-                    this.chunkSize,
-                    this.lodSegments[lodLevel],
-                    this.lodSegments[lodLevel]
-                );
-
-                // 頂点の高さを設定
-                const vertices = newGeometry.attributes.position.array;
-                for (let i = 0; i < vertices.length; i += 3) {
-                    const x = vertices[i] + chunk.mesh.position.x;
-                    const y = vertices[i + 1] + chunk.mesh.position.z;
-                    
-                    // 決定論的ノイズを使用して高さを計算
-                    const scale1 = 0.02;
-                    const scale2 = 0.05;
-                    const scale3 = 0.1;
-                    
-                    const noise1 = this.noise.simplex2(x * scale1, y * scale1) * 2.0;
-                    const noise2 = this.noise.simplex2(x * scale2, y * scale2) * 1.5;
-                    const noise3 = this.noise.simplex2(x * scale3, y * scale3) * 0.5;
-                    
-                    var baseHeight = noise1 + noise2 + noise3;
-                    baseHeight = Math.max(0, Math.min(baseHeight, 5));
-                    baseHeight = Math.pow(baseHeight, 0.8);
-
-                    vertices[i + 2] = baseHeight;
-                }
-
-                newGeometry.attributes.position.needsUpdate = true;
+                const newGeometry = new THREE.BufferGeometry();
+                newGeometry.setAttribute('position', chunk.geometry.getAttribute('position'));
+                newGeometry.setAttribute('uv', chunk.geometry.getAttribute('uv'));
+                newGeometry.setIndex(chunk.geometry.index);
                 newGeometry.computeVertexNormals();
 
                 // 古いジオメトリを破棄
@@ -832,6 +910,8 @@ class FieldMap {
         let minDistance = Infinity;
 
         for (const chunk of this.terrainChunks) {
+            if (!chunk || !chunk.mesh) continue;
+
             const dx = x - chunk.mesh.position.x;
             const dz = z - chunk.mesh.position.z;
             const distance = Math.sqrt(dx * dx + dz * dz);
@@ -843,16 +923,53 @@ class FieldMap {
         }
 
         if (closestChunk) {
-            const raycaster = new THREE.Raycaster();
-            const down = new THREE.Vector3(0, -1, 0);
-            raycaster.set(new THREE.Vector3(x, 100, z), down);
+            // チャンクのローカル座標に変換
+            const localX = x - closestChunk.mesh.position.x;
+            const localZ = z - closestChunk.mesh.position.z;
 
-            const intersects = raycaster.intersectObject(closestChunk.mesh);
-            if (intersects.length > 0) {
-                return intersects[0].point.y;
+            // ジオメトリから頂点データを取得
+            const positions = closestChunk.geometry.attributes.position.array;
+            const segments = this.lodSegments[0];
+            const vertexCount = (segments + 1) * (segments + 1);
+
+            // 最も近い4つの頂点を探す
+            let closestVertices = [];
+            let minDistances = [];
+
+            for (let i = 0; i < vertexCount; i++) {
+                const vx = positions[i * 3];
+                const vz = positions[i * 3 + 2];
+                const distance = Math.sqrt(
+                    Math.pow(localX - vx, 2) + 
+                    Math.pow(localZ - vz, 2)
+                );
+
+                if (closestVertices.length < 4) {
+                    closestVertices.push(i);
+                    minDistances.push(distance);
+                } else {
+                    const maxIndex = minDistances.indexOf(Math.max(...minDistances));
+                    if (distance < minDistances[maxIndex]) {
+                        closestVertices[maxIndex] = i;
+                        minDistances[maxIndex] = distance;
+                    }
+                }
             }
+
+            // 4つの頂点の高さを取得
+            const heights = closestVertices.map(index => positions[index * 3 + 1]);
+            const distances = minDistances.map(d => 1 / (d + 0.0001)); // 0除算を防ぐ
+            const totalWeight = distances.reduce((a, b) => a + b, 0);
+
+            // 重み付き平均で高さを計算
+            const height = heights.reduce((sum, h, i) => 
+                sum + h * (distances[i] / totalWeight), 0);
+
+            return height;
         }
-        return 0;
+
+        // チャンクが見つからない場合は直接ノイズ関数で計算
+        return this.calculateHeightAt(x, z);
     }
 
     generateObjects() {
@@ -969,7 +1086,7 @@ class FieldMap {
         if (!biomeSetting) return;
 
         // 建物の生成
-        const buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 10 * biomeSetting.buildingDensity);
+        const buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 0 * biomeSetting.buildingDensity);
         for (let i = 0; i < buildingCount; i++) {
             if (this.getDeterministicRandom(chunkX, chunkZ, 'building' + i) < biomeSetting.buildingDensity) {
                 let position;
