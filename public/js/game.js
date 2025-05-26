@@ -2521,8 +2521,8 @@ class Game {
 		this.lastVisionUpdate = currentTime;
 
 		const playerPosition = this.playerModel.getPosition();
-		const maxDistance = GameConfig.VISION.MAX_DISTANCE;
-		const fadeStart = GameConfig.VISION.FADE_START;
+		const maxDistance = GameConfig.MAP.VISLBLE_DISTANCE; // 変更：VISION.MAX_DISTANCEからMAP.VISLBLE_DISTANCEに
+		const fadeStart = maxDistance * 0.8; // 変更：フェード開始距離をmaxDistanceの80%に設定
 
 		// 敵の表示/非表示を更新
 		this.enemies.forEach((enemy, enemyId) => {
@@ -2581,6 +2581,49 @@ class Game {
 				enemy.updatePriority = 'high';
 			}
 		});
+
+		// 建物の表示/非表示を更新
+		if (this.fieldMap && this.fieldMap.objects) {
+			this.fieldMap.objects.forEach(object => {
+				if (!object) return;
+
+				// フィールドオブジェクトの表示/非表示を更新
+				const distance = object.position.distanceTo(playerPosition);
+
+				if (distance > maxDistance) {
+					// 最大距離を超えている場合は非表示
+					object.visible = false;
+					if (this.visibleObjects && this.visibleObjects.has(object)) {
+						this.visibleObjects.delete(object);
+					}
+				} else if (distance > fadeStart) {
+					// フェード開始距離を超えている場合は透明度を調整
+					const opacity = 1 - ((distance - fadeStart) / (maxDistance - fadeStart));
+					object.traverse(child => {
+						if (child.isMesh && child.material) {
+							child.material.opacity = opacity;
+							child.material.transparent = true;
+						}
+					});
+					object.visible = true;
+					if (this.visibleObjects) {
+						this.visibleObjects.add(object);
+					}
+				} else {
+					// 通常表示
+					object.visible = true;
+					object.traverse(child => {
+						if (child.isMesh && child.material) {
+							child.material.opacity = 1;
+							child.material.transparent = false;
+						}
+					});
+					if (this.visibleObjects) {
+						this.visibleObjects.add(object);
+					}
+				}
+			});
+		}
 	}
 
 	// 視錐台判定を行うヘルパーメソッド

@@ -628,13 +628,16 @@ class FieldObject {
         
         switch (debrisType.name) {
             case 'concrete':
-                // コンクリートは不規則な塊
-                mainDebrisGeometry = new THREE.DodecahedronGeometry(mainSize, 1);
+                // 金属は板状またはパイプ状
+                if (this.rng() > 0.5) {
+                    mainDebrisGeometry = new THREE.BoxGeometry(mainSize, mainSize * 0.1, mainSize * 0.8);
+                } else {
+                    mainDebrisGeometry = new THREE.CylinderGeometry(mainSize * 0.2, mainSize * 0.2, mainSize * 2, 8);
+                }
                 mainDebrisMaterial = new THREE.MeshStandardMaterial({
                     color: debrisType.color,
-                    roughness: 0.9,
-                    metalness: 0.1,
-                    flatShading: true
+                    roughness: 0.5,
+                    metalness: 0.8
                 });
                 break;
                 

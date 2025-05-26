@@ -626,7 +626,7 @@ class FieldMap {
                     float directionalFactor = max(dot(normalizedNormal, normalizedLightDirection), 0.0) * lightIntensity;
                     
                     // 最低限の明るさを保証
-                    directionalFactor = max(directionalFactor, 0.3);
+                    directionalFactor = max(directionalFactor, 0.1);
                     
                     // 環境光の計算（より明るく）
                     vec3 ambientContribution = ambientColor * ambientIntensity;
@@ -636,7 +636,7 @@ class FieldMap {
                     finalColor = terrainColor * (directionalContribution + ambientContribution);
                     
                     // 最低限の明るさを保証
-                    finalColor = max(finalColor, vec3(0.2));
+                    finalColor = max(finalColor, vec3(0.1));
                     
                     gl_FragColor = vec4(finalColor, 1.0);
                 }
@@ -646,7 +646,7 @@ class FieldMap {
 
         const terrainChunk = new THREE.Mesh(geometry, material);
         terrainChunk.position.copy(position);
-
+/*
         // チャンクの下にboxを追加
         const boxGeometry = new THREE.BoxGeometry(this.chunkSize, 10, this.chunkSize);
         const boxMaterial = new THREE.ShaderMaterial({
@@ -723,11 +723,11 @@ class FieldMap {
         const box = new THREE.Mesh(boxGeometry, boxMaterial);
         box.position.copy(position);
         box.position.y = -7; // チャンクの下に配置
-
+*/
         // チャンクを管理配列に追加
         this.terrainChunks.push({
             mesh: terrainChunk,
-            box: box,
+            //box: box,
             chunkX: chunkX,
             chunkZ: chunkZ,
             geometry: geometry,
@@ -736,7 +736,7 @@ class FieldMap {
         });
 
         this.scene.add(terrainChunk);
-        this.scene.add(box);
+        //this.scene.add(box);
     }
 
     // 指定された座標での高さを計算
@@ -1086,7 +1086,7 @@ class FieldMap {
         if (!biomeSetting) return;
 
         // 建物の生成
-        const buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 0 * biomeSetting.buildingDensity);
+        const buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 2 * biomeSetting.buildingDensity);
         for (let i = 0; i < buildingCount; i++) {
             if (this.getDeterministicRandom(chunkX, chunkZ, 'building' + i) < biomeSetting.buildingDensity) {
                 let position;
@@ -1157,7 +1157,7 @@ class FieldMap {
         if (biome.type === 'forest') {
             treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 50 * biomeSetting.treeDensity);
         } else {
-            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 20 * biomeSetting.treeDensity);
+            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 10 * biomeSetting.treeDensity);
         }
 
         for (let i = 0; i < treeCount; i++) {
@@ -1183,7 +1183,7 @@ class FieldMap {
         }
 
         // がれきの生成
-        const debrisCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'debrisCount') * 10 * biomeSetting.debrisDensity);
+        const debrisCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'debrisCount') * 5 * biomeSetting.debrisDensity);
         for (let i = 0; i < debrisCount; i++) {
             const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'debrisX' + i) - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'debrisZ' + i) - 0.5) * this.chunkSize;
