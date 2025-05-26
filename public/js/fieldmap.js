@@ -275,8 +275,27 @@ class FieldMap {
             const combinedSeed = this.seed + x * 1000 + z * 1000 + type.charCodeAt(0);
             return new Math.seedrandom(combinedSeed.toString())();
         };
+
+        this.isInitialized = false;
     }
     
+    async initialize() {
+        // 地形の生成
+        await this.generateTerrain();
+        
+        // 建物の生成
+        this.generateBuildings();
+        
+        // 木の生成
+        this.generateTrees();
+        
+        // 瓦礫の生成
+        this.generateDebris();
+        
+        this.isInitialized = true;
+        return this;
+    }
+
     createMap() {
         // バイオームの生成
         this.generateBiomes();
@@ -1420,5 +1439,64 @@ class FieldMap {
 
             building.add(wall);
         }
+    }
+
+    generateBuildings() {
+        const buildingCount = Math.floor(this.random() * (GameConfig.MAP.BUILDINGS.MAX_COUNT - GameConfig.MAP.BUILDINGS.MIN_COUNT + 1)) + GameConfig.MAP.BUILDINGS.MIN_COUNT;
+        
+        for (let i = 0; i < buildingCount; i++) {
+            let attempts = 0;
+            let placed = false;
+            
+            while (!placed && attempts < 100) {
+                // シード値に基づいてランダムな位置を生成
+                const x = (this.random() - 0.5) * this.mapSize;
+                const z = (this.random() - 0.5) * this.mapSize;
+                
+                // 建物のサイズを決定
+                const width = Math.floor(this.random() * (GameConfig.MAP.BUILDINGS.MAX_WIDTH - GameConfig.MAP.BUILDINGS.MIN_WIDTH + 1)) + GameConfig.MAP.BUILDINGS.MIN_WIDTH;
+                const height = Math.floor(this.random() * (GameConfig.MAP.BUILDINGS.MAX_HEIGHT - GameConfig.MAP.BUILDINGS.MIN_HEIGHT + 1)) + GameConfig.MAP.BUILDINGS.MIN_HEIGHT;
+                
+                // 建物の位置を計算
+                const position = new THREE.Vector3(x, 0, z);
+                
+                // 他の建物との衝突チェック
+                if (!this.checkBuildingCollision(position, width)) {
+                    // 建物を作成
+                    const building = this.createBuilding(position, width, height);
+                    this.objects.push(building);
+                    placed = true;
+                }
+                
+                attempts++;
+            }
+        }
+    }
+
+    checkBuildingCollision(position, width) {
+        const minDistance = GameConfig.MAP.BUILDINGS.MIN_DISTANCE;
+        
+        for (const object of this.objects) {
+            if (object.userData && object.userData.type === 'building') {
+                const distance = position.distanceTo(object.position);
+                if (distance < minDistance) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    createBuilding(position, width, height) {
+        // Implementation of createBuilding method
+    }
+
+    generateTrees() {
+        // Implementation of generateTrees method
+    }
+
+    generateDebris() {
+        // Implementation of generateDebris method
     }
 } 

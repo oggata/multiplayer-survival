@@ -98,7 +98,7 @@ class Game {
 		this.playerModel = null; // プレイヤーモデルの初期化を遅延させる
 
 		// 座標表示用の要素
-		this.coordinatesElement = document.getElementById('coordinates');
+		//this.coordinatesElement = document.getElementById('coordinates');
 
 		// プレイヤー数表示用の要素
 		this.playerCountElement = document.getElementById('playerCount');
@@ -447,51 +447,54 @@ class Game {
 		this.sunLight.shadow.mapSize.width = 2048;
 		this.sunLight.shadow.mapSize.height = 2048;
 		this.scene.add(this.sunLight);
+
 		// プレイヤーモデルの作成
 		this.createPlayerModel();
-		// プレイヤー用のスポットライトを作成
-		this.playerLight = new THREE.SpotLight(0xffffff, 2.0); // 色と強度
-		this.playerLight.distance = 50; // 光の届く距離
-		this.playerLight.angle = Math.PI / 4; // 光の広がり角度（45度）
-		this.playerLight.penumbra = 0.2; // エッジの柔らかさ
-		this.playerLight.decay = 1.5; // 距離による減衰
 
-		// 影の設定
+		// プレイヤー用のスポットライトを作成
+		this.playerLight = new THREE.SpotLight(0xffffff, 2.0);
+		this.playerLight.distance = 50;
+		this.playerLight.angle = Math.PI / 4;
+		this.playerLight.penumbra = 0.2;
+		this.playerLight.decay = 1.5;
+
 		this.playerLight.castShadow = true;
 		this.playerLight.shadow.mapSize.width = 512;
 		this.playerLight.shadow.mapSize.height = 512;
 		this.playerLight.shadow.camera.near = 0.5;
 		this.playerLight.shadow.camera.far = 50;
 
-		// ライトのターゲットを作成（これがライトの向きを決める）
 		this.playerLightTarget = new THREE.Object3D();
 		this.scene.add(this.playerLightTarget);
 		this.playerLight.target = this.playerLightTarget;
 
-		// シーンにライトを追加
-		//this.scene.add(this.playerLight);
-
-
 		// 霧の追加
 		this.scene.fog = new THREE.FogExp2(0xcccccc, GameConfig.FOG.DENSITY);
 
-		// フィールドマップの作成（シード値を渡す）
+		// シード値を使用してフィールドマップを作成
+		if (!seed) {
+			console.error('シード値が設定されていません');
+			return;
+		}
+
+		// シード値を使用してフィールドマップを初期化
 		this.fieldMap = new FieldMap(this.scene, seed);
+		
+		// フィールドマップの初期化が完了するまで待機
+		this.fieldMap.initialize().then(() => {
+			// フィールドマップの初期化が完了した後にアイテムを生成
+			this.spawnItems();
+		});
 
 		this.updateLightDirection();
 
-
 		// カメラの初期位置（プレイヤーの背後）
 		this.updateCameraPosition();
-
-		// アイテムの生成
-		this.spawnItems();
 
 		// 時間の初期化
 		this.updateTimeOfDay();
 
 		this.weather = new Weather(this.scene, this.camera);
-
 	}
 
 	updateLightDirection() {
@@ -1374,7 +1377,7 @@ class Game {
 			const x = position.x.toFixed(2);
 			const y = position.y.toFixed(2);
 			const z = position.z.toFixed(2);
-			this.coordinatesElement.textContent = `座標: X: ${x} Y: ${y} Z: ${z}`;
+			//this.coordinatesElement.textContent = `座標: X: ${x} Y: ${y} Z: ${z}`;
 		}
 	}
 
@@ -1918,17 +1921,17 @@ class Game {
 	}
 
 	spawnItems() {
-
+		// フィールドマップが初期化されていない場合は処理をスキップ
+		if (!this.fieldMap || !this.fieldMap.isInitialized) {
+			console.warn('フィールドマップが初期化されていません');
+			return;
+		}
 
 		// 建物の位置を取得
 		const buildings = this.fieldMap.objects.filter(obj => obj.userData && obj.userData.type === 'building');
 
 		// アイテムを生成
 		for (let i = 0; i < this.maxItems; i++) {
-
-
-			//console.log("アイテムを生成");
-			// GameConfig.ITEMSからランダムにアイテムタイプを選択
 			const itemTypes = Object.entries(GameConfig.ITEMS)
 				.filter(([_, item]) => item.dropChance !== undefined)
 				.map(([type]) => type);
@@ -3066,16 +3069,35 @@ class Game {
 	}
 
 	getHeightAt(x, z) {
-		const raycaster = new THREE.Raycaster();
-		const down = new THREE.Vector3(0, -1, 0); // Ray direction (downward)
-		raycaster.set(new THREE.Vector3(x, 100, z), down); // Start ray above the terrain
-
-		//const intersects = raycaster.intersectObject(this.terrain);
-		const intersects = this.fieldMap.getTerrain().intersectObject(this.terrain, true);
-		if (intersects.length > 0) {
-			return intersects[0].point.y; // Return the height of the terrain
+		// シード値が設定されていることを確認
+		if (!this.seed) {
+			console.warn('シード値が設定されていません');
+			return 0;
 		}
-		return 0; // Default to ground level if no intersection
+
+		// フィールドマップが初期化されていることを確認
+		if (!this.fieldMap) {
+			console.warn('フィールドマップが初期化されていません');
+			return 0;
+		}
+
+		// フィールドマップのgetHeightAtメソッドを使用
+		const height = this.fieldMap.getHeightAt(x, z);
+		if (height !== null) {
+			return height;
+		}
+
+		// フォールバック: レイキャストを使用
+		const raycaster = new THREE.Raycaster();
+		const down = new THREE.Vector3(0, -1, 0);
+		raycaster.set(new THREE.Vector3(x, 100, z), down);
+
+		const intersects = raycaster.intersectObject(this.fieldMap.terrainGeometry, true);
+		if (intersects.length > 0) {
+			return intersects[0].point.y;
+		}
+
+		return 0;
 	}
 
 	updatePlayerHeight(player) {
