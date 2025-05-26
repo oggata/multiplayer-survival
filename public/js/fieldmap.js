@@ -969,7 +969,7 @@ class FieldMap {
         if (!biomeSetting) return;
 
         // 建物の生成
-        const buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 30 * biomeSetting.buildingDensity);
+        const buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 10 * biomeSetting.buildingDensity);
         for (let i = 0; i < buildingCount; i++) {
             if (this.getDeterministicRandom(chunkX, chunkZ, 'building' + i) < biomeSetting.buildingDensity) {
                 let position;

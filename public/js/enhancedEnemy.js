@@ -6,13 +6,28 @@ class EnhancedEnemy {
         
         // エネミータイプに基づいてキャラクターモデルを作成
         this.enemyType = enemyData.enemyType || 'humanoid'; // デフォルトは人型
-        
+        //console.log(this.enemyType);
         switch (this.enemyType) {
             case 'quadruped': // 四足歩行
                 this.model = new QuadrupedCharacter(this.scene, "enemy", game);
                 break;
             case 'hexapod': // 六足歩行
                 this.model = new HexapodCharacter(this.scene, "enemy", game);
+                break;
+            case 'giant': // 巨大
+                this.model = new GiantCharacter(this.scene, "enemy", game);
+                break;
+            case 'crab': // カニ
+                this.model = new CrabCharacter(this.scene, "enemy", game);
+                break;
+            case 'flying': // 飛行
+                this.model = new FlyingCharacter(this.scene, "enemy", game);
+                break;
+            case 'slime': // スライム
+                this.model = new SlimeCharacter(this.scene, "enemy", game);
+                break;
+            case 'boss': // ボス
+                this.model = new BossCharacter(this.scene, "enemy", game);
                 break;
             default: // 人型（デフォルト）
                 this.model = new Character(this.scene, "enemy", game);
@@ -75,6 +90,36 @@ class EnhancedEnemy {
                 config.moveSpeed *= 1.4; // 移動速度を40%増加
                 config.damage *= 1.2; // ダメージを20%増加
                 break;
+
+            case 'giant':
+                config.color = 0x8B4513; // 巨大の色（茶色）
+                config.moveSpeed *= 0.8; // 移動速度を20%減少
+                config.damage *= 2.0; // ダメージを2倍
+                break;
+
+            case 'crab':
+                config.color = 0xFF4500; // カニの色（オレンジレッド）
+                config.moveSpeed *= 1.1; // 移動速度を10%増加
+                config.damage *= 1.3; // ダメージを30%増加
+                break;
+
+            case 'flying':
+                config.color = 0x4B0082; // 飛行の色（インディゴ）
+                config.moveSpeed *= 1.6; // 移動速度を60%増加
+                config.damage *= 1.1; // ダメージを10%増加
+                break;
+
+            case 'slime':
+                config.color = 0x00FF7F; // スライムの色（春緑）
+                config.moveSpeed *= 0.9; // 移動速度を10%減少
+                config.damage *= 1.4; // ダメージを40%増加
+                break;
+
+            case 'boss':
+                config.color = 0xFF0000; // ボスの色（赤）
+                config.moveSpeed *= 0.7; // 移動速度を30%減少
+                config.damage *= 3.0; // ダメージを3倍
+                break;
         }
         
         return config;
@@ -84,11 +129,21 @@ class EnhancedEnemy {
     getCollisionRadius() {
         switch (this.enemyType) {
             case 'quadruped':
-                return 1.6; // 四足歩行は少し大きめ
+                return 3.6; // 四足歩行は少し大きめ
             case 'hexapod':
-                return 1.6; // 六足歩行も少し大きめ
+                return 3.6; // 六足歩行も少し大きめ
+            case 'giant':
+                return 3.5; // 巨大はかなり大きめ
+            case 'crab':
+                return 3.8; // カニは少し大きめ
+            case 'flying':
+                return 3.4; // 飛行は少し小さめ
+            case 'slime':
+                return 3.7; // スライムは少し大きめ
+            case 'boss':
+                return 3.0; // ボスは最大
             default:
-                return 1.6; // 人型はデフォルト
+                return 3.6; // 人型はデフォルト
         }
     }
 

@@ -142,9 +142,14 @@ const BIOME_CONFIG = {
             name: 'urban',
             color: 0x2C2C2C,
             enemyWeights: {
-                NORMAL: 1.0,
+                NORMAL: 0.5,
                 FAST: 0,
-                SHOOTER: 0
+                SHOOTER: 0,
+                GIANT: 0,
+                CRAB: 0,
+                FLYING: 0,
+                SLIME: 0.5,
+                BOSS: 0
             }
         },
         forest: {
@@ -153,7 +158,12 @@ const BIOME_CONFIG = {
             enemyWeights: {
                 NORMAL: 0,
                 FAST: 1,
-                SHOOTER: 0
+                SHOOTER: 0,
+                GIANT: 0.05,
+                CRAB: 0.1,
+                FLYING: 0.2,
+                SLIME: 0.3,
+                BOSS: 0.02
             }
         },
         ruins: {
@@ -162,7 +172,12 @@ const BIOME_CONFIG = {
             enemyWeights: {
                 NORMAL: 0,
                 FAST: 0,
-                SHOOTER: 1
+                SHOOTER: 1,
+                GIANT: 0.2,
+                CRAB: 0.1,
+                FLYING: 0.1,
+                SLIME: 0.2,
+                BOSS: 0.1
             }
         },
         industrial: {
@@ -171,7 +186,12 @@ const BIOME_CONFIG = {
             enemyWeights: {
                 NORMAL: 0.6,
                 FAST: 0.2,
-                SHOOTER: 0.2
+                SHOOTER: 0.2,
+                GIANT: 0.15,
+                CRAB: 0.1,
+                FLYING: 0.1,
+                SLIME: 0.1,
+                BOSS: 0.08
             }
         },
         beach: {
@@ -180,7 +200,12 @@ const BIOME_CONFIG = {
             enemyWeights: {
                 NORMAL: 0.3,
                 FAST: 0.6,
-                SHOOTER: 0.1
+                SHOOTER: 0.1,
+                GIANT: 0.05,
+                CRAB: 0.4,
+                FLYING: 0.1,
+                SLIME: 0.1,
+                BOSS: 0.02
             }
         }
     }

@@ -42,7 +42,7 @@ class BossCharacter {
 
     createCharacter() {
         // 体
-        const bodyGeometry = new THREE.CapsuleGeometry(1.2, 2.0, 8, 16);
+        const bodyGeometry = new THREE.CylinderGeometry(1.2, 1.2, 2.0, 8, 16);
         const bodyMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x8B0000, 
             emissive: 0x4B0000, 
@@ -130,7 +130,7 @@ class BossCharacter {
         const armGroup = new THREE.Group();
         
         // 上腕
-        const upperArmGeometry = new THREE.CapsuleGeometry(0.4, 1.2, 8, 16);
+        const upperArmGeometry = new THREE.CylinderGeometry(0.4, 0.4, 1.2, 8, 16);
         const armMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x8B0000, 
             emissive: 0x4B0000, 
@@ -144,7 +144,7 @@ class BossCharacter {
         armGroup.add(upperArm);
 
         // 前腕
-        const forearmGeometry = new THREE.CapsuleGeometry(0.3, 1.0, 8, 16);
+        const forearmGeometry = new THREE.CylinderGeometry(0.3, 0.3, 1.0, 8, 16);
         const forearm = new THREE.Mesh(forearmGeometry, armMaterial);
         forearm.position.set(0.8, -1.6, 0);
         forearm.rotation.z = -Math.PI / 6;
@@ -163,7 +163,7 @@ class BossCharacter {
         const legGroup = new THREE.Group();
         
         // 太もも
-        const thighGeometry = new THREE.CapsuleGeometry(0.5, 1.4, 8, 16);
+        const thighGeometry = new THREE.CylinderGeometry(0.5, 0.5, 1.4, 8, 16);
         const legMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x8B0000, 
             emissive: 0x4B0000, 
@@ -176,7 +176,7 @@ class BossCharacter {
         legGroup.add(thigh);
 
         // すね
-        const shinGeometry = new THREE.CapsuleGeometry(0.4, 1.2, 8, 16);
+        const shinGeometry = new THREE.CylinderGeometry(0.4, 0.4, 1.2, 8, 16);
         const shin = new THREE.Mesh(shinGeometry, legMaterial);
         shin.position.set(0, -2.6, 0);
         legGroup.add(shin);
@@ -347,34 +347,77 @@ class BossCharacter {
     }
 
     move(direction, speed, deltaTime) {
-        this.isMoving = true;
-        this.updateLimbAnimation(deltaTime);
-        
-        // 移動方向に応じて回転
-        if (direction.x !== 0 || direction.z !== 0) {
-            const angle = Math.atan2(direction.x, direction.z);
-            this.character.rotation.y = angle;
+        // 移動方向を正規化
+        if (direction.length() > 0) {
+            direction.normalize();
         }
         
+        // 速度を設定（六足歩行は非常に速い）
+        const currentSpeed = speed * 1.4;
+        
+        // 移動ベクトルを計算
+        this.velocity.copy(direction).multiplyScalar(currentSpeed * deltaTime);
+        
+        // 回転に基づいて移動方向を変換
+        this.velocity.applyEuler(this.rotation);
+        
         // 位置を更新
-        this.character.position.x += direction.x * speed * deltaTime;
-        this.character.position.z += direction.z * speed * deltaTime;
+        this.position.add(this.velocity);
+        
+        // キャラクターの位置を更新
+        this.character.position.copy(this.position);
+        
+        // 移動状態を更新
+        this.isMoving = direction.length() > 0;
+        
+        // 高さを修正
+        var height = this.game.fieldMap.getHeightAt(this.position.x, this.position.z);
+        if (height != null) {
+            this.position.y = height + 0.5;
+        }
     }
 
     setPosition(x, y, z) {
-        this.character.position.set(x, y, z);
+        this.position.set(x, y, z);
+        this.character.position.copy(this.position);
     }
-
+    
     getPosition() {
-        return this.character.position;
+        return this.position;
     }
-
+    
     setRotation(y) {
+        this.rotation.y = y;
         this.character.rotation.y = y;
     }
-
+    
     getRotation() {
-        return this.character.rotation;
+        return this.rotation;
+    }
+
+    setRunning(isRunning) {
+        this.isRunning = isRunning;
+        this.animationSpeed = isRunning ? 1.5 : 1.0;
+    }
+    // キャラクターの色を設定するメソッド
+    setEnemyColor(color) {
+        // 頭と体の色を設定
+        if (this.head && this.head.material) {
+            this.head.material.color.setHex(color);
+            this.head.material.emissive.setHex(color);
+        }
+        
+        // 体節の色を設定
+        if (this.body) {
+            this.body.children.forEach(segment => {
+                if (segment.material) {
+                    segment.material.color.setHex(color);
+                    segment.material.emissive.setHex(color);
+                }
+            });
+        }
+        
+
     }
 
     setRunning(isRunning) {

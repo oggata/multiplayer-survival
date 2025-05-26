@@ -176,41 +176,74 @@ class SlimeCharacter {
     }
 
     move(direction, speed, deltaTime) {
-        this.isMoving = true;
-        this.updateLimbAnimation(deltaTime);
-        
-        // 移動方向に応じて回転
-        if (direction.x !== 0 || direction.z !== 0) {
-            const angle = Math.atan2(direction.x, direction.z);
-            this.character.rotation.y = angle;
+        // 移動方向を正規化
+        if (direction.length() > 0) {
+            direction.normalize();
         }
         
+        // 速度を設定（六足歩行は非常に速い）
+        const currentSpeed = speed * 1.4;
+        
+        // 移動ベクトルを計算
+        this.velocity.copy(direction).multiplyScalar(currentSpeed * deltaTime);
+        
+        // 回転に基づいて移動方向を変換
+        this.velocity.applyEuler(this.rotation);
+        
         // 位置を更新
-        this.character.position.x += direction.x * speed * deltaTime;
-        this.character.position.z += direction.z * speed * deltaTime;
+        this.position.add(this.velocity);
+        
+        // キャラクターの位置を更新
+        this.character.position.copy(this.position);
+        
+        // 移動状態を更新
+        this.isMoving = direction.length() > 0;
+        
+        // 高さを修正
+        var height = this.game.fieldMap.getHeightAt(this.position.x, this.position.z);
+        if (height != null) {
+            this.position.y = height + 0.5;
+        }
     }
 
     setPosition(x, y, z) {
-        this.character.position.set(x, y, z);
+        this.position.set(x, y, z);
+        this.character.position.copy(this.position);
     }
-
+    
     getPosition() {
-        return this.character.position;
+        return this.position;
     }
-
+    
     setRotation(y) {
+        this.rotation.y = y;
         this.character.rotation.y = y;
     }
-
+    
     getRotation() {
-        return this.character.rotation;
+        return this.rotation;
     }
 
     setRunning(isRunning) {
         this.isRunning = isRunning;
         this.animationSpeed = isRunning ? 1.5 : 1.0;
     }
+    // キャラクターの色を設定するメソッド
+    setEnemyColor(color) {
+        // 頭と体の色を設定
+        if (this.head && this.head.material) {
+            this.head.material.color.setHex(color);
+            this.head.material.emissive.setHex(color);
+        }
+        
+        // 体節の色を設定
+        if (this.body && this.body.material) {
+            this.body.material.color.setHex(color);
+            this.body.material.emissive.setHex(color);
+        }
+        
 
+    }
     dispose() {
         this.scene.remove(this.character);
         this.character.traverse((object) => {

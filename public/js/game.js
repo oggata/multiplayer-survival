@@ -1136,19 +1136,20 @@ class Game {
 
 			// 敵との当たり判定
 			for (const [enemyId, enemy] of this.enemies) {
+				//console.log('enemy', enemy.health);
 				if (enemy && enemy.health > 0) {
 					const distance = bullet.model.position.distanceTo(enemy.model.position);
-					if (distance < 5.0) { // 当たり判定の距離
+					//console.log('distance', distance);
+					if (distance < 5) { // 当たり判定の距離
 						// 敵にダメージを与える
 						enemy.takeDamage(bullet.getDamage());
-
+						//console.log('enemy.takeDamage', enemy.takeDamage);
 						// 弾を削除
 						this.scene.remove(bullet.model);
 						this.bullets.splice(i, 1);
 
 						// 敵が死亡した場合の処理
 						if (enemy.health <= 0) {
-							this.handleEnemyDeath(enemy.model.position);
 							this.socket.emit('enemyDied', enemyId);
 						}
 						break;
@@ -1753,7 +1754,7 @@ class Game {
 		const deltaTime = Math.min(this.clock.getDelta(), 0.1);
 
 		this.updatePlayer(deltaTime);
-		this.updateBullets(deltaTime);
+		//this.updateBullets(deltaTime);
 		//this.updateEnemyBullets(deltaTime); // 敵の弾丸を更新
 		//this.updateEnemies(deltaTime);
 		//this.spawnEnemies();
@@ -2933,6 +2934,10 @@ class Game {
 
 		// 敵リストをクリア
 		this.enemies.forEach(enemy => {
+
+
+
+
 			if (enemy.mesh) {
 				this.scene.remove(enemy.mesh);
 			}
