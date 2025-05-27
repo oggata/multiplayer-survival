@@ -79,6 +79,7 @@ class EnhancedEnemy {
         let config = { ...baseConfig };
         
         switch (enemyModelType) {
+            
             case 'quadruped':
                 config.color = 0x6a7a5d; // 四足歩行の色（暗い緑色）
                 config.moveSpeed *= 1.2; // 移動速度を20%増加

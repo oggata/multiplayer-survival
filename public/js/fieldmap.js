@@ -272,8 +272,30 @@ class FieldMap {
 
         // オブジェクト生成用の決定論的な乱数生成関数
         this.getDeterministicRandom = (x, z, type) => {
-            const combinedSeed = this.seed + x * 1000 + z * 1000 + type.charCodeAt(0);
-            return new Math.seedrandom(combinedSeed.toString())();
+            // シード値の生成を複雑化
+            const seed1 = this.seed + x * 1000 + z * 1000;
+            const seed2 = type.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const combinedSeed = seed1 * seed2;
+
+            // 複数の乱数生成器を組み合わせる
+            const rng1 = new Math.seedrandom(combinedSeed.toString());
+            const rng2 = new Math.seedrandom((combinedSeed * 1.618033988749895).toString()); // 黄金比を使用
+            const rng3 = new Math.seedrandom((combinedSeed * 2.718281828459045).toString()); // 自然対数の底を使用
+
+            // 複数の乱数を組み合わせて最終的な乱数を生成
+            const random1 = rng1();
+            const random2 = rng2();
+            const random3 = rng3();
+
+            // 異なる分布の乱数を組み合わせる
+            const combinedRandom = (
+                random1 * 0.5 + // 一様分布
+                Math.sin(random2 * Math.PI * 2) * 0.25 + // 正弦波
+                (random3 - 0.5) * 0.25 // 中心化された一様分布
+            );
+
+            // 結果を0-1の範囲に正規化
+            return (combinedRandom + 0.5) % 1;
         };
 
         this.isInitialized = false;
@@ -1105,7 +1127,7 @@ class FieldMap {
         if (!biomeSetting) return;
 
         // 建物の生成
-        const buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 2 * biomeSetting.buildingDensity);
+        const buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 50 * biomeSetting.buildingDensity);
         for (let i = 0; i < buildingCount; i++) {
             if (this.getDeterministicRandom(chunkX, chunkZ, 'building' + i) < biomeSetting.buildingDensity) {
                 let position;
@@ -1188,9 +1210,9 @@ class FieldMap {
         // 木の生成
         let treeCount;
         if (biome.type === 'forest') {
-            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 50 * biomeSetting.treeDensity);
+            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 100 * biomeSetting.treeDensity);
         } else {
-            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 10 * biomeSetting.treeDensity);
+            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 50 * biomeSetting.treeDensity);
         }
 
         for (let i = 0; i < treeCount; i++) {
@@ -1216,7 +1238,7 @@ class FieldMap {
         }
 
         // がれきの生成
-        const debrisCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'debrisCount') * 5 * biomeSetting.debrisDensity);
+        const debrisCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'debrisCount') * 35 * biomeSetting.debrisDensity);
         for (let i = 0; i < debrisCount; i++) {
             const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'debrisX' + i) - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'debrisZ' + i) - 0.5) * this.chunkSize;

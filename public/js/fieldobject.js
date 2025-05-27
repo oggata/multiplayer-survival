@@ -578,6 +578,7 @@ class FieldObject {
             rockGroup.add(smallRock);
         }
         
+        /*
         // 岩の下に影を追加
         const shadowGeometry = new THREE.PlaneGeometry(rockSize * 2, rockSize * 2);
         const shadowMaterial = new THREE.MeshBasicMaterial({
@@ -595,6 +596,7 @@ class FieldObject {
         
         this.fieldmap.scene.add(rockGroup);
         this.fieldmap.objects.push(rockGroup);
+        */
     }
     
     createRuins(x, z, height) {
@@ -752,6 +754,7 @@ class FieldObject {
             debrisGroup.add(smallDebris);
         }
         
+        /*
         // がれきの下に影を追加
         const shadowGeometry = new THREE.PlaneGeometry(mainSize * 2, mainSize * 2);
         const shadowMaterial = new THREE.MeshBasicMaterial({
@@ -769,6 +772,7 @@ class FieldObject {
         
         this.fieldmap.scene.add(debrisGroup);
         this.fieldmap.objects.push(debrisGroup);
+        */
     }
     
     createFactory(x, z, height) {
