@@ -24,7 +24,6 @@ class AudioManager {
 
 class Game {
 	constructor() {
-
 		this.devMode = true;
 
 		this.scene = new THREE.Scene();
@@ -34,6 +33,16 @@ class Game {
 			0.1,
 			1000
 		);
+		// 視点モードを追加
+		this.cameraMode = 'third'; // 'third', 'first', 'far' の3つのモード
+		this.cameraOffsets = {
+			third: { y: GameConfig.CAMERA.OFFSET_Y, z: GameConfig.CAMERA.OFFSET_Z },
+			first: { y: 1.6, z: -0.5 }, // 一人称視点のオフセットを前方に調整
+			far: { y: 15, z: 25 } // 遠距離視点のオフセット
+		};
+
+		// 視点切り替えボタンを追加
+		this.setupCameraButton();
 		this.renderer = new THREE.WebGLRenderer({
 			canvas: document.getElementById('gameCanvas'),
 			antialias: true
@@ -1358,19 +1367,50 @@ class Game {
 	}
 
 	updateCameraPosition() {
-		// プレイヤーの背後にカメラを配置
+		if (!this.playerModel) return;
+
+		// プレイヤーの位置を取得
+		const playerPosition = this.playerModel.getPosition();
+		const playerRotation = this.playerModel.getRotation().y;
+
+		// 現在の視点モードに応じたオフセットを取得
+		const offset = this.cameraOffsets[this.cameraMode];
+
+		// カメラの位置を計算
 		const cameraPosition = new THREE.Vector3();
-		cameraPosition.copy(this.playerModel.getPosition());
+		cameraPosition.copy(playerPosition);
 
-		// プレイヤーの回転に基づいてカメラのオフセットを計算
-		const offset = new THREE.Vector3(0, GameConfig.CAMERA.OFFSET_Y, GameConfig.CAMERA.OFFSET_Z);
-		offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerModel.getRotation().y);
+		// 視点モードに応じてカメラの位置と向きを調整
+		switch (this.cameraMode) {
+			case 'first':
+				// 一人称視点
+				const firstPersonOffset = new THREE.Vector3(0, offset.y, offset.z);
+				firstPersonOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerRotation);
+				cameraPosition.add(firstPersonOffset);
+				this.camera.position.copy(cameraPosition);
+				// プレイヤーの向きに合わせてカメラを回転（水平回転のみ）
+				this.camera.rotation.set(0, playerRotation, 0);
+				break;
 
-		cameraPosition.add(offset);
-		this.camera.position.copy(cameraPosition);
+			case 'far':
+				// 遠距離視点
+				const farOffset = new THREE.Vector3(0, offset.y, offset.z);
+				farOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerRotation);
+				cameraPosition.add(farOffset);
+				this.camera.position.copy(cameraPosition);
+				// プレイヤーを見る
+				this.camera.lookAt(playerPosition);
+				break;
 
-		// カメラがプレイヤーを見るようにする
-		this.camera.lookAt(this.playerModel.getPosition());
+			default:
+				// 通常の三人称視点
+				const thirdPersonOffset = new THREE.Vector3(0, offset.y, offset.z);
+				thirdPersonOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerRotation);
+				cameraPosition.add(thirdPersonOffset);
+				this.camera.position.copy(cameraPosition);
+				this.camera.lookAt(playerPosition);
+				break;
+		}
 	}
 
 	// ダメージを受ける処理
@@ -3216,6 +3256,44 @@ class Game {
 			}
 		});
 		return nearbyEnemies;
+	}
+
+	setupCameraButton() {
+		const cameraButton = document.createElement('button');
+		cameraButton.id = 'cameraButton';
+		cameraButton.innerHTML = '<i class="fas fa-camera"></i>';
+		cameraButton.style.cssText = `
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			background: rgba(0, 0, 0, 0.5);
+			color: white;
+			border: none;
+			cursor: pointer;
+			z-index: 1000;
+			font-size: 16px;
+		`;
+		document.body.appendChild(cameraButton);
+
+		cameraButton.addEventListener('click', () => {
+			// 視点モードを切り替え
+			switch (this.cameraMode) {
+				case 'third':
+					this.cameraMode = 'first';
+					break;
+				case 'first':
+					this.cameraMode = 'far';
+					break;
+				case 'far':
+					this.cameraMode = 'third';
+					break;
+			}
+			// カメラ位置を更新
+			this.updateCameraPosition();
+		});
 	}
 }
 
