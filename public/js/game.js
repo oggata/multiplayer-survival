@@ -258,8 +258,7 @@ class Game {
 		// 初期表示を設定
 		this.updateEffectsDisplay();
 
-		//this.audioManager = new AudioManager();
-		console.log('GameConfig.ITEMS', GameConfig.ITEMS);
+/*
 		// ゲーム開始時にランダムなアイテムを3つバックパックに入れる
 		const itemTypes = Object.entries(GameConfig.ITEMS)
 			.filter(([_, item]) => item.dropChance !== undefined)
@@ -278,9 +277,9 @@ class Game {
 				});
 			}
 		}
-			
-		this.updateBackpackUI();
 
+		this.updateBackpackUI();
+			*/
 		// 電波塔の管理を追加
 		//this.radioTowerManager = new RadioTowerManager(this.scene);
 
