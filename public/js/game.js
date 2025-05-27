@@ -174,7 +174,7 @@ class Game {
 		// 電波塔の管理を追加（シーン初期化後に配置）
 		//this.radioTowerManager = new RadioTowerManager(this.scene);
 
-		this.animate();
+
 
 		// プレイヤーのハッシュ
 		this.playerHash = null;
@@ -280,6 +280,7 @@ class Game {
 				this.socket.disconnect();
 			}
 		});
+		this.animate();
 	}
 
 	createMessageIndicatorContainer() {
@@ -1007,9 +1008,10 @@ class Game {
 
 
 		var aa = this.playerStatus.getCurrentWeponType();
-		console.log('aa', aa);	
+		console.log('aa', aa[aa.length - 1]);	
 
-		const weaponId = this.playerStatus.currentWeapon || 'bullet001';
+
+		const weaponId = aa[aa.length - 1] || 'bullet001';
 		const shootPosition = this.playerModel.getPosition().clone();
 		shootPosition.y += 1.1; // 発射位置を少し上げる
 
@@ -1065,7 +1067,7 @@ class Game {
 
 			case 'shotgun':
 				// ショットガン：広範囲に広がる弾
-				for (let i = -2; i <= 2; i++) {
+				for (let i = -1; i <= 1; i++) {
 					const spreadDirection = direction.clone();
 					spreadDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), i * 0.2);
 					const bullet = this.createBullet(shootPosition, spreadDirection, this.socket.id, weaponId);
@@ -1162,6 +1164,9 @@ class Game {
 	}
 
 	updatePlayer(deltaTime) {
+		// playerModelが存在しない場合は処理をスキップ
+		if (!this.playerModel) return;
+
 		if (this.isGameOver) return;
 
 		let moveX = 0;
@@ -1716,17 +1721,6 @@ class Game {
 		});
 
 		this.updateLightDirection();
-
-		/*
-		// 射撃のクールダウンを更新
-		if (!this.canShoot) {
-		    console.log("射撃クールダウン中" + this.shootTimer + " / " + this.shootCooldown);
-		    this.shootTimer += deltaTime;       
-		    if (this.shootTimer >= this.shootCooldown) {
-		        this.canShoot = true;
-		        this.shootTimer = 0;
-		    }
-		}*/
 
 		// ゲーム時間の更新（サーバーからの開始時間を考慮）
 		if (this.gameStartTime) {

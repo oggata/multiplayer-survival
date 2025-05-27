@@ -417,7 +417,7 @@ shotgun: {
         duration: {
             type: 'wepon',
             value: 0.6,
-            duration: 40,
+            duration: 99999,
             attack: {
                 type: 'shotgun',
                 damage: 10,
@@ -437,7 +437,7 @@ machinegun: {
         duration: {
             type: 'wepon',
             value: 0.6,
-            duration: 40,
+            duration: 99999,
             attack: {
                 type: 'machinegun',
                 damage: 10,
@@ -457,7 +457,7 @@ machinegun: {
         duration: {
             type: 'wepon',
             value: 0.6,
-            duration: 40,
+            duration: 99999,
             attack: {
                 type: 'magnum',
                 damage: 20,
@@ -477,7 +477,7 @@ sniperrifle: {
         duration: {
             type: 'wepon',
             value: 0.6,
-            duration: 40,
+            duration: 99999,
             attack: {
                 type: 'sniperrifle',
                 damage: 20,
@@ -497,7 +497,7 @@ rocketlauncher: {
         duration: {
             type: 'wepon',
             value: 0.6,
-            duration: 40,
+            duration: 99999,
             attack: {
                 type: 'rocketlauncher',
                 damage: 20,

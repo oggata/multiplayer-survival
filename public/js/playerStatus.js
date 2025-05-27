@@ -327,14 +327,12 @@ class PlayerStatus {
     getCurrentWeponType() {
         const currentWeponTypes = [];
         const currentTime = Date.now();
-
         // 持続効果を確認
         this.effects.forEach(effect => {
             if (effect.type === 'wepon' && effect.endTime > currentTime) {
                 currentWeponTypes.push(effect.attack.type);
             }
         });
-//console.log(currentWeponTypes);
         return currentWeponTypes;
     }
 
