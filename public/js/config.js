@@ -40,6 +40,58 @@ const GameConfig = {
                 shootInterval: 3000, // 3秒ごとに弾を発射
                 bulletSpeed: 15,
                 bulletDamage: 15
+            },
+            QUADRUPED: {
+                name: 'quadruped',
+                color: 0x6a7a5d, // 暗い緑色
+                moveSpeed: 2.4, // 20%増加
+                damage: 3, // 50%増加
+                shootBullets: false
+            },
+            HEXAPOD: {
+                name: 'hexapod',
+                color: 0x331122, // 暗い赤紫色
+                moveSpeed: 2.8, // 40%増加
+                damage: 2.4, // 20%増加
+                shootBullets: false
+            },
+            GIANT: {
+                name: 'giant',
+                color: 0x8B4513, // 茶色
+                moveSpeed: 1.6, // 20%減少
+                damage: 4, // 2倍
+                shootBullets: false
+            },
+            CRAB: {
+                name: 'crab',
+                color: 0xFF4500, // オレンジレッド
+                moveSpeed: 2.2, // 10%増加
+                damage: 2.6, // 30%増加
+                shootBullets: false
+            },
+            FLYING: {
+                name: 'flying',
+                color: 0x4B0082, // インディゴ
+                moveSpeed: 3.2, // 60%増加
+                damage: 2.2, // 10%増加
+                shootBullets: false
+            },
+            SLIME: {
+                name: 'slime',
+                color: 0x00FF7F, // 春緑
+                moveSpeed: 1.8, // 10%減少
+                damage: 2.8, // 40%増加
+                shootBullets: false
+            },
+            BOSS: {
+                name: 'boss',
+                color: 0xFF0000, // 赤
+                moveSpeed: 1.4, // 30%減少
+                damage: 6, // 3倍
+                shootBullets: true,
+                shootInterval: 2000, // 2秒ごとに弾を発射
+                bulletSpeed: 20,
+                bulletDamage: 20
             }
         }
     },
@@ -73,7 +125,7 @@ const GameConfig = {
     
     // 霧設定
     FOG: {
-        DENSITY: 0.009
+        DENSITY: 0.007
     },
     
     // カメラ設定

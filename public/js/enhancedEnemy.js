@@ -78,49 +78,10 @@ class EnhancedEnemy {
         // キャラクターモデルタイプに応じた設定の変更
         let config = { ...baseConfig };
         
-        switch (enemyModelType) {
-            
-            case 'quadruped':
-                config.color = 0x6a7a5d; // 四足歩行の色（暗い緑色）
-                config.moveSpeed *= 1.2; // 移動速度を20%増加
-                config.damage *= 1.5; // ダメージを50%増加
-                break;
-                
-            case 'hexapod':
-                config.color = 0x331122; // 六足歩行の色（暗い赤紫色）
-                config.moveSpeed *= 1.4; // 移動速度を40%増加
-                config.damage *= 1.2; // ダメージを20%増加
-                break;
-
-            case 'giant':
-                config.color = 0x8B4513; // 巨大の色（茶色）
-                config.moveSpeed *= 0.8; // 移動速度を20%減少
-                config.damage *= 2.0; // ダメージを2倍
-                break;
-
-            case 'crab':
-                config.color = 0xFF4500; // カニの色（オレンジレッド）
-                config.moveSpeed *= 1.1; // 移動速度を10%増加
-                config.damage *= 1.3; // ダメージを30%増加
-                break;
-
-            case 'flying':
-                config.color = 0x4B0082; // 飛行の色（インディゴ）
-                config.moveSpeed *= 1.6; // 移動速度を60%増加
-                config.damage *= 1.1; // ダメージを10%増加
-                break;
-
-            case 'slime':
-                config.color = 0x00FF7F; // スライムの色（春緑）
-                config.moveSpeed *= 0.9; // 移動速度を10%減少
-                config.damage *= 1.4; // ダメージを40%増加
-                break;
-
-            case 'boss':
-                config.color = 0xFF0000; // ボスの色（赤）
-                config.moveSpeed *= 0.7; // 移動速度を30%減少
-                config.damage *= 3.0; // ダメージを3倍
-                break;
+        // 敵の種類に応じた設定を取得
+        const enemyTypeConfig = GameConfig.ENEMY.TYPES[enemyModelType.toUpperCase()];
+        if (enemyTypeConfig) {
+            config = { ...config, ...enemyTypeConfig };
         }
         
         return config;

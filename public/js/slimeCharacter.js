@@ -241,8 +241,6 @@ class SlimeCharacter {
             this.body.material.color.setHex(color);
             this.body.material.emissive.setHex(color);
         }
-        
-
     }
     dispose() {
         this.scene.remove(this.character);

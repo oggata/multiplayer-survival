@@ -122,7 +122,8 @@ class Game {
 
 		// 時計
 		this.clock = new THREE.Clock();
-
+		// プレイヤー生成時間を記録
+		this.playerSpawnTime = Date.now();
 		// 時間関連の変数
 		this.gameTime = 0; // ゲーム内時間（秒）
 		this.dayLength = GameConfig.TIME.DAY_LENGTH; // 1日の長さ（秒）
@@ -178,8 +179,7 @@ class Game {
 		// プレイヤーのハッシュ
 		this.playerHash = null;
 
-		// プレイヤー生成時間を記録
-		this.playerSpawnTime = Date.now();
+
 
 		// メッセージポップアップを管理するMap
 		this.messagePopups = new Map();
@@ -510,8 +510,6 @@ class Game {
 			//console.warn('DirectionalLight が見つかりません');
 			return;
 		}
-
-
 		// テレインのマテリアルを取得
 		const material = this.fieldMap.terrainGeometry.material;
 		if (!material || !material.uniforms) return;
@@ -558,8 +556,6 @@ class Game {
 		if (this.fieldMap && this.fieldMap.checkCollision(new THREE.Vector3(
 				serverPosition.x, serverPosition.y, serverPosition.z), 2)) {
 
-			// console.log("Initial position unsafe, finding safe spawn position...");
-
 			// Find a safe spawn position
 			const safePosition2 = this.getNearbyPlayerPosition();
 			this.playerModel.setPosition(safePosition2.x, safePosition2.y, safePosition2.z);
@@ -602,14 +598,6 @@ class Game {
 		});
 
 		this.setupMobileControls();
-		/*
-		        // キーボード入力の処理を修正
-		        document.addEventListener('keydown', (event) => {
-		            if (event.code === 'Space' && this.canShoot()) {
-		                this.shoot();
-		            }
-		        });
-		        */
 	}
 
 	setupMobileControls() {
@@ -634,8 +622,6 @@ class Game {
 			y: 0,
 			isRunning: false
 		};
-
-		//console.log('ジョイスティックを初期化しました:', this.leftJoystick);
 
 		// 走り状態のインジケーターを追加
 		const runIndicator = document.createElement('div');
@@ -783,10 +769,6 @@ class Game {
 			this.gameStartTime = config.gameStartTime;
 			this.playerHash = config.playerHash;
 
-			// Setup scene after receiving config
-
-			//console.log('ゲーム設定のseedを受信:', config.seed);
-
 			this.setupScene(this.seed);
 
 			// If player model already exists, update its color based on hash
@@ -881,14 +863,7 @@ class Game {
 			const bullet = this.createBullet(position, direction, data.playerId, data.weponId);
 			this.bullets.push(bullet);
 		});
-		/*
-		// ダメージを受けた時のイベント
-		this.socket.on('playerHit', (data) => {
-		    if (data.targetId === this.socket.id) {
-		        this.takeDamage(data.damage);
-		    }
-		});
-		*/
+
 		// プレイヤーがリスタートした時のイベント
 		this.socket.on('playerRestarted', (data) => {
 			if (data.id === this.socket.id) {
@@ -1121,10 +1096,6 @@ class Game {
 
 		// 最後の発射時間を更新
 		this.lastShootTime = Date.now();
-
-		// クールダウン状態を設定
-		//this.canShoot = false;
-		//this.shootTimer = 0;
 	}
 
 	updateBullets(deltaTime) {
@@ -1202,7 +1173,6 @@ class Game {
 		let isRunning = false;
 		let isMoving = false;
 
-		//if (this.isMobile) {
 		if (this.leftJoystick.active) {
 			// 上下で前後移動（方向を反転）
 			moveZ = this.leftJoystick.y * this.moveSpeed;
@@ -1217,8 +1187,7 @@ class Game {
 				isMoving = true;
 			}
 		}
-		//} else {
-		// キーボードコントロール（AとDの方向を反転）
+
 		if (this.keys['w']) moveZ = -this.moveSpeed;
 		if (this.keys['s']) moveZ = this.moveSpeed;
 		if (this.keys['a']) rotateY = this.rotationSpeed; // 方向を反転
@@ -1230,8 +1199,6 @@ class Game {
 		if (this.keys['w'] || this.keys['s']) {
 			isMoving = true;
 		}
-		// }
-
 		// 移動方向ベクトルを作成
 		const moveDirection = new THREE.Vector3(moveX, 0, moveZ);
 
@@ -1295,7 +1262,7 @@ class Game {
 		// 座標表示を更新
 		this.updateCoordinatesDisplay();
 
-		this.updatePlayerLight();
+		//this.updatePlayerLight();
 		// サーバーに位置情報を送信
 		this.socket.emit('playerMove', {
 			position: this.playerModel.getPosition(),
@@ -1305,69 +1272,6 @@ class Game {
 			isMoving: this.playerModel.isMoving,
 			isRunning: this.playerModel.isRunning
 		});
-	}
-
-	// プレイヤーライトを更新するための新しいメソッド
-	updatePlayerLight() {
-		if (!this.playerLight || !this.playerLightTarget || !this.playerModel) return;
-
-		// プレイヤーの位置を取得
-		const playerPosition = this.playerModel.getPosition();
-
-		// プレイヤーライトの位置を設定（プレイヤーの肩の高さくらいに配置）
-		this.playerLight.position.set(
-			playerPosition.x,
-			playerPosition.y + 1.2, // プレイヤーより少し上に配置
-			playerPosition.z
-		);
-
-		// プレイヤーの向きを取得
-		const rotation = this.playerModel.getRotation();
-
-		// プレイヤーの向きに基づいて前方向を計算
-		const forwardDirection = new THREE.Vector3(0, 0, -1);
-		forwardDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotation.y);
-
-		// ライトのターゲットをプレイヤーの前方に配置
-		this.playerLightTarget.position.copy(playerPosition);
-		this.playerLightTarget.position.add(forwardDirection.multiplyScalar(10)); // 10単位前方
-		this.playerLightTarget.position.y = playerPosition.y; // 同じ高さにする
-
-		// 地形シェーダーのuniformsを更新
-		if (this.fieldMap && this.fieldMap.terrainGeometry &&
-			this.fieldMap.terrainGeometry.material &&
-			this.fieldMap.terrainGeometry.material.uniforms) {
-
-			const uniforms = this.fieldMap.terrainGeometry.material.uniforms;
-
-			// ライトが有効かどうか
-			uniforms.spotLightEnabled.value = this.playerLight.intensity > 0.1;
-
-			// ライトが有効な場合、他のパラメータを更新
-			if (uniforms.spotLightEnabled.value) {
-				// ライトの位置
-				uniforms.spotLightPosition.value.copy(this.playerLight.position);
-
-				// ライトの方向（ターゲットへのベクトル）
-				const direction = new THREE.Vector3().subVectors(
-					this.playerLightTarget.position,
-					this.playerLight.position
-				).normalize();
-				uniforms.spotLightDirection.value.copy(direction);
-
-				// ライトの色と強度
-				uniforms.spotLightColor.value.copy(this.playerLight.color);
-				uniforms.spotLightIntensity.value = this.playerLight.intensity;
-
-				// その他のパラメータ
-				uniforms.spotLightDistance.value = this.playerLight.distance;
-				uniforms.spotLightAngle.value = this.playerLight.angle;
-				uniforms.spotLightPenumbra.value = this.playerLight.penumbra;
-			}
-
-			// マテリアルの更新フラグをセット
-			this.fieldMap.terrainGeometry.material.needsUpdate = true;
-		}
 	}
 
 	// 座標表示を更新するメソッド
@@ -1629,32 +1533,16 @@ class Game {
 	restartGame() {
 		// 音を再生
 		//this.audioManager.play('restart');
-
 		this.currentHealth = this.maxHealth;
 		this.playerStatus.reset(); // プレイヤーステータスを完全にリセット
 		this.isGameOver = false;
 		this.gameOverElement.style.display = 'none';
-
-
 		this.playerSpawnTime = Date.now();
-		/*
-		// 古いキャラクターを確実に削除
-		if (this.playerModel) {
-		    this.scene.remove(this.playerModel.character);
-		    this.playerModel.dispose();
-		    this.playerModel = null;
-		}
-		*/
-
-
-
 		// ランダムなリスポーンポイントを探す
 		const safePosition = this.findSafeRespawnPosition();
 		this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
-
 		// 新しいキャラクターを作成（他のプレイヤーの近くにスポーン）
 		this.createPlayerModel();
-
 		// サーバーにリスタートを通知
 		this.socket.emit('playerRestart');
 	}
@@ -1757,21 +1645,14 @@ class Game {
 		const deltaTime = Math.min(this.clock.getDelta(), 0.1);
 
 		this.updatePlayer(deltaTime);
-		//this.updateBullets(deltaTime);
-		//this.updateEnemyBullets(deltaTime); // 敵の弾丸を更新
-		//this.updateEnemies(deltaTime);
-		//this.spawnEnemies();
-
 		// オブジェクトの表示/非表示を更新
 		this.updateObjectVisibility();
 
 		// 地形チャンクの表示/非表示を更新
 		if (this.fieldMap && this.playerModel) {
 			this.fieldMap.updateTerrainVisibility(this.playerModel.getPosition());
+			this.fieldMap.updateObjectsVisibility(this.playerModel.getPosition());
 		}
-		//if (this.fieldMap && this.playerModel) {
-		this.fieldMap.updateObjectsVisibility(this.playerModel.getPosition());
-		// }
 
 		// メッセージポップアップの位置を更新
 		this.updateMessagePopups();
@@ -2260,7 +2141,7 @@ class Game {
 			this.playerLight.intensity = newIntensity;
 
 			// プレイヤーライトの更新を呼び出して地形シェーダーのuniformsも更新
-			this.updatePlayerLight();
+			//this.updatePlayerLight();
 		}
 	}
 	// 太陽の位置を更新
@@ -2366,7 +2247,6 @@ class Game {
 	updateTimeDisplay() {
 		// プレイヤー生存時間を計算（ミリ秒）
 		const survivalTime = Date.now() - this.playerSpawnTime;
-
 		// ゲーム内の1日の長さ（秒）
 		const gameDayLength = GameConfig.TIME.DAY_LENGTH;
 
