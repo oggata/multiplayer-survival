@@ -256,9 +256,10 @@ class Game {
 			.filter(([_, item]) => item.dropChance !== undefined)
 			.map(([type]) => type);
 
-		for (let i = 0; i < 3; i++) {
-			const randomIndex = Math.floor(Math.random() * itemTypes.length);
-			const selectedType = itemTypes[0];
+			/*
+		for (let i = 0; i < 8; i++) {
+			//const randomIndex = Math.floor(Math.random() * itemTypes.length);
+			const selectedType = itemTypes[i];
 			//const selectedType = itemTypes[0];
 			console.log('selectedType', selectedType);
 			if (selectedType) {
@@ -268,6 +269,7 @@ class Game {
 				});
 			}
 		}
+			*/
 		this.updateBackpackUI();
 
 		// 電波塔の管理を追加
@@ -997,7 +999,42 @@ class Game {
 	shoot() {
 		// 発射間隔チェック
 		const now = Date.now();
-		if (now - this.lastShootTime < 800) { // 0.8秒（800ミリ秒）の間隔
+		let shootInterval = 800; // デフォルトの間隔
+		var aa = this.playerStatus.getCurrentWeponType();
+		//console.log('aa', aa[aa.length - 1]);	
+
+		const weaponId = aa[aa.length - 1] || 'bullet001';
+		const shootPosition = this.playerModel.getPosition().clone();
+		shootPosition.y += 1.1; // 発射位置を少し上げる
+		// 武器タイプに応じた発射間隔を設定
+		switch (weaponId) {
+			case 'lasergun':
+				shootInterval = 300; // 0.3秒
+				break;
+			case 'grenadelauncher':
+				shootInterval = 2000; // 2秒
+				break;
+			case 'flamethrower':
+				shootInterval = 100; // 0.1秒
+				break;
+			case 'plasmacannon':
+				shootInterval = 1500; // 1.5秒
+				break;
+			case 'missilelauncher':
+				shootInterval = 2500; // 2.5秒
+				break;
+			case 'shotgun':
+				shootInterval = 1800; // 1秒
+				break;
+			case 'machinegun':
+				shootInterval = 100; // 0.1秒
+				break;
+			default:
+				shootInterval = 800; // デフォルトは0.8秒
+				break;
+		}
+
+		if (now - this.lastShootTime < shootInterval) {
 			return;
 		}
 
@@ -1007,13 +1044,7 @@ class Game {
 		}
 
 
-		var aa = this.playerStatus.getCurrentWeponType();
-		console.log('aa', aa[aa.length - 1]);	
 
-
-		const weaponId = aa[aa.length - 1] || 'bullet001';
-		const shootPosition = this.playerModel.getPosition().clone();
-		shootPosition.y += 1.1; // 発射位置を少し上げる
 
 		// プレイヤーの向きを取得
 		const direction = new THREE.Vector3(0, 0, -1);

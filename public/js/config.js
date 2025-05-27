@@ -508,9 +508,106 @@ rocketlauncher: {
         }
     }
 },
-
-
-
+lasergun: {
+            name: 'lasergun',
+            description: '連続的なレーザーを発射',
+            color: 0xff0000,
+            dropChance: 0.05,
+            effects: {                
+                duration: {
+                    type: 'wepon',
+                    value: 0.6,
+                    duration: 40,
+                    attack: {
+                        type: 'lasergun',
+                        damage: 15,
+                        speed: 0.1,
+                        diameter: 1,
+                        reload: 1
+                    }
+                }
+            }
+        },
+        grenadelauncher: {
+            name: 'grenadelauncher',
+            description: '爆発する弾を発射',
+            color: 0x666666,
+            dropChance: 0.05,
+            effects: {                
+                duration: {
+                    type: 'wepon',
+                    value: 0.6,
+                    duration: 40,
+                    attack: {
+                        type: 'grenadelauncher',
+                        damage: 30,
+                        speed: 0.1,
+                        diameter: 1,
+                        reload: 1
+                    }
+                }
+            }
+        },
+        flamethrower: {
+            name: 'flamethrower',
+            description: '広範囲の火炎を放射',
+            color: 0xff6600,
+            dropChance: 0.05,
+            effects: {                
+                duration: {
+                    type: 'wepon',
+                    value: 0.6,
+                    duration: 40,
+                    attack: {
+                        type: 'flamethrower',
+                        damage: 8,
+                        speed: 0.1,
+                        diameter: 1,
+                        reload: 1
+                    }
+                }
+            }
+        },
+        plasmacannon: {
+            name: 'plasmacannon',
+            description: '電撃的な弾を発射',
+            color: 0x00ffff,
+            dropChance: 0.05,
+            effects: {                
+                duration: {
+                    type: 'wepon',
+                    value: 0.6,
+                    duration: 40,
+                    attack: {
+                        type: 'plasmacannon',
+                        damage: 25,
+                        speed: 0.1,
+                        diameter: 1,
+                        reload: 1
+                    }
+                }
+            }
+        },
+        missilelauncher: {
+            name: 'missilelauncher',
+            description: '追尾型のミサイルを発射',
+            color: 0x666666,
+            dropChance: 0.05,
+            effects: {                
+                duration: {
+                    type: 'wepon',
+                    value: 0.6,
+                    duration: 40,
+                    attack: {
+                        type: 'missilelauncher',
+                        damage: 40,
+                        speed: 0.1,
+                        diameter: 1,
+                        reload: 1
+                    }
+                }
+            }
+        },
 
         jacket: {
             name: 'jacket',
@@ -1010,106 +1107,6 @@ rocketlauncher: {
                     thirst: 22,
                     hygiene: -30,
                     infection: 20
-                }
-            }
-        },
-        lasergun: {
-            name: 'lasergun',
-            description: '連続的なレーザーを発射',
-            color: 0xff0000,
-            dropChance: 0.05,
-            effects: {                
-                duration: {
-                    type: 'wepon',
-                    value: 0.6,
-                    duration: 40,
-                    attack: {
-                        type: 'lasergun',
-                        damage: 15,
-                        speed: 0.1,
-                        diameter: 1,
-                        reload: 1
-                    }
-                }
-            }
-        },
-        grenadelauncher: {
-            name: 'grenadelauncher',
-            description: '爆発する弾を発射',
-            color: 0x666666,
-            dropChance: 0.05,
-            effects: {                
-                duration: {
-                    type: 'wepon',
-                    value: 0.6,
-                    duration: 40,
-                    attack: {
-                        type: 'grenadelauncher',
-                        damage: 30,
-                        speed: 0.1,
-                        diameter: 1,
-                        reload: 1
-                    }
-                }
-            }
-        },
-        flamethrower: {
-            name: 'flamethrower',
-            description: '広範囲の火炎を放射',
-            color: 0xff6600,
-            dropChance: 0.05,
-            effects: {                
-                duration: {
-                    type: 'wepon',
-                    value: 0.6,
-                    duration: 40,
-                    attack: {
-                        type: 'flamethrower',
-                        damage: 8,
-                        speed: 0.1,
-                        diameter: 1,
-                        reload: 1
-                    }
-                }
-            }
-        },
-        plasmacannon: {
-            name: 'plasmacannon',
-            description: '電撃的な弾を発射',
-            color: 0x00ffff,
-            dropChance: 0.05,
-            effects: {                
-                duration: {
-                    type: 'wepon',
-                    value: 0.6,
-                    duration: 40,
-                    attack: {
-                        type: 'plasmacannon',
-                        damage: 25,
-                        speed: 0.1,
-                        diameter: 1,
-                        reload: 1
-                    }
-                }
-            }
-        },
-        missilelauncher: {
-            name: 'missilelauncher',
-            description: '追尾型のミサイルを発射',
-            color: 0x666666,
-            dropChance: 0.05,
-            effects: {                
-                duration: {
-                    type: 'wepon',
-                    value: 0.6,
-                    duration: 40,
-                    attack: {
-                        type: 'missilelauncher',
-                        damage: 40,
-                        speed: 0.1,
-                        diameter: 1,
-                        reload: 1
-                    }
                 }
             }
         },
