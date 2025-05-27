@@ -256,7 +256,7 @@ class Game {
 			.filter(([_, item]) => item.dropChance !== undefined)
 			.map(([type]) => type);
 
-			/*
+			
 		for (let i = 0; i < 8; i++) {
 			//const randomIndex = Math.floor(Math.random() * itemTypes.length);
 			const selectedType = itemTypes[i];
@@ -269,7 +269,7 @@ class Game {
 				});
 			}
 		}
-			*/
+			
 		this.updateBackpackUI();
 
 		// 電波塔の管理を追加
@@ -1009,7 +1009,7 @@ class Game {
 		// 武器タイプに応じた発射間隔を設定
 		switch (weaponId) {
 			case 'lasergun':
-				shootInterval = 300; // 0.3秒
+				shootInterval = 500; // 0.5秒
 				break;
 			case 'grenadelauncher':
 				shootInterval = 2000; // 2秒
@@ -1024,7 +1024,16 @@ class Game {
 				shootInterval = 2500; // 2.5秒
 				break;
 			case 'shotgun':
-				shootInterval = 1800; // 1秒
+				shootInterval = 1800; // 1.8秒
+				break;
+			case 'magnum':
+				shootInterval = 1800; // 1.8秒
+				break;
+			case 'sniperrifle':
+				shootInterval = 1800; // 1.8秒
+				break;
+			case 'rocketlauncher':
+				shootInterval = 1800; // 1.8秒
 				break;
 			case 'machinegun':
 				shootInterval = 100; // 0.1秒

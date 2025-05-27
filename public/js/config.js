@@ -349,14 +349,14 @@ const GameConfig = {
             DROP_SIZE: 0.15,   // 雨滴のサイズを少し大きく
             DROP_SPEED: 20,    // 落下速度を上げる
             DROP_COLOR: 0x88ccff,
-            COVERAGE_RADIUS: 500  // 雨の範囲を広げる
+            COVERAGE_RADIUS: 1000  // 雨の範囲を広げる
         },
         SNOW: {
             FLAKE_COUNT: 2000,  // 雪片の数を増やす
             FLAKE_SIZE: 0.2,
             FLAKE_SPEED: 5,
             FLAKE_COLOR: 0xffffff,
-            COVERAGE_RADIUS: 500  // 雪の範囲を広げる
+            COVERAGE_RADIUS: 1000  // 雪の範囲を広げる
         },
         CLOUD: {
             COUNT: 20,
@@ -448,7 +448,7 @@ machinegun: {
         }
     }
 },
-machinegun: {
+magnum: {
     name: 'magnum',
     description: '威力のある弾丸を発射',
     color: 0x666666,
@@ -460,10 +460,10 @@ machinegun: {
             duration: 99999,
             attack: {
                 type: 'magnum',
-                damage: 20,
+                damage: 50,
                 speed: 0.1,
                 diameter:1,
-                reload:1
+                reload:5
             }
         }
     }
@@ -500,10 +500,10 @@ rocketlauncher: {
             duration: 99999,
             attack: {
                 type: 'rocketlauncher',
-                damage: 20,
-                speed: 0.1,
+                damage: 60,
+                speed: 0.01,
                 diameter:1,
-                reload:1
+                reload:8
             }
         }
     }
