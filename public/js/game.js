@@ -1251,6 +1251,33 @@ class Game {
 		// 移動後の位置を取得
 		const newPosition = this.playerModel.getPosition();
 
+		// レイキャストを使用して地面の高さを取得
+		const raycaster = new THREE.Raycaster();
+		const down = new THREE.Vector3(0, -1, 0);
+		raycaster.set(new THREE.Vector3(newPosition.x, 100, newPosition.z), down);
+
+		// フィールドマップの地形ジオメトリを取得
+		let terrainObject = null;
+		if (this.fieldMap && this.fieldMap.terrainGeometry) {
+			terrainObject = this.fieldMap.terrainGeometry;
+		} else {
+			// フィールドマップが初期化されていない場合は、シーン内の地形オブジェクトを探す
+			this.scene.traverse((object) => {
+				if (object.userData && object.userData.type === 'terrain') {
+					terrainObject = object;
+				}
+			});
+		}
+
+		if (terrainObject) {
+			const intersects = raycaster.intersectObject(terrainObject, true);
+			if (intersects.length > 0) {
+				// 地面の高さを取得し、プレイヤーの高さを調整
+				const groundHeight = intersects[0].point.y;
+				newPosition.y = groundHeight + 1.0; // 地面から1.0ユニット上に配置
+			}
+		}
+
 		// マップオブジェクトとの衝突判定
 		let hasCollision = false;
 
@@ -1279,6 +1306,9 @@ class Game {
 		if (hasCollision) {
 			this.playerModel.setPosition(currentPosition.x, currentPosition.y, currentPosition.z);
 		} else {
+			// 新しい位置を設定（地面の高さを含む）
+			this.playerModel.setPosition(newPosition.x, newPosition.y, newPosition.z);
+
 			// 移動した場合、空腹と喉の渇きを減少させる
 			if (isMoving) {
 				// 走っている場合はより早く減少
