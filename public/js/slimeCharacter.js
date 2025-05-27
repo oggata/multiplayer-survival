@@ -40,8 +40,8 @@ class SlimeCharacter {
         const bodyGeometry = new THREE.SphereGeometry(0.8, 32, 32);
         const bodyMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x33cc33, 
-            emissive: 0x113311, 
-            emissiveIntensity: 0.3,
+            emissive: 0x33cc33, 
+            emissiveIntensity: 0.8,
             roughness: 0.3,
             transparent: true,
             opacity: 0.8
@@ -76,8 +76,8 @@ class SlimeCharacter {
         // 小さなスライムの塊
         const blobMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x33cc33, 
-            emissive: 0x113311, 
-            emissiveIntensity: 0.3,
+            emissive: 0x33cc33, 
+            emissiveIntensity: 1,
             roughness: 0.3,
             transparent: true,
             opacity: 0.6

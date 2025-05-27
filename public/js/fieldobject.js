@@ -479,20 +479,6 @@ class FieldObject {
                 treeGroup.add(defaultLeaves);
         }
 
-        // 木の下に影を追加
-        /*
-        const shadowGeometry = new THREE.PlaneGeometry(treeType.leavesSize * 2, treeType.leavesSize * 2);
-        const shadowMaterial = new THREE.MeshBasicMaterial({
-            color: 0x000000,
-            transparent: true,
-            opacity: 0.3
-        });
-        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
-        shadow.rotation.x = -Math.PI / 2;
-        shadow.position.y = 0.01;
-        treeGroup.add(shadow);
-        */
-
         return { mesh: treeGroup, position: treeGroup.position };
     }
     
@@ -577,26 +563,6 @@ class FieldObject {
             smallRock.receiveShadow = true;
             rockGroup.add(smallRock);
         }
-        
-        /*
-        // 岩の下に影を追加
-        const shadowGeometry = new THREE.PlaneGeometry(rockSize * 2, rockSize * 2);
-        const shadowMaterial = new THREE.MeshBasicMaterial({
-            color: 0x000000,
-            transparent: true,
-            opacity: 0.3
-        });
-        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
-        shadow.rotation.x = -Math.PI / 2;
-        shadow.position.y = 0.01;
-        rockGroup.add(shadow);
-        
-        // 岩のグループ全体をランダムに回転
-        rockGroup.rotation.y = this.rng() * Math.PI * 2;
-        
-        this.fieldmap.scene.add(rockGroup);
-        this.fieldmap.objects.push(rockGroup);
-        */
     }
     
     createRuins(x, z, height) {
@@ -753,26 +719,9 @@ class FieldObject {
             smallDebris.receiveShadow = true;
             debrisGroup.add(smallDebris);
         }
-        
-        /*
-        // がれきの下に影を追加
-        const shadowGeometry = new THREE.PlaneGeometry(mainSize * 2, mainSize * 2);
-        const shadowMaterial = new THREE.MeshBasicMaterial({
-            color: 0x000000,
-            transparent: true,
-            opacity: 0.3
-        });
-        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
-        shadow.rotation.x = -Math.PI / 2;
-        shadow.position.y = 0.01;
-        debrisGroup.add(shadow);
-        
         // がれきのグループ全体をランダムに回転
         debrisGroup.rotation.y = this.rng() * Math.PI * 2;
-        
         this.fieldmap.scene.add(debrisGroup);
-        this.fieldmap.objects.push(debrisGroup);
-        */
     }
     
     createFactory(x, z, height) {
@@ -805,7 +754,6 @@ class FieldObject {
         this.fieldmap.scene.add(tank);
         this.fieldmap.objects.push(tank);
     }
-
 
     createDestroyedTop(building, width, height, depth, destructionLevel) {
         const topGeometry = new THREE.BoxGeometry(width * 0.8, height * 0.2, depth * 0.8);

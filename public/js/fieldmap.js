@@ -1,11 +1,8 @@
 class FieldMap {
     constructor(scene, seed) {
         // smoothstep関数の定義
-        this.smoothstep = function(edge0, edge1, x) {
-            // 範囲を0-1に正規化
-            const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-            // 3次関数で滑らかな補間
-            return t * t * (3 - 2 * t);
+        this.smoothstep = function(x) {
+            return x * x * (3 - 2 * x);
         };
 
         // 決定論的ノイズ関数の追加
@@ -100,9 +97,7 @@ class FieldMap {
 
         this.scene = scene;
         this.seed = seed || Math.random();
-
         console.log("seed: " + this.seed);
-
 
         this.rng = new Math.seedrandom(this.seed.toString());
         // ノイズ関数のシードを設定
@@ -113,103 +108,30 @@ class FieldMap {
         this.terrainChunks = []; // 地形チャンクを管理する配列
         this.chunkSize = GameConfig.MAP.CHUNK_SIZE; // チャンクのサイズ
         this.visibleDistance = GameConfig.MAP.VISLBLE_DISTANCE; // 視界距離
-        this.lodDistances = [100, 200, 300]; // LODの距離閾値
-        this.lodSegments = [8, 4, 2]; // 各LODレベルのセグメント数（64, 32, 16から32, 16, 8に変更）
+        this.lodDistances = GameConfig.MAP.LOD.DISTANCES; // LODの距離閾値
+        this.lodSegments = GameConfig.MAP.LOD.SEGMENTS; // 各LODレベルのセグメント数
         this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
         this.isLoading = true; // ローディング状態を管理
 
         // 安全なスポーン位置のリスト
-        this.safeSpawnPositions = [
-            { x: 100, y: 0, z: 100 },
-            { x: -100, y: 0, z: 100 },
-            { x: 100, y: 0, z: -100 },
-            { x: -100, y: 0, z: -100 },
-            { x: 200, y: 0, z: 0 },
-            { x: -200, y: 0, z: 0 },
-            { x: 0, y: 0, z: 200 },
-            { x: 0, y: 0, z: -200 }
-        ];
+        this.safeSpawnPositions = GameConfig.MAP.SPAWN.SAFE_POSITIONS;
 
         // 安全なスポーン位置からの最小距離
-        this.SAFE_SPOT_DISTANCE = 50;
+        this.SAFE_SPOT_DISTANCE = GameConfig.MAP.SPAWN.SAFE_SPOT_DISTANCE;
 
         // バイオームごとの色を定義
-        this.biomeColors = {
-            'urban': {
-                base: new THREE.Color(0x2C2C2C),      // 暗いグレー
-                highlight: new THREE.Color(0x404040),  // やや明るいグレー
-                mid: new THREE.Color(0x1A1A1A),       // 非常に暗いグレー
-                top: new THREE.Color(0x333333)        // 中間のグレー
-            },
-            'forest': {
-                base: new THREE.Color(0x1B3D1B),      // 暗い緑
-                highlight: new THREE.Color(0x2D4D2D),  // やや明るい緑
-                mid: new THREE.Color(0x0F2F0F),       // 非常に暗い緑
-                top: new THREE.Color(0x3D5D3D)        // 中間の緑
-            },
-            'ruins': {
-                base: new THREE.Color(0x4A3A2A),      // 暗い茶色
-                highlight: new THREE.Color(0x5A4A3A),  // やや明るい茶色
-                mid: new THREE.Color(0x3A2A1A),       // 非常に暗い茶色
-                top: new THREE.Color(0x6A5A4A)        // 中間の茶色
-            },
-            'industrial': {
-                base: new THREE.Color(0x2A2A2A),      // 暗いグレー
-                highlight: new THREE.Color(0x3A3A3A),  // やや明るいグレー
-                mid: new THREE.Color(0x1A1A1A),       // 非常に暗いグレー
-                top: new THREE.Color(0x4A4A4A)        // 中間のグレー
-            },
-            'beach': {
-                base: new THREE.Color(0x3A3A2A),      // 暗い砂色
-                highlight: new THREE.Color(0x4A4A3A),  // やや明るい砂色
-                mid: new THREE.Color(0x2A2A1A),       // 非常に暗い砂色
-                top: new THREE.Color(0x5A5A4A)        // 中間の砂色
-            }
-        };
+        this.biomeColors = {};
+        Object.entries(GameConfig.MAP.BIOME.COLORS).forEach(([type, colors]) => {
+            this.biomeColors[type] = {
+                base: new THREE.Color(colors.base),
+                highlight: new THREE.Color(colors.highlight),
+                mid: new THREE.Color(colors.mid),
+                top: new THREE.Color(colors.top)
+            };
+        });
 
         // バイオームごとのオブジェクト生成設定を定義
-        this.biomeSettings = {
-            'urban': {
-                buildingDensity: 0.8,
-                buildingTypes: ['skyscraper', 'office', 'apartment', 'mall', 'hotel'],
-                treeDensity: 0.1,
-                treeTypes: ['oak', 'maple'],
-                debrisDensity: 0.3,
-                debrisTypes: ['concrete', 'metal', 'glass', 'brick']
-            },
-            'forest': {
-                buildingDensity: 0.05,
-                buildingTypes: ['residential', 'school'],
-                treeDensity: 0.95,
-                treeTypes: ['pine', 'oak', 'birch', 'maple', 'redwood', 'willow'],
-                debrisDensity: 0.1,
-                debrisTypes: ['wood', 'rock']
-            },
-            'ruins': {
-                buildingDensity: 0.4,
-                buildingTypes: ['residential', 'industrial', 'school'],
-                treeDensity: 0.3,
-                treeTypes: ['oak', 'maple', 'willow'],
-                debrisDensity: 0.7,
-                debrisTypes: ['concrete', 'metal', 'glass', 'brick', 'wood', 'rock']
-            },
-            'industrial': {
-                buildingDensity: 0.6,
-                buildingTypes: ['industrial', 'office', 'warehouse'],
-                treeDensity: 0.05,
-                treeTypes: ['oak', 'maple'],
-                debrisDensity: 0.5,
-                debrisTypes: ['metal', 'concrete', 'plastic', 'rubber']
-            },
-            'beach': {
-                buildingDensity: 0.2,
-                buildingTypes: ['residential', 'hotel'],
-                treeDensity: 0.2,
-                treeTypes: ['palm', 'cypress'],
-                debrisDensity: 0.2,
-                debrisTypes: ['wood', 'plastic', 'ceramic']
-            }
-        };
+        this.biomeSettings = GameConfig.MAP.BIOME.SETTINGS;
 
         this.fieldObject = new FieldObject(scene, seed, this);
 
@@ -217,55 +139,16 @@ class FieldMap {
         this.createLoadingScreen();
 
         // ビルタイプの定義
-        this.buildingTypes = [
-            { name: 'skyscraper', minHeight: 30, maxHeight: 100, color: 0x555555 },
-            { name: 'office', minHeight: 15, maxHeight: 40, color: 0x666666 },
-            { name: 'residential', minHeight: 5, maxHeight: 15, color: 0x777777 },
-            { name: 'industrial', minHeight: 8, maxHeight: 20, color: 0x444444 },
-            { name: 'mall', minHeight: 10, maxHeight: 25, color: 0x888888 },
-            { name: 'hospital', minHeight: 12, maxHeight: 35, color: 0xFFFFFF },
-            { name: 'school', minHeight: 8, maxHeight: 20, color: 0xCCCCCC },
-            { name: 'apartment', minHeight: 15, maxHeight: 45, color: 0x999999 },
-            { name: 'hotel', minHeight: 20, maxHeight: 60, color: 0xAAAAAA }
-        ];
+        this.buildingTypes = GameConfig.MAP.OBJECT_TYPES.BUILDINGS;
 
         // がれきタイプの定義
-        this.debrisTypes = [
-            { name: 'concrete', size: 3, color: 0x888888 },
-            { name: 'metal', size: 2, color: 0x777777 },
-            { name: 'glass', size: 1, color: 0xCCFFFF },
-            { name: 'wood', size: 2, color: 0x8B4513 },
-            { name: 'brick', size: 1.5, color: 0xB22222 },
-            { name: 'plastic', size: 1, color: 0xE6E6FA },
-            { name: 'rubber', size: 1.5, color: 0x2F4F4F },
-            { name: 'ceramic', size: 1, color: 0xF5F5F5 }
-        ];
+        this.debrisTypes = GameConfig.MAP.OBJECT_TYPES.DEBRIS;
         
         // 木の種類の定義
-        this.treeTypes = [
-            { name: 'pine', trunkColor: 0x8B4513, leavesColor: 0x228B22, trunkWidth: 0.2, trunkHeight: 1.0, leavesSize: 1.2 },
-            { name: 'oak', trunkColor: 0x654321, leavesColor: 0x2E8B57, trunkWidth: 0.3, trunkHeight: 0.8, leavesSize: 1.5 },
-            { name: 'birch', trunkColor: 0xF5F5DC, leavesColor: 0x90EE90, trunkWidth: 0.15, trunkHeight: 0.9, leavesSize: 1.0 },
-            { name: 'maple', trunkColor: 0x8B4513, leavesColor: 0xFF4500, trunkWidth: 0.25, trunkHeight: 0.7, leavesSize: 1.3 },
-            { name: 'willow', trunkColor: 0x8B4513, leavesColor: 0x32CD32, trunkWidth: 0.2, trunkHeight: 0.6, leavesSize: 1.8 },
-            { name: 'palm', trunkColor: 0x8B4513, leavesColor: 0x228B22, trunkWidth: 0.3, trunkHeight: 1.2, leavesSize: 2.0 },
-            { name: 'cherry', trunkColor: 0x8B4513, leavesColor: 0xFFB6C1, trunkWidth: 0.2, trunkHeight: 0.8, leavesSize: 1.4 },
-            { name: 'cypress', trunkColor: 0x8B4513, leavesColor: 0x006400, trunkWidth: 0.15, trunkHeight: 1.1, leavesSize: 0.8 },
-            { name: 'redwood', trunkColor: 0x8B4513, leavesColor: 0x228B22, trunkWidth: 0.4, trunkHeight: 1.5, leavesSize: 1.6 }
-        ];
+        this.treeTypes = GameConfig.MAP.OBJECT_TYPES.TREES;
 
         // 岩の種類の定義
-        this.rockTypes = [
-            { name: 'granite', color: 0x808080, size: 1.0, roughness: 0.9 },
-            { name: 'limestone', color: 0xD3D3D3, size: 0.8, roughness: 0.8 },
-            { name: 'basalt', color: 0x2F4F4F, size: 1.2, roughness: 0.95 },
-            { name: 'sandstone', color: 0xD2B48C, size: 0.9, roughness: 0.7 },
-            { name: 'marble', color: 0xFFFFFF, size: 0.7, roughness: 0.6 },
-            { name: 'obsidian', color: 0x000000, size: 1.1, roughness: 0.85 },
-            { name: 'quartz', color: 0xE6E6FA, size: 0.6, roughness: 0.5 },
-            { name: 'slate', color: 0x708090, size: 0.8, roughness: 0.75 },
-            { name: 'shale', color: 0x556B2F, size: 0.7, roughness: 0.8 }
-        ];
+        this.rockTypes = GameConfig.MAP.OBJECT_TYPES.ROCKS;
         
         // マップの初期化を即時実行
         this.createMap();

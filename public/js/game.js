@@ -40,7 +40,7 @@ class Game {
 		});
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.shadowMap.enabled = true;
-
+		console.log('GameConfig.ITEMS', GameConfig.ITEMS);
 		// モノクロ効果用のシェーダーを追加
 		this.monochromeShader = {
 			uniforms: {
@@ -179,7 +179,7 @@ class Game {
 		// プレイヤーのハッシュ
 		this.playerHash = null;
 
-
+		console.log('GameConfig.ITEMS', GameConfig.ITEMS);
 
 		// メッセージポップアップを管理するMap
 		this.messagePopups = new Map();
@@ -249,8 +249,8 @@ class Game {
 		// 初期表示を設定
 		this.updateEffectsDisplay();
 
-		this.audioManager = new AudioManager();
-
+		//this.audioManager = new AudioManager();
+		console.log('GameConfig.ITEMS', GameConfig.ITEMS);
 		// ゲーム開始時にランダムなアイテムを3つバックパックに入れる
 		const itemTypes = Object.entries(GameConfig.ITEMS)
 			.filter(([_, item]) => item.dropChance !== undefined)
@@ -258,8 +258,9 @@ class Game {
 
 		for (let i = 0; i < 3; i++) {
 			const randomIndex = Math.floor(Math.random() * itemTypes.length);
-			const selectedType = itemTypes[randomIndex];
+			const selectedType = itemTypes[0];
 			//const selectedType = itemTypes[0];
+			console.log('selectedType', selectedType);
 			if (selectedType) {
 				this.inventory.push({
 					id: Date.now() + i,
@@ -1004,6 +1005,10 @@ class Game {
 			return;
 		}
 
+
+		var aa = this.playerStatus.getCurrentWeponType();
+		console.log('aa', aa);	
+
 		const weaponId = this.playerStatus.currentWeapon || 'bullet001';
 		const shootPosition = this.playerModel.getPosition().clone();
 		shootPosition.y += 1.1; // 発射位置を少し上げる
@@ -1082,10 +1087,6 @@ class Game {
 				this.bullets.push(bullet);
 				break;
 		}
-
-		// 発射音を再生
-		//this.audioManager.play('shoot');
-
 		// サーバーに発射情報を送信
 		this.socket.emit('shoot', {
 			position: shootPosition,
@@ -1110,18 +1111,14 @@ class Game {
 
 			// 敵との当たり判定
 			for (const [enemyId, enemy] of this.enemies) {
-				//console.log('enemy', enemy.health);
 				if (enemy && enemy.health > 0) {
 					const distance = bullet.model.position.distanceTo(enemy.model.position);
-					//console.log('distance', distance);
 					if (distance < 5) { // 当たり判定の距離
 						// 敵にダメージを与える
 						enemy.takeDamage(bullet.getDamage());
-						//console.log('enemy.takeDamage', enemy.takeDamage);
 						// 弾を削除
 						this.scene.remove(bullet.model);
 						this.bullets.splice(i, 1);
-
 						// 敵が死亡した場合の処理
 						if (enemy.health <= 0) {
 							this.socket.emit('enemyDied', enemyId);
