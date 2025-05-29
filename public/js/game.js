@@ -2041,22 +2041,9 @@ class Game {
 		direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.playerModel.getRotation().y);
 		dropPosition.add(direction.multiplyScalar(2));
 
-		// アイテムをシーンに追加
-		const geometry = new THREE.SphereGeometry(0.5, 8, 8);
-		const material = new THREE.MeshStandardMaterial({
-			color: this.getItemColor(item.type),
-			emissive: this.getItemColor(item.type),
-			emissiveIntensity: 0.5
-		});
-
-		const droppedItem = new THREE.Mesh(geometry, material);
-		droppedItem.position.copy(dropPosition);
-		droppedItem.userData = {
-			type: 'item',
-			itemType: item.type
-		};
-
-		this.scene.add(droppedItem);
+		// Itemクラスのインスタンスを作成
+		const droppedItem = new Item(item.type, dropPosition);
+		this.scene.add(droppedItem.mesh);
 		this.items.push(droppedItem);
 
 		// アイテムをインベントリから削除

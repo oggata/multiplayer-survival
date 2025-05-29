@@ -54,8 +54,8 @@ const PLAYER_PREDICTION_RANGE = 50; // 予測範囲を短縮
 const MAX_ENEMIES = {
     MORNING:  30,   // 朝（6:00-12:00）0
     DAY: 50,      // 昼（12:00-18:00）0
-    EVENING: 150,  // 夕方（18:00-24:00） 30
-    NIGHT: 200     // 夜（0:00-6:00）70
+    EVENING: 300,  // 夕方（18:00-24:00） 30
+    NIGHT: 500     // 夜（0:00-6:00）70
 };
 
 const SPAWN_DISTANCE_TO_PLAYER = 1000;
@@ -73,35 +73,42 @@ const TIME = {
 const ENEMY_CONFIG = {
     NORMAL: {
         model: 'humanoid',
-        visionRange: 10,
-        speed:  0.15,
+        visionRange: 30,
+        speed:  0.2,
         health: 20,
         weight: 0.6
     },
+    SLIME: {
+        model: 'slime',
+        visionRange: 10,
+        speed: 0.2,
+        health: 30,
+        weight: 0.3
+    },
     FAST: {
         model: 'quadruped',
-        visionRange: 15,
+        visionRange: 40,
         speed: 0.5,
-        health: 15,
+        health: 40,
         weight: 0.25
     },
     SHOOTER: {
         model: 'hexapod',
-        visionRange: 20,
+        visionRange: 40,
         speed: 0.8,
         health: 25,
         weight: 0.15
     },
     GIANT: {
         model: 'giant',
-        visionRange: 25,
+        visionRange: 40,
         speed: 0.1,
         health: 100,
         weight: 0.1
     },
     CRAB: {
         model: 'crab',
-        visionRange: 12,
+        visionRange: 20,
         speed: 0.3,
         health: 35,
         weight: 0.2
@@ -112,13 +119,6 @@ const ENEMY_CONFIG = {
         speed: 0.7,
         health: 15,
         weight: 0.15
-    },
-    SLIME: {
-        model: 'slime',
-        visionRange: 8,
-        speed: 0.2,
-        health: 40,
-        weight: 0.3
     },
     BOSS: {
         model: 'boss',
@@ -142,13 +142,13 @@ const BIOME_CONFIG = {
             name: 'urban',
             color: 0x2C2C2C,
             enemyWeights: {
-                NORMAL: 0.5,
+                NORMAL: 0.7,
                 FAST: 0,
                 SHOOTER: 0,
                 GIANT: 0,
                 CRAB: 0,
                 FLYING: 0,
-                SLIME: 0.5,
+                SLIME: 0.3,
                 BOSS: 0
             }
         },
