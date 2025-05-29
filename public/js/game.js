@@ -3245,24 +3245,8 @@ class Game {
 	}
 
 	setupCameraButton() {
-		const cameraButton = document.createElement('button');
-		cameraButton.id = 'cameraButton';
-		cameraButton.innerHTML = '<i class="fas fa-camera"></i>';
-		cameraButton.style.cssText = `
-			position: fixed;
-			top: 20px;
-			right: 20px;
-			width: 40px;
-			height: 40px;
-			border-radius: 50%;
-			background: rgba(0, 0, 0, 0.5);
-			color: white;
-			border: none;
-			cursor: pointer;
-			z-index: 1000;
-			font-size: 16px;
-		`;
-		document.body.appendChild(cameraButton);
+		const cameraButton = document.getElementById('cameraButton');
+		if (!cameraButton) return;
 
 		cameraButton.addEventListener('click', () => {
 			// 視点モードを切り替え

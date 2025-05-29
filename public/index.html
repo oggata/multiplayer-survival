@@ -436,9 +436,16 @@
             <div id="joystickKnob"></div>
         </div>
 
-        <button id="messageButton"><i class="fas fa-comment"></i></button>
-        <button id="backpackButton">🎒</button>
-        <button id="warpButton">🚀</button>
+        <div id="buttonContainer" style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000;">
+            <div style="display: flex; gap: 10px;">
+                <button id="messageButton" style="width: 60px; height: 60px; background: rgba(0, 255, 0, 0.5); border-radius: 10px; border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i class="fas fa-comment"></i></button>
+                <button id="backpackButton" style="width: 60px; height: 60px; background-color: rgba(255, 170, 68, 0.8); border: none; border-radius: 10px; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">🎒</button>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button id="warpButton" style="width: 60px; height: 60px; background-color: rgba(68, 170, 255, 0.8); border: none; border-radius: 10px; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">🚀</button>
+                <button id="cameraButton" style="width: 60px; height: 60px; background-color: rgba(128, 128, 128, 0.8); border: none; border-radius: 10px; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i class="fas fa-camera"></i></button>
+            </div>
+        </div>
     </div>
     
     <div id="status" class="status-container">
