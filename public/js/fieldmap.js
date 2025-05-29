@@ -567,23 +567,21 @@ class FieldMap {
         const baseHeight = this.generateBaseTerrain(x, z);
         
         // メサが生成される確率を計算（キャニオン以外のバイオームで低確率）
-        //const mesaChance = biome.type === 'canyon' ? 1.0 : 0.015; // キャニオン以外は15%の確率
         let mesaChance = 0.015;
 
-if(biome.type === 'canyon'){
-    mesaChance = 1.0;
-}else if(biome.type === 'forest'){
-    mesaChance = 0.1;
-}else if(biome.type === 'ruins'){
-    mesaChance = 0.1;
-}else if(biome.type === 'urban'){
-    mesaChance = 0.01;
-}else if(biome.type === 'industrial'){
-    mesaChance = 0.0;   
-}else{
-    mesaChance = 0.1;
-}
-
+        if(biome.type === 'canyon'){
+            mesaChance = 1.0;
+        }else if(biome.type === 'forest'){
+            mesaChance = 0.1;
+        }else if(biome.type === 'ruins'){
+            mesaChance = 0.1;
+        }else if(biome.type === 'urban'){
+            mesaChance = 0.01;
+        }else if(biome.type === 'industrial'){
+            mesaChance = 0.0;   
+        }else{
+            mesaChance = 0.1;
+        }
 
         // メサの生成判定
         if (this.getDeterministicRandom(x, z, 'mesa') < mesaChance) {
@@ -621,6 +619,19 @@ if(biome.type === 'canyon'){
                 default:
                     mesaHeight = 60;
                     mesaWidth = 50;
+            }
+
+            // メサの長さを制限するための追加の計算
+            const mesaLength = Math.sqrt(
+                Math.pow(x - centerX, 2) + 
+                Math.pow(z - centerZ, 2)
+            );
+            const maxMesaLength = mesaWidth * 1.5; // メサの最大長さを設定
+
+            // メサの長さが制限を超えた場合、高さを徐々に減少させる
+            if (mesaLength > maxMesaLength) {
+                const reductionFactor = Math.max(0, 1 - (mesaLength - maxMesaLength) / (mesaWidth * 0.5));
+                mesaHeight *= reductionFactor;
             }
             
             // メサの形状を生成
