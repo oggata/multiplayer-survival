@@ -4,7 +4,7 @@
 const GameConfig = {
     // プレイヤー設定
     PLAYER: {
-        MOVE_SPEED: 4.5,
+        MOVE_SPEED:             14.5,
         ROTATION_SPEED: 0.05,
         MAX_HEALTH: 100,
         COLLISION_RADIUS: 1.0,
@@ -142,7 +142,7 @@ const GameConfig = {
         BOUNDARY_WALL_HEIGHT:  0,
         BIOME: {
             RADIUS: 500, // バイオームの半径
-            TYPES: ['urban', 'forest', 'ruins', 'industrial'], // バイオームの種類
+            TYPES: ['urban', 'forest', 'ruins', 'industrial', 'canyon'], // バイオームの種類
             COLORS: {
                 'urban': {
                     base: 0x2C2C2C,      // 暗いグレー
@@ -173,6 +173,12 @@ const GameConfig = {
                     highlight: 0x4A4A3A,  // やや明るい砂色
                     mid: 0x2A2A1A,       // 非常に暗い砂色
                     top: 0x5A5A4A        // 中間の砂色
+                },
+                'canyon': {
+                    base: 0x8B4513,      // 暗い茶色
+                    highlight: 0xA0522D,  // やや明るい茶色
+                    mid: 0x6B3E2E,       // 非常に暗い茶色
+                    top: 0xCD853F        // 中間の茶色
                 }
             },
             SETTINGS: {
@@ -215,6 +221,14 @@ const GameConfig = {
                     treeTypes: ['palm', 'cypress'],
                     debrisDensity: 0.2,
                     debrisTypes: ['wood', 'plastic', 'ceramic']
+                },
+                'canyon': {
+                    buildingDensity: 0.1,
+                    buildingTypes: ['ruins', 'industrial'],
+                    treeDensity: 0.05,
+                    treeTypes: ['cactus', 'dead_tree'],
+                    debrisDensity: 0.3,
+                    debrisTypes: ['rock', 'sand', 'clay']
                 }
             }
         },
@@ -290,7 +304,39 @@ const GameConfig = {
                 { name: 'quartz', color: 0xE6E6FA, size: 0.6, roughness: 0.5 },
                 { name: 'slate', color: 0x708090, size: 0.8, roughness: 0.75 },
                 { name: 'shale', color: 0x556B2F, size: 0.7, roughness: 0.8 }
-            ]
+            ],
+            CANYON: {
+                CLIFF: {
+                    minHeight: 50,
+                    maxHeight: 200,
+                    width: 100,
+                    color: 0x8B4513,
+                    layers: 5,
+                    layerHeight: 20,
+                    layerColor: 0xA0522D
+                },
+                PLATEAU: {
+                    minHeight: 100,
+                    maxHeight: 300,
+                    width: 200,
+                    color: 0xCD853F,
+                    slope: 0.3
+                },
+                RAVINE: {
+                    minWidth: 20,
+                    maxWidth: 50,
+                    depth: 100,
+                    color: 0x6B3E2E,
+                    slope: 0.8
+                },
+                MESA: {
+                    minHeight: 80,
+                    maxHeight: 150,
+                    width: 150,
+                    color: 0x8B4513,
+                    topColor: 0xCD853F
+                }
+            }
         }
     },
     

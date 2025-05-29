@@ -588,23 +588,67 @@ class FieldMap {
 
     // 指定された座標での高さを計算
     calculateHeightAt(x, z) {
-        // 複数のノイズレイヤーを組み合わせる
+        // バイオームを取得
+        const biome = this.getBiomeAt(x, z);
+        
+        // キャニオンバイオームの場合
+        if (biome.type === 'canyon') {
+            // キャニオンの中心からの距離を計算
+            const centerX = Math.floor(x / 100) * 100 + 50;
+            const centerZ = Math.floor(z / 100) * 100 + 50;
+            const distanceFromCenter = Math.sqrt(
+                Math.pow(x - centerX, 2) + 
+                Math.pow(z - centerZ, 2)
+            );
+            
+            // キャニオンの深さを計算
+            const canyonDepth = 100; // 最大深さ
+            const canyonWidth = 40;  // キャニオンの幅
+            
+            // キャニオンの形状を生成
+            let height = 0;
+            
+            // メサ（台地）の生成
+            const mesaHeight = 150;
+            const mesaWidth = 80;
+            const mesaFactor = Math.max(0, 1 - distanceFromCenter / mesaWidth);
+            height += mesaHeight * Math.pow(mesaFactor, 2);
+            
+            // 崖の生成
+            const cliffHeight = 100;
+            const cliffWidth = 20;
+            const cliffFactor = Math.max(0, 1 - Math.abs(distanceFromCenter - canyonWidth) / cliffWidth);
+            height += cliffHeight * cliffFactor;
+            
+            // 渓谷の生成
+            const ravineFactor = Math.max(0, 1 - distanceFromCenter / canyonWidth);
+            height -= canyonDepth * Math.pow(ravineFactor, 2);
+            
+            // ノイズを追加して自然な地形を作成
+            const noiseScale = 0.02;
+            const noise = this.noise.simplex2(x * noiseScale, z * noiseScale) * 10;
+            height += noise;
+            
+            // 層状の構造を追加
+            const layerScale = 0.1;
+            const layerNoise = Math.sin(x * layerScale) * Math.cos(z * layerScale) * 5;
+            height += layerNoise;
+            
+            return Math.max(0, height);
+        }
+        
+        // 他のバイオームの場合は通常の地形生成
         const scale1 = 0.02;
         const scale2 = 0.05;
         const scale3 = 0.1;
         
-        // 基本のノイズ
         const noise1 = this.noise.simplex2(x * scale1, z * scale1) * 2.0;
         const noise2 = this.noise.simplex2(x * scale2, z * scale2) * 1.5;
         const noise3 = this.noise.simplex2(x * scale3, z * scale3) * 0.5;
         
-        // ノイズを組み合わせる
         const baseHeight = noise1 + noise2 + noise3;
-        
-        // 高さを正規化
         const normalizedHeight = Math.max(0, Math.min(baseHeight, 5));
         
-        // 高さの変化を滑らかにする
         return Math.pow(normalizedHeight, 0.8);
     }
 
