@@ -153,34 +153,6 @@ class FieldMap {
         // マップの初期化を即時実行
         this.createMap();
 
-        // オブジェクト生成用の決定論的な乱数生成関数
-        this.getDeterministicRandom = (x, z, type) => {
-            // シード値の生成を複雑化
-            const seed1 = this.seed + x * 1000 + z * 1000;
-            const seed2 = type.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-            const combinedSeed = seed1 * seed2;
-
-            // 複数の乱数生成器を組み合わせる
-            const rng1 = new Math.seedrandom(combinedSeed.toString());
-            const rng2 = new Math.seedrandom((combinedSeed * 1.618033988749895).toString()); // 黄金比を使用
-            const rng3 = new Math.seedrandom((combinedSeed * 2.718281828459045).toString()); // 自然対数の底を使用
-
-            // 複数の乱数を組み合わせて最終的な乱数を生成
-            const random1 = rng1();
-            const random2 = rng2();
-            const random3 = rng3();
-
-            // 異なる分布の乱数を組み合わせる
-            const combinedRandom = (
-                random1 * 0.5 + // 一様分布
-                Math.sin(random2 * Math.PI * 2) * 0.25 + // 正弦波
-                (random3 - 0.5) * 0.25 // 中心化された一様分布
-            );
-
-            // 結果を0-1の範囲に正規化
-            return (combinedRandom + 0.5) % 1;
-        };
-
         this.isInitialized = false;
     }
     
@@ -591,9 +563,31 @@ class FieldMap {
         // バイオームを取得
         const biome = this.getBiomeAt(x, z);
         
-        // キャニオンバイオームの場合
-        if (biome.type === 'canyon') {
-            // キャニオンの中心からの距離を計算
+        // 基本的な地形の高さを計算
+        const baseHeight = this.generateBaseTerrain(x, z);
+        
+        // メサが生成される確率を計算（キャニオン以外のバイオームで低確率）
+        //const mesaChance = biome.type === 'canyon' ? 1.0 : 0.015; // キャニオン以外は15%の確率
+        let mesaChance = 0.015;
+
+if(biome.type === 'canyon'){
+    mesaChance = 1.0;
+}else if(biome.type === 'forest'){
+    mesaChance = 0.1;
+}else if(biome.type === 'ruins'){
+    mesaChance = 0.1;
+}else if(biome.type === 'urban'){
+    mesaChance = 0.01;
+}else if(biome.type === 'industrial'){
+    mesaChance = 0.0;   
+}else{
+    mesaChance = 0.1;
+}
+
+
+        // メサの生成判定
+        if (this.getDeterministicRandom(x, z, 'mesa') < mesaChance) {
+            // メサの中心からの距離を計算
             const centerX = Math.floor(x / 100) * 100 + 50;
             const centerZ = Math.floor(z / 100) * 100 + 50;
             const distanceFromCenter = Math.sqrt(
@@ -601,43 +595,52 @@ class FieldMap {
                 Math.pow(z - centerZ, 2)
             );
             
-            // キャニオンの深さを計算
-            const canyonDepth = 100; // 最大深さ
-            const canyonWidth = 40;  // キャニオンの幅
+            // メサの高さと幅をバイオームごとに調整
+            let mesaHeight, mesaWidth;
+            switch (biome.type) {
+                case 'canyon':
+                    mesaHeight = 150;
+                    mesaWidth = 80;
+                    break;
+                case 'urban':
+                    mesaHeight = 100;
+                    mesaWidth = 60;
+                    break;
+                case 'forest':
+                    mesaHeight = 80;
+                    mesaWidth = 70;
+                    break;
+                case 'ruins':
+                    mesaHeight = 90;
+                    mesaWidth = 65;
+                    break;
+                case 'industrial':
+                    mesaHeight = 70;
+                    mesaWidth = 55;
+                    break;
+                default:
+                    mesaHeight = 60;
+                    mesaWidth = 50;
+            }
             
-            // キャニオンの形状を生成
-            let height = 0;
-            
-            // メサ（台地）の生成
-            const mesaHeight = 150;
-            const mesaWidth = 80;
+            // メサの形状を生成
             const mesaFactor = Math.max(0, 1 - distanceFromCenter / mesaWidth);
-            height += mesaHeight * Math.pow(mesaFactor, 2);
+            const mesaHeightContribution = mesaHeight * Math.pow(mesaFactor, 2);
             
-            // 崖の生成
-            const cliffHeight = 100;
-            const cliffWidth = 20;
-            const cliffFactor = Math.max(0, 1 - Math.abs(distanceFromCenter - canyonWidth) / cliffWidth);
-            height += cliffHeight * cliffFactor;
+            // メサの周辺に崖を生成
+            const cliffHeight = mesaHeight * 0.6;
+            const cliffWidth = mesaWidth * 0.3;
+            const cliffFactor = Math.max(0, 1 - Math.abs(distanceFromCenter - mesaWidth) / cliffWidth);
+            const cliffHeightContribution = cliffHeight * cliffFactor;
             
-            // 渓谷の生成
-            const ravineFactor = Math.max(0, 1 - distanceFromCenter / canyonWidth);
-            height -= canyonDepth * Math.pow(ravineFactor, 2);
-            
-            // ノイズを追加して自然な地形を作成
-            const noiseScale = 0.02;
-            const noise = this.noise.simplex2(x * noiseScale, z * noiseScale) * 10;
-            height += noise;
-            
-            // 層状の構造を追加
-            const layerScale = 0.1;
-            const layerNoise = Math.sin(x * layerScale) * Math.cos(z * layerScale) * 5;
-            height += layerNoise;
-            
-            return Math.max(0, height);
+            // 基本地形とメサの高さを組み合わせ
+            return baseHeight + mesaHeightContribution + cliffHeightContribution;
         }
         
-        // 他のバイオームの場合は通常の地形生成
+        return baseHeight;
+    }
+
+    generateBaseTerrain(x, z) {
         const scale1 = 0.02;
         const scale2 = 0.05;
         const scale3 = 0.1;
@@ -1370,5 +1373,33 @@ class FieldMap {
 
     generateDebris() {
         // Implementation of generateDebris method
+    }
+
+    // 決定論的な乱数生成関数をクラスメソッドとして定義
+    getDeterministicRandom(x, z, type) {
+        // シード値の生成を複雑化
+        const seed1 = this.seed + x * 1000 + z * 1000;
+        const seed2 = type.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const combinedSeed = seed1 * seed2;
+
+        // 複数の乱数生成器を組み合わせる
+        const rng1 = new Math.seedrandom(combinedSeed.toString());
+        const rng2 = new Math.seedrandom((combinedSeed * 1.618033988749895).toString()); // 黄金比を使用
+        const rng3 = new Math.seedrandom((combinedSeed * 2.718281828459045).toString()); // 自然対数の底を使用
+
+        // 複数の乱数を組み合わせて最終的な乱数を生成
+        const random1 = rng1();
+        const random2 = rng2();
+        const random3 = rng3();
+
+        // 異なる分布の乱数を組み合わせる
+        const combinedRandom = (
+            random1 * 0.5 + // 一様分布
+            Math.sin(random2 * Math.PI * 2) * 0.25 + // 正弦波
+            (random3 - 0.5) * 0.25 // 中心化された一様分布
+        );
+
+        // 結果を0-1の範囲に正規化
+        return (combinedRandom + 0.5) % 1;
     }
 } 
