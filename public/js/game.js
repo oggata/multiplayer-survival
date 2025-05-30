@@ -1175,6 +1175,7 @@ class Game {
 						// 敵が死亡した場合の処理
 						if (enemy.health <= 0) {
 							this.socket.emit('enemyDied', enemyId);
+							this.handleEnemyDeath(enemyId);
 						}
 						break;
 					}
@@ -1751,13 +1752,22 @@ class Game {
 	}
 
 	animate() {
-		// 30FPSに制限するためにsetTimeoutを使用
-		setTimeout(() => {
-			this.animate();
-		}, 1000 / 30); // 約33.33ミリ秒（30FPS）
+		// アニメーションループを継続
+		requestAnimationFrame(() => this.animate());
 
-		const deltaTime = Math.min(this.clock.getDelta(), 0.1);
+		// ゲームオーバーの場合は更新をスキップ
+		if (this.isGameOver) {
+			return;
+		}
 
+		const currentTime = performance.now();
+		const deltaTime = (currentTime - this.lastTime) / 1000;
+		this.lastTime = currentTime;
+
+		// すべてのキャラクターの高さを更新
+		this.updateAllCharactersHeight();
+
+		// プレイヤーの更新
 		this.updatePlayer(deltaTime);
 		// オブジェクトの表示/非表示を更新
 		this.updateObjectVisibility();
@@ -1795,7 +1805,6 @@ class Game {
 			this.playerModel.updateLimbAnimation(deltaTime);
 			this.playerModel.updateLimbAnimation(deltaTime);
 			this.playerModel.updateLimbAnimation(deltaTime);
-			this.playerModel.updateLimbAnimation(deltaTime);
 		}
 
 		// 他のプレイヤーのアニメーション更新
@@ -1820,7 +1829,10 @@ class Game {
 	}
 
 	update(deltaTime) {
-		if (this.isGameOver) return;
+		if (this.isGameOver) {
+			console.log('Game is over, skipping update');
+			return;
+		}
 		this.canShoot = true;
 		// プレイヤーの位置に基づいてバイオーム名を表示
 		const biome = this.fieldMap.getBiomeAt(this.playerModel.position.x, this.playerModel.position.z);
@@ -1838,6 +1850,7 @@ class Game {
 			enemy.model.updateLimbAnimation(deltaTime);
 			a++;
 		});
+		//console.log(`Updated ${a} enemies, frameCount: ${this.frameCount}, deltaTime: ${deltaTime}`);
 
 		this.updateLightDirection();
 
@@ -2577,13 +2590,30 @@ class Game {
 	}
 
 	// 敵が倒された時の処理を更新
-	handleEnemyDeath(position) {
+	handleEnemyDeath(enemyId) {
+		const enemy = this.enemies.get(enemyId);
+		if (!enemy || !enemy.model) return;
+
+		const position = enemy.model.getPosition();
+		if (!position) return;
+		
 		// 20%の確率でアイテムをスポーン
 		if (Math.random() < 0.2) {
-			// アイテムの種類をランダムに選択
-			const itemTypes = Object.keys(GameConfig.ITEMS);
+			// GameConfig.ITEMSからランダムにアイテムタイプを選択
+			const itemTypes = Object.entries(GameConfig.ITEMS)
+				.filter(([_, item]) => item.dropChance !== undefined)
+				.map(([type]) => type);
+			
 			const selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
-			this.spawnItem(selectedType, position);
+			
+			// アイテムを生成（地面の高さを考慮）
+			const terrainHeight = this.getHeightAt(position.x, position.z);
+			const itemPosition = new THREE.Vector3(
+				position.x,
+				terrainHeight + 0.5,
+				position.z
+			);
+			this.spawnItem(selectedType, itemPosition);
 		}
 	}
 
@@ -2592,7 +2622,13 @@ class Game {
 			console.error('無効なアイテムタイプです:', itemType);
 			return;
 		}
-		const item = new Item(itemType, position);
+
+		// positionがTHREE.Vector3でない場合は変換
+		const itemPosition = position instanceof THREE.Vector3 ? 
+			position : 
+			new THREE.Vector3(position.x, position.y, position.z);
+
+		const item = new Item(itemType, itemPosition);
 		this.scene.add(item.mesh);
 		this.items.push(item);
 	}
@@ -3107,10 +3143,10 @@ class Game {
 
 	restart() {
 		// 古いキャラクターを確実に削除
-		//if (this.character) {
-		//    this.scene.remove(this.character.mesh);
-		//    this.character = null;
-		//}
+		if (this.playerModel) {
+			this.scene.remove(this.playerModel.mesh);
+			this.playerModel = null;
+		}
 
 		// プレイヤーリストをクリア
 		this.players.forEach(player => {
@@ -3122,47 +3158,47 @@ class Game {
 
 		// 敵リストをクリア
 		this.enemies.forEach(enemy => {
-
-
-
-
 			if (enemy.mesh) {
 				this.scene.remove(enemy.mesh);
 			}
 		});
 		this.enemies.clear();
-		/*
-		        // 弾丸リストをクリア
-		        this.bullets.forEach(bullet => {
-		            if (bullet.mesh) {
-		                this.scene.remove(bullet.mesh);
-		            }
-		        });
-		        this.bullets.clear();
-		*/
+
 		// アイテムリストをクリア
 		this.items.forEach(item => {
 			if (item.mesh) {
 				this.scene.remove(item.mesh);
 			}
 		});
-		this.items.clear();
+		this.items = [];
 
-		// ゲームオーバー表示を非表示
-		document.getElementById('gameOver').style.display = 'none';
-
-		// プレイヤーステータスをリセット
-		this.playerStatus = new PlayerStatus();
+		// ゲーム状態をリセット
+		this.currentHealth = this.maxHealth;
 		this.playerStatus.reset();
-
-		// 敵を再生成
-		this.spawnEnemies();
-
-		// アイテムを再生成
-		this.spawnItems();
-
-		// ゲームループを再開
 		this.isGameOver = false;
+		this.gameOverElement.style.display = 'none';
+		this.playerSpawnTime = Date.now();
+		this.lastTime = performance.now();
+		this.frameCount = 0;
+
+		// モノクロ効果をリセット
+		if (this.monochromePass) {
+			this.monochromePass.uniforms.intensity.value = 0.0;
+		}
+
+		// ランダムなリスポーンポイントを探す
+		const safePosition = this.findSafeRespawnPosition();
+		
+		// 新しいプレイヤーモデルを作成
+		this.createPlayerModel();
+		if (this.playerModel) {
+			this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
+		}
+
+		// サーバーにリスタートを通知
+		this.socket.emit('playerRestart');
+
+		// アニメーションループを再開
 		this.animate();
 	}
 
@@ -3199,32 +3235,37 @@ class Game {
 	}
 
 	getHeightAt(x, z) {
-		// シード値が設定されていることを確認
-		if (!this.seed) {
-			console.warn('シード値が設定されていません');
-			return 0;
-		}
-
-		// フィールドマップが初期化されていることを確認
-		if (!this.fieldMap) {
-			console.warn('フィールドマップが初期化されていません');
-			return 0;
-		}
-
-		// フィールドマップのgetHeightAtメソッドを使用
-		const height = this.fieldMap.getHeightAt(x, z);
-		if (height !== null) {
-			return height;
-		}
-
-		// フォールバック: レイキャストを使用
+		// レイキャストを使用して高さを取得
 		const raycaster = new THREE.Raycaster();
 		const down = new THREE.Vector3(0, -1, 0);
 		raycaster.set(new THREE.Vector3(x, 100, z), down);
 
-		const intersects = raycaster.intersectObject(this.fieldMap.terrainGeometry, true);
-		if (intersects.length > 0) {
-			return intersects[0].point.y;
+		// フィールドマップの地形ジオメトリを取得
+		let terrainObject = null;
+		if (this.fieldMap && this.fieldMap.terrainGeometry) {
+			terrainObject = this.fieldMap.terrainGeometry;
+		} else {
+			// フィールドマップが初期化されていない場合は、シーン内の地形オブジェクトを探す
+			this.scene.traverse((object) => {
+				if (object.userData && object.userData.type === 'terrain') {
+					terrainObject = object;
+				}
+			});
+		}
+
+		if (terrainObject) {
+			const intersects = raycaster.intersectObject(terrainObject, true);
+			if (intersects.length > 0) {
+				return intersects[0].point.y;
+			}
+		}
+
+		// フォールバック: フィールドマップのgetHeightAtメソッドを使用
+		if (this.fieldMap) {
+			const height = this.fieldMap.getHeightAt(x, z);
+			if (height !== null) {
+				return height;
+			}
 		}
 
 		return 0;
@@ -3239,9 +3280,11 @@ class Game {
 	}
 
 	updateItemHeight(item) {
-		const position = item.position;
+		if (!item || !item.mesh || !item.mesh.position) return;
+		
+		const position = item.mesh.position;
 		const terrainHeight = this.getHeightAt(position.x, position.z);
-		item.position.y = terrainHeight;
+		item.mesh.position.y = terrainHeight;
 	}
 
 	warpToRandomPlayer() {
@@ -3426,6 +3469,29 @@ class Game {
 			}
 			// カメラ位置を更新
 			this.updateCameraPosition();
+		});
+	}
+
+	updateAllCharactersHeight() {
+		// プレイヤーの高さを更新
+		if (this.playerModel) {
+			this.updatePlayerHeight(this.playerModel);
+		}
+
+		// 敵の高さを更新
+		this.enemies.forEach(enemy => {
+			if (enemy && !enemy.isDead) {
+				const position = enemy.model.getPosition();
+				const terrainHeight = this.getHeightAt(position.x, position.z);
+				enemy.model.setPosition(position.x, terrainHeight + 0.5, position.z);
+			}
+		});
+
+		// アイテムの高さを更新
+		this.items.forEach(item => {
+			if (item) {
+				this.updateItemHeight(item);
+			}
 		});
 	}
 }
