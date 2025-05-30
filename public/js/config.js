@@ -137,8 +137,8 @@ const GameConfig = {
     // マップ設定
     MAP: {
         SIZE:   6000,
-        CHUNK_SIZE:     120,
-        VISLBLE_DISTANCE:   300,
+        CHUNK_SIZE:     110,
+        VISLBLE_DISTANCE:   240,
         BOUNDARY_WALL_HEIGHT:  0,
         BIOME: {
             RADIUS: 500, // バイオームの半径
@@ -1156,5 +1156,15 @@ lasergun: {
                 }
             }
         },
+    },
+    BOSS: {
+        SPAWN_COUNT: 3,
+        MIN_DISTANCE: 100,
+        MAX_DISTANCE: 500,
+        HEALTH: 1000,
+        DAMAGE: 50,
+        ATTACK_RANGE: 10,
+        MOVE_SPEED: 5,
+        SPAWN_INTERVAL: 300000, // 5分
     },
 }; 

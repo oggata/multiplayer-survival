@@ -9,6 +9,20 @@ class Bullet {
 
 		this.color=0xfbff00;
 
+		// エフェクト用の変数
+		this.trailParticles = [];
+		this.trailGeometry = new THREE.BufferGeometry();
+		this.trailMaterial = new THREE.PointsMaterial({
+			color: this.color,
+			size: 0.1,
+			transparent: true,
+			opacity: 0.6,
+			blending: THREE.AdditiveBlending,
+			depthWrite: false // 深度バッファへの書き込みを無効化
+		});
+		this.trailPoints = new THREE.Points(this.trailGeometry, this.trailMaterial);
+		this.scene.add(this.trailPoints);
+
 		if(bulletType=="bullet001") {
 			//normal
 			this.speed=15;
@@ -289,6 +303,10 @@ class Bullet {
 	update(deltaTime) {
 		// 弾丸を移動
 		this.model.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+
+		// 軌跡エフェクトの更新
+		this.updateTrailEffect();
+
 		// 寿命をチェック
 		const age=(Date.now() - this.createdAt) / 1000;
 
@@ -298,6 +316,88 @@ class Bullet {
 		}
 
 		return true;
+	}
+
+	updateTrailEffect() {
+		// 新しいパーティクルを追加（より頻繁に生成）
+		if (Math.random() < 0.5 && this.trailParticles.length < 50) {
+			this.trailParticles.push({
+				position: this.model.position.clone(),
+				age: 0,
+				velocity: this.direction.clone().multiplyScalar(-0.1) // 後方に少し流れる
+			});
+		}
+
+		// パーティクルが存在しない場合は早期リターン
+		if (this.trailParticles.length === 0) {
+			return;
+		}
+
+		// 軌跡の位置を更新
+		const positions = new Float32Array(this.trailParticles.length * 3);
+		let validParticleCount = 0;
+
+		// 古いパーティクルを削除しながら位置を更新
+		for (let i = 0; i < this.trailParticles.length; i++) {
+			const particle = this.trailParticles[i];
+			particle.age += 0.016; // 約60FPSを想定
+
+			if (particle.age < 0.5) { // 0.5秒で消える
+				// パーティクルの位置を更新（少し後方に流れる）
+				particle.position.add(particle.velocity);
+				
+				positions[validParticleCount * 3] = particle.position.x;
+				positions[validParticleCount * 3 + 1] = particle.position.y;
+				positions[validParticleCount * 3 + 2] = particle.position.z;
+				validParticleCount++;
+			}
+		}
+
+		// 有効なパーティクルのみを保持
+		this.trailParticles = this.trailParticles.filter(particle => particle.age < 0.5);
+
+		// バッファを更新
+		if (validParticleCount > 0) {
+			const validPositions = positions.slice(0, validParticleCount * 3);
+			this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(validPositions, 3));
+			this.trailGeometry.attributes.position.needsUpdate = true;
+		} else {
+			// パーティクルがなくなった場合は空のバッファを設定
+			this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
+			this.trailGeometry.attributes.position.needsUpdate = true;
+		}
+	}
+
+	createImpactEffect(position) {
+		// 衝突エフェクトのジオメトリ
+		const geometry = new THREE.SphereGeometry(0.2, 16, 16);
+		const material = new THREE.MeshPhongMaterial({
+			color: this.color,
+			emissive: this.color,
+			emissiveIntensity: 0.8,
+			transparent: true,
+			opacity: 0.8
+		});
+
+		const impact = new THREE.Mesh(geometry, material);
+		impact.position.copy(position);
+		this.scene.add(impact);
+
+		// エフェクトのアニメーション
+		const duration = 0.3;
+		const startTime = Date.now();
+		const animate = () => {
+			const elapsed = (Date.now() - startTime) / 1000;
+			if (elapsed < duration) {
+				const scale = 1 + elapsed * 3;
+				impact.scale.set(scale, scale, scale);
+				impact.material.opacity = 0.8 * (1 - elapsed / duration);
+				requestAnimationFrame(animate);
+			} else {
+				this.scene.remove(impact);
+			}
+		};
+		animate();
 	}
 
 	getAge() {
@@ -311,10 +411,24 @@ class Bullet {
 	dispose() {
 		// シーンから削除
 		this.scene.remove(this.model);
+		this.scene.remove(this.trailPoints);
+
+		// パーティクルをクリア
+		this.trailParticles = [];
+		this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
+		this.trailGeometry.attributes.position.needsUpdate = true;
 
 		// ジオメトリとマテリアルを解放
 		this.model.geometry.dispose();
 		this.model.material.dispose();
+		this.trailGeometry.dispose();
+		this.trailMaterial.dispose();
+
+		// 参照をクリア
+		this.model = null;
+		this.trailPoints = null;
+		this.trailGeometry = null;
+		this.trailMaterial = null;
 	}
 
 	// 衝突判定
