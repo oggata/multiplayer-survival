@@ -16,6 +16,8 @@ class HexapodCharacter {
         this.isMoving = false;
         this.isRunning = false;
         this.animationSpeed = 2.0;
+        this.walkAmplitude = 0.3;
+        this.armSwingAmplitude = 1.2;
         
         // 移動関連の変数
         this.position = new THREE.Vector3();
@@ -25,6 +27,13 @@ class HexapodCharacter {
         this.isAttacking = false;
         this.attackTime = 0;
         this.attackDuration = 0.5; // 攻撃モーションの持続時間（秒）
+        
+        // ダメージエフェクト用の変数
+        this.isDamaged = false;
+        this.damageTime = 0;
+        this.damageDuration = 0.5;
+        this.originalColors = new Map();
+        
         // キャラクターの作成
         this.createCharacter();
     }
@@ -267,6 +276,15 @@ class HexapodCharacter {
     
     // 六足歩行のアニメーション
     updateLimbAnimation(deltaTime) {
+        // ダメージエフェクトの更新
+        if (this.isDamaged) {
+            this.damageTime += deltaTime;
+            if (this.damageTime >= this.damageDuration) {
+                this.isDamaged = false;
+                this.restoreOriginalColors();
+            }
+        }
+        
         this.animationTime += deltaTime * this.animationSpeed;
         // 攻撃中なら攻撃アニメーションを優先
         if (this.isAttacking) {
@@ -399,5 +417,71 @@ class HexapodCharacter {
                 }
             });
         });
+    }
+
+    // ダメージを受けた時の処理
+    takeDamage() {
+        this.isDamaged = true;
+        this.damageTime = 0;
+
+        // 現在の色を保存
+        this.saveOriginalColors();
+
+        // 赤色に変更
+        const damageColor = 0xff0000;
+        const allParts = [
+            this.body,
+            this.head,
+            this.legs[0],
+            this.legs[1],
+            this.legs[2],
+            this.legs[3],
+            this.legs[4],
+            this.legs[5]
+        ];
+
+        allParts.forEach(part => {
+            if (part && part.material) {
+                part.material.color.setHex(damageColor);
+                part.material.emissive.setHex(damageColor);
+                part.material.emissiveIntensity = 1.0;
+            }
+        });
+    }
+
+    // 現在の色を保存
+    saveOriginalColors() {
+        const allParts = [
+            this.body,
+            this.head,
+            this.legs[0],
+            this.legs[1],
+            this.legs[2],
+            this.legs[3],
+            this.legs[4],
+            this.legs[5]
+        ];
+
+        allParts.forEach(part => {
+            if (part && part.material) {
+                this.originalColors.set(part, {
+                    color: part.material.color.getHex(),
+                    emissive: part.material.emissive.getHex(),
+                    emissiveIntensity: part.material.emissiveIntensity
+                });
+            }
+        });
+    }
+
+    // 元の色に戻す
+    restoreOriginalColors() {
+        this.originalColors.forEach((colors, part) => {
+            if (part && part.material) {
+                part.material.color.setHex(colors.color);
+                part.material.emissive.setHex(colors.emissive);
+                part.material.emissiveIntensity = colors.emissiveIntensity;
+            }
+        });
+        this.originalColors.clear();
     }
 }

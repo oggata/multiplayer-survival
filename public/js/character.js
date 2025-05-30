@@ -34,18 +34,32 @@ class Character {
 		// マテリアルの定義
 		const bodyMaterial = new THREE.MeshPhongMaterial({ 
 			color: 0x4488ff,
-			side: THREE.DoubleSide
+			side: THREE.DoubleSide,
+			shininess: 30,
+			specular: 0x444444,
+			emissive: 0x000000,
+			emissiveIntensity: 0
 		});
 		
 		const headMaterial = new THREE.MeshPhongMaterial({ 
-			color: 0xffaa88,
+			color: 0xffe0bd,
+			emissive: 0xffe0bd,
+			emissiveIntensity: 0.5,
+			shininess: 30,
+			specular: 0x444444,
 			side: THREE.DoubleSide
 		});
 		
 		const handMaterial = new THREE.MeshPhongMaterial({ 
-			color: 0xffaa88,
+			color: 0xffe0bd,
+			emissive: 0xffe0bd,
+			emissiveIntensity: 0.5,
+			shininess: 30,
+			specular: 0x444444,
 			side: THREE.DoubleSide
 		});
+
+		//part.material.emissiveIntensity = 1.0;
 
 		// ルートボーン（腰）
 		this.rootBone = new THREE.Bone();
@@ -91,7 +105,7 @@ class Character {
 		const headGeometry = new THREE.BoxGeometry(1, 1, 1);
 		this.headMesh = new THREE.Mesh(headGeometry, headMaterial);
 		this.headMesh.position.y = 0.5;
-		this.headMesh.castShadow = true;
+		//this.headMesh.castShadow = true;
 		this.headBone.add(this.headMesh);
 
 		// 左腕の作成
@@ -372,67 +386,74 @@ class Character {
 		// デバッグログ
 		console.log('Setting character color:', hexColor.toString(16));
 		
-		// 体のパーツ（胴体、腕）
-		const bodyParts = [
-			this.torsoMesh,
-			this.leftUpperArmMesh,
-			this.leftLowerArmMesh,
-			this.rightUpperArmMesh,
-			this.rightLowerArmMesh
-		];
-		
-		// 脚のパーツ
-		const legParts = [
-			this.leftThighMesh,
-			this.leftShinMesh,
-			this.rightThighMesh,
-			this.rightShinMesh
-		];
-
-		// 体のパーツに色を設定
-		bodyParts.forEach(part => {
-			if (part && part.material) {
-				part.material.color.setHex(hexColor);
-				part.material.emissive.setHex(hexColor);
-				part.material.needsUpdate = true;
-			}
-		});
-
-		// 脚のパーツに暗い色を設定（本体の0.7倍の明るさ）
-		const darkerColor = Math.floor(hexColor * 0.7);
-		legParts.forEach(part => {
-			if (part && part.material) {
-				part.material.color.setHex(darkerColor);
-				part.material.emissive.setHex(darkerColor);
-				part.material.needsUpdate = true;
-			}
-		});
-	}
-
-	setEnemyColor(color) {
-		const hexColor = (typeof color === 'string') ? parseInt(color, 16) : color;
-		
-		const allParts = [
-			this.headMesh,
+		// 上半身のパーツ（胴体、腕）
+		const upperBodyParts = [
 			this.torsoMesh,
 			this.leftUpperArmMesh,
 			this.leftLowerArmMesh,
 			this.rightUpperArmMesh,
 			this.rightLowerArmMesh,
+			this.hipMesh
+		];
+		
+		// 下半身のパーツ
+		const lowerBodyParts = [
 			this.leftThighMesh,
 			this.leftShinMesh,
 			this.rightThighMesh,
-			this.rightShinMesh
+			this.rightShinMesh,
+			this.leftFootMesh,
+			this.rightFootMesh
 		];
 
-		allParts.forEach(part => {
+		// 色をRGBに分解
+		const r = (hexColor >> 16) & 255;
+		const g = (hexColor >> 8) & 255;
+		const b = hexColor & 255;
+
+		// 上半身用の色を作成（より明るく）
+		const upperR = Math.min(255, Math.floor(r * 1.6));
+		const upperG = Math.min(255, Math.floor(g * 1.6));
+		const upperB = Math.min(255, Math.floor(b * 1.6));
+		const upperColor = (upperR << 16) | (upperG << 8) | upperB;
+
+		// 下半身用の色を作成（上半身より暗め）
+		const lowerR = Math.min(255, Math.floor(r * 1.2));
+		const lowerG = Math.min(255, Math.floor(g * 1.2));
+		const lowerB = Math.min(255, Math.floor(b * 1.2));
+		const lowerColor = (lowerR << 16) | (lowerG << 8) | lowerB;
+
+		// 上半身のパーツに色を設定
+		upperBodyParts.forEach(part => {
 			if (part && part.material) {
-				part.material.color.setHex(hexColor);
-				part.material.emissive.setHex(hexColor);
+				part.material = new THREE.MeshPhongMaterial({
+					color: upperColor,
+					shininess: 5,
+					specular: 0x111111,
+					emissive: 0x000000,
+					emissiveIntensity: 0,
+					side: THREE.DoubleSide
+				});
+				part.material.needsUpdate = true;
+			}
+		});
+
+		// 下半身のパーツに色を設定
+		lowerBodyParts.forEach(part => {
+			if (part && part.material) {
+				part.material = new THREE.MeshPhongMaterial({
+					color: lowerColor,
+					shininess: 5,
+					specular: 0x111111,
+					emissive: 0x000000,
+					emissiveIntensity: 0,
+					side: THREE.DoubleSide
+				});
 				part.material.needsUpdate = true;
 			}
 		});
 	}
+
 
 	dispose() {
 		this.scene.remove(this.character);

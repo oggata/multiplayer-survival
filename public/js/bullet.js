@@ -8,16 +8,17 @@ class Bullet {
 		this.damage=10;
 
 		this.color=0xfbff00;
-
+		this.emissiveIntensity = 1.2;
 		// エフェクト用の変数
 		this.trailParticles = [];
 		this.trailGeometry = new THREE.BufferGeometry();
 		this.trailMaterial = new THREE.PointsMaterial({
 			color: this.color,
-			size: 0.1,
+			size: 0.01,
 			transparent: true,
 			opacity: 0.6,
 			blending: THREE.AdditiveBlending,
+			temissiveIntensity:1.5,
 			depthWrite: false // 深度バッファへの書き込みを無効化
 		});
 		this.trailPoints = new THREE.Points(this.trailGeometry, this.trailMaterial);
@@ -126,12 +127,12 @@ class Bullet {
 	createModel(bulletType) {
 		if(bulletType=="bullet001") {
 			// 弾丸のジオメトリとマテリアルを作成
-			const geometry=new THREE.SphereGeometry(0.1, 8, 8);
+			const geometry=new THREE.SphereGeometry(0.05, 3, 3);
 
 			const material=new THREE.MeshPhongMaterial( {
 					color:this.color, //yellow
 					emissive:this.color,
-					emissiveIntensity: 0.8
+					emissiveIntensity: 2
 				}
 
 			);
@@ -342,7 +343,7 @@ class Bullet {
 			const particle = this.trailParticles[i];
 			particle.age += 0.016; // 約60FPSを想定
 
-			if (particle.age < 0.5) { // 0.5秒で消える
+			if (particle.age < 0.2) { // 0.5秒で消える
 				// パーティクルの位置を更新（少し後方に流れる）
 				particle.position.add(particle.velocity);
 				

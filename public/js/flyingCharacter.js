@@ -28,6 +28,12 @@ class FlyingCharacter {
         this.attackTime = 0;
         this.attackDuration = 0.6;
         
+        // ダメージエフェクト用の変数
+        this.isDamaged = false;
+        this.damageTime = 0;
+        this.damageDuration = 0.5;
+        this.originalColors = new Map();
+        
         // 飛行高度
         this.flyingHeight = 3.0;
         
@@ -185,6 +191,15 @@ class FlyingCharacter {
     }
 
     updateLimbAnimation(deltaTime) {
+        // ダメージエフェクトの更新
+        if (this.isDamaged) {
+            this.damageTime += deltaTime;
+            if (this.damageTime >= this.damageDuration) {
+                this.isDamaged = false;
+                this.restoreOriginalColors();
+            }
+        }
+
         if (!this.isMoving) return;
         
         this.animationTime += deltaTime * this.animationSpeed;
@@ -300,5 +315,63 @@ class FlyingCharacter {
                 }
             }
         });
+    }
+
+    // ダメージを受けた時の処理
+    takeDamage() {
+        this.isDamaged = true;
+        this.damageTime = 0;
+
+        // 現在の色を保存
+        this.saveOriginalColors();
+
+        // 赤色に変更
+        const damageColor = 0xff0000;
+        const allParts = [
+            this.body,
+            ...this.wings,
+            ...this.eyes,
+            this.tail
+        ];
+
+        allParts.forEach(part => {
+            if (part && part.material) {
+                part.material.color.setHex(damageColor);
+                part.material.emissive.setHex(damageColor);
+                part.material.emissiveIntensity = 1.0;
+            }
+        });
+    }
+
+    // 現在の色を保存
+    saveOriginalColors() {
+        const allParts = [
+            this.body,
+            ...this.wings,
+            ...this.eyes,
+            this.tail
+        ];
+
+        allParts.forEach(part => {
+            if (part && part.material) {
+                this.originalColors.set(part, {
+                    color: part.material.color.getHex(),
+                    emissive: part.material.emissive.getHex(),
+                    emissiveIntensity: part.material.emissiveIntensity
+                });
+            }
+        });
+    }
+
+    // 元の色に戻す
+    restoreOriginalColors() {
+        this.originalColors.forEach((colors, part) => {
+            if (part && part.material) {
+                part.material.color.setHex(colors.color);
+                part.material.emissive.setHex(colors.emissive);
+                part.material.emissiveIntensity = colors.emissiveIntensity;
+            }
+        });
+        this.originalColors.clear();
     }
 } 

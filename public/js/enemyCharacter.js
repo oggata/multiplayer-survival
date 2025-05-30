@@ -1,5 +1,5 @@
 // デブなキャラクター作成用のクラス
-class SlimeCharacter {
+class EnemyCharacter {
 	constructor(scene, type, game) {
 		this.scene = scene;
 		this.type = type;
@@ -25,34 +25,66 @@ class SlimeCharacter {
 		this.attackTime = 0;
 		this.attackDuration = 0.5;
 
+		// ダメージエフェクト用の変数
+		this.isDamaged = false;
+		this.damageTime = 0;
+		this.damageDuration = 0.5;
+		this.originalColors = new Map();
+
 		// キャラクターの作成
 		this.createCharacter();
 	}
 
 	createCharacter() {
-		// マテリアルの定義
-		const bodyMaterial = new THREE.MeshPhongMaterial({ 
+		// 上半身用のマテリアル
+		const upperBodyMaterial = new THREE.MeshPhongMaterial({ 
 			color: 0x4488ff,
-			side: THREE.DoubleSide
+			side: THREE.DoubleSide,
+			emissive: 0x000000,
+			emissiveIntensity: 0.0
+		});
+		
+		// 下半身用のマテリアル
+		const lowerBodyMaterial = new THREE.MeshPhongMaterial({ 
+			color: 0x4488ff,
+			side: THREE.DoubleSide,
+			emissive: 0x000000,
+			emissiveIntensity: 0.0
 		});
 		
 		const headMaterial = new THREE.MeshPhongMaterial({ 
 			color: 0xffaa88,
-			side: THREE.DoubleSide
+			side: THREE.DoubleSide,
+			emissive: 0x000000,
+			emissiveIntensity: 0.0
 		});
 		
 		const handMaterial = new THREE.MeshPhongMaterial({ 
 			color: 0xffaa88,
-			side: THREE.DoubleSide
+			side: THREE.DoubleSide,
+			emissive: 0x000000,
+			emissiveIntensity: 0.0
 		});
+
+		// ゾンビの皮膚色を生成（緑がかった色）
+		const skinColor = this.generateZombieSkinColor();
+		headMaterial.color.setHex(skinColor);
+		handMaterial.color.setHex(skinColor);
+		headMaterial.emissive.setHex(skinColor);
+		handMaterial.emissive.setHex(skinColor);
+
+		// 洋服の色を生成（くすんだ色）
+		const [upperBodyColor, lowerBodyColor] = this.generateTwoDistinctMutedColors();
+		upperBodyMaterial.color.setHex(upperBodyColor);
+		lowerBodyMaterial.color.setHex(lowerBodyColor);
 
 		// ルートボーン（腰）
 		this.rootBone = new THREE.Bone();
 		this.rootBone.position.y = 3;
 		
-		// 腰のメッシュ（太く）
-		const hipGeometry = new THREE.BoxGeometry(3, 1.2, 1.5);
-		this.hipMesh = new THREE.Mesh(hipGeometry, bodyMaterial);
+		// 腰のメッシュ（細く）
+		const hipGeometry = new THREE.BoxGeometry(2.5, 1.0, 1.2);
+		this.hipMesh = new THREE.Mesh(hipGeometry, upperBodyMaterial);
 		this.hipMesh.castShadow = true;
 		this.hipMesh.receiveShadow = true;
 		this.rootBone.add(this.hipMesh);
@@ -62,9 +94,9 @@ class SlimeCharacter {
 		this.spineBone.position.y = 1;
 		this.rootBone.add(this.spineBone);
 		
-		// 胴体メッシュ（太く）
-		const torsoGeometry = new THREE.BoxGeometry(3, 2.5, 2);
-		this.torsoMesh = new THREE.Mesh(torsoGeometry, bodyMaterial);
+		// 胴体メッシュ（細く）
+		const torsoGeometry = new THREE.BoxGeometry(2.5, 2.2, 1.8);
+		this.torsoMesh = new THREE.Mesh(torsoGeometry, upperBodyMaterial);
 		this.torsoMesh.position.y = 0.5;
 		this.torsoMesh.castShadow = true;
 		this.torsoMesh.receiveShadow = true;
@@ -75,9 +107,9 @@ class SlimeCharacter {
 		this.neckBone.position.y = 1.5;
 		this.spineBone.add(this.neckBone);
 		
-		// 首メッシュ（太く）
-		const neckGeometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-		this.neckMesh = new THREE.Mesh(neckGeometry, bodyMaterial);
+		// 首メッシュ（細く）
+		const neckGeometry = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+		this.neckMesh = new THREE.Mesh(neckGeometry, upperBodyMaterial);
 		this.neckMesh.castShadow = true;
 		this.neckBone.add(this.neckMesh);
 		
@@ -86,20 +118,20 @@ class SlimeCharacter {
 		this.headBone.position.y = 0.5;
 		this.neckBone.add(this.headBone);
 		
-		// 頭メッシュ（太く）
-		const headGeometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+		// 頭メッシュ（細く）
+		const headGeometry = new THREE.BoxGeometry(1.0, 1.0, 1.0);
 		this.headMesh = new THREE.Mesh(headGeometry, headMaterial);
 		this.headMesh.position.y = 0.5;
 		this.headMesh.castShadow = true;
 		this.headBone.add(this.headMesh);
 
-		// 左腕の作成（太く）
+		// 左腕の作成（細く）
 		this.leftShoulderBone = new THREE.Bone();
 		this.leftShoulderBone.position.set(1.8, 1, 0);
 		this.spineBone.add(this.leftShoulderBone);
 		
-		const leftUpperArmGeometry = new THREE.BoxGeometry(0.7, 1.2, 0.7);
-		this.leftUpperArmMesh = new THREE.Mesh(leftUpperArmGeometry, bodyMaterial);
+		const leftUpperArmGeometry = new THREE.BoxGeometry(0.6, 1.2, 0.6);
+		this.leftUpperArmMesh = new THREE.Mesh(leftUpperArmGeometry, upperBodyMaterial);
 		this.leftUpperArmMesh.position.y = -0.6;
 		this.leftUpperArmMesh.castShadow = true;
 		this.leftShoulderBone.add(this.leftUpperArmMesh);
@@ -108,8 +140,8 @@ class SlimeCharacter {
 		this.leftElbowBone.position.y = -1.2;
 		this.leftShoulderBone.add(this.leftElbowBone);
 		
-		const leftLowerArmGeometry = new THREE.BoxGeometry(0.6, 1.0, 0.6);
-		this.leftLowerArmMesh = new THREE.Mesh(leftLowerArmGeometry, bodyMaterial);
+		const leftLowerArmGeometry = new THREE.BoxGeometry(0.5, 1.0, 0.5);
+		this.leftLowerArmMesh = new THREE.Mesh(leftLowerArmGeometry, upperBodyMaterial);
 		this.leftLowerArmMesh.position.y = -0.5;
 		this.leftLowerArmMesh.castShadow = true;
 		this.leftElbowBone.add(this.leftLowerArmMesh);
@@ -118,19 +150,19 @@ class SlimeCharacter {
 		this.leftHandBone.position.y = -1.0;
 		this.leftElbowBone.add(this.leftHandBone);
 		
-		const leftHandGeometry = new THREE.BoxGeometry(0.6, 0.6, 0.4);
+		const leftHandGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.3);
 		this.leftHandMesh = new THREE.Mesh(leftHandGeometry, handMaterial);
 		this.leftHandMesh.position.y = -0.2;
 		this.leftHandMesh.castShadow = true;
 		this.leftHandBone.add(this.leftHandMesh);
 
-		// 右腕の作成（太く）
+		// 右腕の作成（細く）
 		this.rightShoulderBone = new THREE.Bone();
 		this.rightShoulderBone.position.set(-1.8, 1, 0);
 		this.spineBone.add(this.rightShoulderBone);
 		
-		const rightUpperArmGeometry = new THREE.BoxGeometry(0.7, 1.2, 0.7);
-		this.rightUpperArmMesh = new THREE.Mesh(rightUpperArmGeometry, bodyMaterial);
+		const rightUpperArmGeometry = new THREE.BoxGeometry(0.6, 1.2, 0.6);
+		this.rightUpperArmMesh = new THREE.Mesh(rightUpperArmGeometry, upperBodyMaterial);
 		this.rightUpperArmMesh.position.y = -0.6;
 		this.rightUpperArmMesh.castShadow = true;
 		this.rightShoulderBone.add(this.rightUpperArmMesh);
@@ -139,8 +171,8 @@ class SlimeCharacter {
 		this.rightElbowBone.position.y = -1.2;
 		this.rightShoulderBone.add(this.rightElbowBone);
 		
-		const rightLowerArmGeometry = new THREE.BoxGeometry(0.6, 1.0, 0.6);
-		this.rightLowerArmMesh = new THREE.Mesh(rightLowerArmGeometry, bodyMaterial);
+		const rightLowerArmGeometry = new THREE.BoxGeometry(0.5, 1.0, 0.5);
+		this.rightLowerArmMesh = new THREE.Mesh(rightLowerArmGeometry, upperBodyMaterial);
 		this.rightLowerArmMesh.position.y = -0.5;
 		this.rightLowerArmMesh.castShadow = true;
 		this.rightElbowBone.add(this.rightLowerArmMesh);
@@ -149,19 +181,19 @@ class SlimeCharacter {
 		this.rightHandBone.position.y = -1.0;
 		this.rightElbowBone.add(this.rightHandBone);
 		
-		const rightHandGeometry = new THREE.BoxGeometry(0.6, 0.6, 0.4);
+		const rightHandGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.3);
 		this.rightHandMesh = new THREE.Mesh(rightHandGeometry, handMaterial);
 		this.rightHandMesh.position.y = -0.2;
 		this.rightHandMesh.castShadow = true;
 		this.rightHandBone.add(this.rightHandMesh);
 
-		// 左脚の作成（太く）
+		// 左脚の作成（細く）
 		this.leftHipBone = new THREE.Bone();
 		this.leftHipBone.position.set(0.8, -0.5, 0);
 		this.rootBone.add(this.leftHipBone);
 		
-		const leftThighGeometry = new THREE.BoxGeometry(0.9, 1.5, 0.9);
-		this.leftThighMesh = new THREE.Mesh(leftThighGeometry, bodyMaterial);
+		const leftThighGeometry = new THREE.BoxGeometry(0.8, 1.5, 0.8);
+		this.leftThighMesh = new THREE.Mesh(leftThighGeometry, lowerBodyMaterial);
 		this.leftThighMesh.position.y = -0.75;
 		this.leftThighMesh.castShadow = true;
 		this.leftHipBone.add(this.leftThighMesh);
@@ -170,8 +202,8 @@ class SlimeCharacter {
 		this.leftKneeBone.position.y = -1.5;
 		this.leftHipBone.add(this.leftKneeBone);
 		
-		const leftShinGeometry = new THREE.BoxGeometry(0.8, 1.5, 0.8);
-		this.leftShinMesh = new THREE.Mesh(leftShinGeometry, bodyMaterial);
+		const leftShinGeometry = new THREE.BoxGeometry(0.7, 1.5, 0.7);
+		this.leftShinMesh = new THREE.Mesh(leftShinGeometry, lowerBodyMaterial);
 		this.leftShinMesh.position.y = -0.75;
 		this.leftShinMesh.castShadow = true;
 		this.leftKneeBone.add(this.leftShinMesh);
@@ -180,19 +212,19 @@ class SlimeCharacter {
 		this.leftFootBone.position.y = -1.5;
 		this.leftKneeBone.add(this.leftFootBone);
 		
-		const leftFootGeometry = new THREE.BoxGeometry(0.8, 0.3, 1.2);
-		this.leftFootMesh = new THREE.Mesh(leftFootGeometry, bodyMaterial);
+		const leftFootGeometry = new THREE.BoxGeometry(0.7, 0.3, 1.1);
+		this.leftFootMesh = new THREE.Mesh(leftFootGeometry, lowerBodyMaterial);
 		this.leftFootMesh.position.set(0, -0.1, 0.2);
 		this.leftFootMesh.castShadow = true;
 		this.leftFootBone.add(this.leftFootMesh);
 
-		// 右脚の作成（太く）
+		// 右脚の作成（細く）
 		this.rightHipBone = new THREE.Bone();
 		this.rightHipBone.position.set(-0.8, -0.5, 0);
 		this.rootBone.add(this.rightHipBone);
 		
-		const rightThighGeometry = new THREE.BoxGeometry(0.9, 1.5, 0.9);
-		this.rightThighMesh = new THREE.Mesh(rightThighGeometry, bodyMaterial);
+		const rightThighGeometry = new THREE.BoxGeometry(0.8, 1.5, 0.8);
+		this.rightThighMesh = new THREE.Mesh(rightThighGeometry, lowerBodyMaterial);
 		this.rightThighMesh.position.y = -0.75;
 		this.rightThighMesh.castShadow = true;
 		this.rightHipBone.add(this.rightThighMesh);
@@ -201,8 +233,8 @@ class SlimeCharacter {
 		this.rightKneeBone.position.y = -1.5;
 		this.rightHipBone.add(this.rightKneeBone);
 		
-		const rightShinGeometry = new THREE.BoxGeometry(0.8, 1.5, 0.8);
-		this.rightShinMesh = new THREE.Mesh(rightShinGeometry, bodyMaterial);
+		const rightShinGeometry = new THREE.BoxGeometry(0.7, 1.5, 0.7);
+		this.rightShinMesh = new THREE.Mesh(rightShinGeometry, lowerBodyMaterial);
 		this.rightShinMesh.position.y = -0.75;
 		this.rightShinMesh.castShadow = true;
 		this.rightKneeBone.add(this.rightShinMesh);
@@ -211,8 +243,8 @@ class SlimeCharacter {
 		this.rightFootBone.position.y = -1.5;
 		this.rightKneeBone.add(this.rightFootBone);
 		
-		const rightFootGeometry = new THREE.BoxGeometry(0.8, 0.3, 1.2);
-		this.rightFootMesh = new THREE.Mesh(rightFootGeometry, bodyMaterial);
+		const rightFootGeometry = new THREE.BoxGeometry(0.7, 0.3, 1.1);
+		this.rightFootMesh = new THREE.Mesh(rightFootGeometry, lowerBodyMaterial);
 		this.rightFootMesh.position.set(0, -0.1, 0.2);
 		this.rightFootMesh.castShadow = true;
 		this.rightFootBone.add(this.rightFootMesh);
@@ -222,9 +254,172 @@ class SlimeCharacter {
 
 		// キャラクター全体のスケールを1/3に設定
 		this.character.scale.set(1/4, 1/4, 1/4);
+
+		// 上半身のパーツに色を設定
+		const upperBodyParts = [
+			this.torsoMesh,
+			this.leftUpperArmMesh,
+			this.leftLowerArmMesh,
+			this.rightUpperArmMesh,
+			this.rightLowerArmMesh
+		];
+
+		upperBodyParts.forEach(part => {
+			if (part && part.material) {
+				part.material.color.setHex(upperBodyColor);
+				part.material.emissive.setHex(upperBodyColor);
+				part.material.emissiveIntensity = 0.8;
+			}
+		});
+
+		// 下半身のパーツに色を設定
+		const lowerBodyParts = [
+			this.leftThighMesh,
+			this.leftShinMesh,
+			this.rightThighMesh,
+			this.rightShinMesh
+		];
+
+		lowerBodyParts.forEach(part => {
+			if (part && part.material) {
+				part.material.color.setHex(lowerBodyColor);
+				part.material.emissive.setHex(lowerBodyColor);
+				part.material.emissiveIntensity = 0.8;
+			}
+		});
+
+		// 頭と手のパーツに色を設定
+		const skinParts = [
+			this.headMesh,
+			this.leftHandMesh,
+			this.rightHandMesh
+		];
+
+		skinParts.forEach(part => {
+			if (part && part.material) {
+				part.material.emissiveIntensity = 0.2;
+			}
+		});
+	}
+
+	// くすんだ色を2つランダムに、かつ必ず異なる色で返す関数
+	generateTwoDistinctMutedColors() {
+		const mutedColors = [
+			0x4a4a4a, 0x2c3e50, 0x34495e, 0x7f8c8d, 0x6c7a89, 0x8d6748, 0x7b8d8e, 0x5d6d7e,
+			0x566573, 0x626567, 0x839192, 0x616a6b, 0x7d6608, 0x784212, 0x4e342e, 0x273746,
+			0x212f3c, 0x424949, 0x196f3d, 0x7b7d7d, 0x4a235a, 0x512e5f, 0x154360
+		];
+		const idx1 = Math.floor(Math.random() * mutedColors.length);
+		let idx2;
+		// idx1と異なるインデックスが出るまで再抽選
+		do {
+			idx2 = Math.floor(Math.random() * mutedColors.length);
+		} while (idx2 === idx1);
+		return [mutedColors[idx1], mutedColors[idx2]];
+	}
+
+	// ゾンビの皮膚色を生成する関数
+	generateZombieSkinColor() {
+		// ゾンビの皮膚色の範囲を定義（明るめの色に変更）
+		const skinColors = [
+			0x9aad6e, // 明るい緑がかった灰色
+			0xa8b88d, // さらに明るい緑がかった灰色
+			0xb5c4a3, // 薄い緑がかった灰色
+			0xc4d4b1, // 非常に明るい緑がかった灰色
+			0xd4e4c1, // 最も明るい緑がかった灰色
+			0x8b9e63, // 中程度の緑がかった灰色
+			0x7d8b5d, // やや暗めの緑がかった灰色
+			0x9eb5a3, // 青みがかった灰色
+			0xb5c4a3, // 薄い緑がかった灰色
+			0xc4d4b1  // 非常に明るい緑がかった灰色
+		];
+		return skinColors[Math.floor(Math.random() * skinColors.length)];
+	}
+
+	// ダメージを受けた時の処理
+	takeDamage() {
+		this.isDamaged = true;
+		this.damageTime = 0;
+
+		// 現在の色を保存
+		this.saveOriginalColors();
+
+		// 赤色に変更
+		const damageColor = 0xff0000;
+		const allParts = [
+			this.torsoMesh,
+			this.leftUpperArmMesh,
+			this.leftLowerArmMesh,
+			this.rightUpperArmMesh,
+			this.rightLowerArmMesh,
+			this.leftThighMesh,
+			this.leftShinMesh,
+			this.rightThighMesh,
+			this.rightShinMesh,
+			this.headMesh,
+			this.leftHandMesh,
+			this.rightHandMesh
+		];
+
+		allParts.forEach(part => {
+			if (part && part.material) {
+				part.material.color.setHex(damageColor);
+				part.material.emissive.setHex(damageColor);
+				part.material.emissiveIntensity = 1.0;
+			}
+		});
+	}
+
+	// 現在の色を保存
+	saveOriginalColors() {
+		const allParts = [
+			this.torsoMesh,
+			this.leftUpperArmMesh,
+			this.leftLowerArmMesh,
+			this.rightUpperArmMesh,
+			this.rightLowerArmMesh,
+			this.leftThighMesh,
+			this.leftShinMesh,
+			this.rightThighMesh,
+			this.rightShinMesh,
+			this.headMesh,
+			this.leftHandMesh,
+			this.rightHandMesh
+		];
+
+		allParts.forEach(part => {
+			if (part && part.material) {
+				this.originalColors.set(part, {
+					color: part.material.color.getHex(),
+					emissive: part.material.emissive.getHex(),
+					emissiveIntensity: part.material.emissiveIntensity
+				});
+			}
+		});
+	}
+
+	// 元の色に戻す
+	restoreOriginalColors() {
+		this.originalColors.forEach((colors, part) => {
+			if (part && part.material) {
+				part.material.color.setHex(colors.color);
+				part.material.emissive.setHex(colors.emissive);
+				part.material.emissiveIntensity = colors.emissiveIntensity;
+			}
+		});
+		this.originalColors.clear();
 	}
 
 	updateLimbAnimation(deltaTime) {
+		// ダメージエフェクトの更新
+		if (this.isDamaged) {
+			this.damageTime += deltaTime;
+			if (this.damageTime >= this.damageDuration) {
+				this.isDamaged = false;
+				this.restoreOriginalColors();
+			}
+		}
+
 		this.animationTime += deltaTime * this.animationSpeed;
 
 		if (this.isAttacking) {
@@ -354,44 +549,6 @@ class SlimeCharacter {
 	startAttack() {
 		this.isAttacking = true;
 		this.attackTime = 0;
-	}
-
-	setColor(color) {
-		const hexColor = (typeof color === 'string') ? parseInt(color, 16) : color;
-		
-		console.log('Setting character color:', hexColor.toString(16));
-		
-		const bodyParts = [
-			this.torsoMesh,
-			this.leftUpperArmMesh,
-			this.leftLowerArmMesh,
-			this.rightUpperArmMesh,
-			this.rightLowerArmMesh
-		];
-		
-		const legParts = [
-			this.leftThighMesh,
-			this.leftShinMesh,
-			this.rightThighMesh,
-			this.rightShinMesh
-		];
-
-		bodyParts.forEach(part => {
-			if (part && part.material) {
-				part.material.color.setHex(hexColor);
-				part.material.emissive.setHex(hexColor);
-				part.material.needsUpdate = true;
-			}
-		});
-
-		const darkerColor = Math.floor(hexColor * 0.7);
-		legParts.forEach(part => {
-			if (part && part.material) {
-				part.material.color.setHex(darkerColor);
-				part.material.emissive.setHex(darkerColor);
-				part.material.needsUpdate = true;
-			}
-		});
 	}
 
 	dispose() {

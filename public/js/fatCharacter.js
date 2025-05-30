@@ -1,5 +1,5 @@
 // デブなキャラクター作成用のクラス
-class SlimeCharacter {
+class FatCharacter {
 	constructor(scene, type, game) {
 		this.scene = scene;
 		this.type = type;
@@ -25,6 +25,12 @@ class SlimeCharacter {
 		this.attackTime = 0;
 		this.attackDuration = 0.5;
 
+		// ダメージエフェクト用の変数
+		this.isDamaged = false;
+		this.damageTime = 0;
+		this.damageDuration = 0.5;
+		this.originalColors = new Map();
+
 		// キャラクターの作成
 		this.createCharacter();
 	}
@@ -45,6 +51,22 @@ class SlimeCharacter {
 			color: 0xffaa88,
 			side: THREE.DoubleSide
 		});
+
+		// ゾンビの皮膚色を生成（緑がかった色）
+		const skinColor = this.generateZombieSkinColor();
+		headMaterial.color.setHex(skinColor);
+		handMaterial.color.setHex(skinColor);
+
+		// 洋服の色を生成（くすんだ色）
+		let upperBodyColor = this.generateMutedColor();
+		let lowerBodyColor = this.generateMutedColor();
+		
+		// 上半身と下半身で必ず異なる色になるようにする
+		while (upperBodyColor === lowerBodyColor) {
+			lowerBodyColor = this.generateMutedColor();
+		}
+		
+		bodyMaterial.color.setHex(upperBodyColor);
 
 		// ルートボーン（腰）
 		this.rootBone = new THREE.Bone();
@@ -222,9 +244,166 @@ class SlimeCharacter {
 
 		// キャラクター全体のスケールを1/3に設定
 		this.character.scale.set(1/4, 1/4, 1/4);
+
+		// 上半身のパーツに色を設定
+		const upperBodyParts = [
+			this.torsoMesh,
+			this.leftUpperArmMesh,
+			this.leftLowerArmMesh,
+			this.rightUpperArmMesh,
+			this.rightLowerArmMesh
+		];
+		upperBodyParts.forEach(part => {
+			if (part && part.material) {
+				part.material.color.setHex(upperBodyColor);
+				part.material.emissive.setHex(upperBodyColor);
+				part.material.emissiveIntensity = 0.8;
+			}
+		});
+
+		// 下半身のパーツに色を設定
+		const lowerBodyParts = [
+			this.leftThighMesh,
+			this.leftShinMesh,
+			this.rightThighMesh,
+			this.rightShinMesh
+		];
+		lowerBodyParts.forEach(part => {
+			if (part && part.material) {
+				part.material.color.setHex(lowerBodyColor);
+				part.material.emissive.setHex(lowerBodyColor);
+				part.material.emissiveIntensity = 0.8;
+			}
+		});
+
+		// 頭と手のパーツに色を設定
+		const skinParts = [
+			this.headMesh,
+			this.leftHandMesh,
+			this.rightHandMesh
+		];
+		skinParts.forEach(part => {
+			if (part && part.material) {
+				part.material.emissiveIntensity = 0.8;
+			}
+		});
+	}
+
+	// くすんだ色を生成する関数
+	generateMutedColor() {
+		// くすんだ色の範囲を定義（より多くのバリエーション）
+		const mutedColors = [
+			0x4a4a4a, // 暗いグレー
+			0x2c3e50, // 暗い青
+			0x34495e, // 暗い青緑
+			0x7f8c8d, // 暗いグレー
+			0x2c3e50, // 暗い青
+			0x2c3e50, // 暗い青
+			0x2c3e50, // 暗い青
+			0x2c3e50, // 暗い青
+			0x2c3e50, // 暗い青
+			0x2c3e50  // 暗い青
+		];
+		return mutedColors[Math.floor(Math.random() * mutedColors.length)];
+	}
+
+	// ゾンビの皮膚色を生成する関数
+	generateZombieSkinColor() {
+		// ゾンビの皮膚色の範囲を定義（より多くのバリエーション）
+		const skinColors = [
+			0x8b9e63, // 緑がかった灰色
+			0x7d8b5d, // 暗い緑がかった灰色
+			0x9aad6e, // 明るい緑がかった灰色
+			0x7d8b5d, // 暗い緑がかった灰色
+			0x8b9e63  // 緑がかった灰色
+		];
+		return skinColors[Math.floor(Math.random() * skinColors.length)];
+	}
+
+	// ダメージを受けた時の処理
+	takeDamage() {
+		this.isDamaged = true;
+		this.damageTime = 0;
+
+		// 現在の色を保存
+		this.saveOriginalColors();
+
+		// 赤色に変更
+		const damageColor = 0xff0000;
+		const allParts = [
+			this.torsoMesh,
+			this.leftUpperArmMesh,
+			this.leftLowerArmMesh,
+			this.rightUpperArmMesh,
+			this.rightLowerArmMesh,
+			this.leftThighMesh,
+			this.leftShinMesh,
+			this.rightThighMesh,
+			this.rightShinMesh,
+			this.headMesh,
+			this.leftHandMesh,
+			this.rightHandMesh
+		];
+
+		allParts.forEach(part => {
+			if (part && part.material) {
+				part.material.color.setHex(damageColor);
+				part.material.emissive.setHex(damageColor);
+				part.material.emissiveIntensity = 1.0;
+			}
+		});
+	}
+
+	// 現在の色を保存
+	saveOriginalColors() {
+		const allParts = [
+			this.torsoMesh,
+			this.leftUpperArmMesh,
+			this.leftLowerArmMesh,
+			this.rightUpperArmMesh,
+			this.rightLowerArmMesh,
+			this.leftThighMesh,
+			this.leftShinMesh,
+			this.rightThighMesh,
+			this.rightShinMesh,
+			this.headMesh,
+			this.leftHandMesh,
+			this.rightHandMesh
+		];
+
+		allParts.forEach(part => {
+			if (part && part.material) {
+				this.originalColors.set(part, {
+					color: part.material.color.getHex(),
+					emissive: part.material.emissive.getHex(),
+					emissiveIntensity: part.material.emissiveIntensity
+				});
+			}
+		});
+	}
+
+	// 元の色に戻す
+	restoreOriginalColors() {
+		this.originalColors.forEach((colors, part) => {
+			if (part && part.material) {
+				part.material.color.setHex(colors.color);
+				part.material.emissive.setHex(colors.emissive);
+				part.material.emissiveIntensity = colors.emissiveIntensity;
+			}
+		});
+		this.originalColors.clear();
 	}
 
 	updateLimbAnimation(deltaTime) {
+		// ダメージエフェクトの更新
+		if (this.isDamaged) {
+			this.damageTime += deltaTime;
+			if (this.damageTime >= this.damageDuration) {
+				this.isDamaged = false;
+				this.restoreOriginalColors();
+			}
+		}
+
 		this.animationTime += deltaTime * this.animationSpeed;
 
 		if (this.isAttacking) {
@@ -354,44 +533,6 @@ class SlimeCharacter {
 	startAttack() {
 		this.isAttacking = true;
 		this.attackTime = 0;
-	}
-
-	setColor(color) {
-		const hexColor = (typeof color === 'string') ? parseInt(color, 16) : color;
-		
-		console.log('Setting character color:', hexColor.toString(16));
-		
-		const bodyParts = [
-			this.torsoMesh,
-			this.leftUpperArmMesh,
-			this.leftLowerArmMesh,
-			this.rightUpperArmMesh,
-			this.rightLowerArmMesh
-		];
-		
-		const legParts = [
-			this.leftThighMesh,
-			this.leftShinMesh,
-			this.rightThighMesh,
-			this.rightShinMesh
-		];
-
-		bodyParts.forEach(part => {
-			if (part && part.material) {
-				part.material.color.setHex(hexColor);
-				part.material.emissive.setHex(hexColor);
-				part.material.needsUpdate = true;
-			}
-		});
-
-		const darkerColor = Math.floor(hexColor * 0.7);
-		legParts.forEach(part => {
-			if (part && part.material) {
-				part.material.color.setHex(darkerColor);
-				part.material.emissive.setHex(darkerColor);
-				part.material.needsUpdate = true;
-			}
-		});
 	}
 
 	dispose() {

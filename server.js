@@ -142,13 +142,13 @@ const BIOME_CONFIG = {
             name: 'urban',
             color: 0x2C2C2C,
             enemyWeights: {
-                NORMAL: 0.7,
+                NORMAL: 1,
                 FAST: 0,
                 SHOOTER: 0,
                 GIANT: 0,
                 CRAB: 0,
                 FLYING: 0,
-                SLIME: 0.3,
+                SLIME: 0,
                 BOSS: 0
             }
         },

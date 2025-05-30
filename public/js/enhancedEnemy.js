@@ -24,13 +24,13 @@ class EnhancedEnemy {
                 this.model = new FlyingCharacter(this.scene, "enemy", game);
                 break;
             case 'slime': // スライム
-                this.model = new SlimeCharacter(this.scene, "enemy", game);
+                this.model = new FatCharacter(this.scene, "enemy", game);
                 break;
             case 'boss': // ボス
                 this.model = new BossCharacter(this.scene, "enemy", game);
                 break;
             default: // 人型（デフォルト）
-                this.model = new Character(this.scene, "enemy", game);
+                this.model = new EnemyCharacter(this.scene, "enemy", game);
                 break;
         }
         
@@ -49,8 +49,8 @@ class EnhancedEnemy {
         // 敵の色を設定
         if(this.enemyType == "humanoid"){
             if (enemyTypeConfig) {
-                this.model.setEnemyColor(enemyTypeConfig.color);
-                this.color = enemyTypeConfig.color; // 色を保存
+               // this.model.setEnemyColor(enemyTypeConfig.color);
+                //this.color = enemyTypeConfig.color; // 色を保存
                 this.moveSpeed = enemyTypeConfig.moveSpeed;
                 this.damage = enemyTypeConfig.damage;
             }
@@ -120,8 +120,10 @@ class EnhancedEnemy {
         
         this.health -= damage;
         
-        // ダメージを受けた時のエフェクト
-        this.flashEffect();
+        // ダメージエフェクトを適用
+        if (this.model && this.model.takeDamage) {
+            this.model.takeDamage();
+        }
         
         if (this.health <= 0) {
             this.die();
@@ -138,7 +140,7 @@ class EnhancedEnemy {
         // 0.1秒後に元の色に戻す
         setTimeout(() => {
             if (this.model) {
-                this.model.setEnemyColor(originalColor);
+                //this.model.setEnemyColor(originalColor);
             }
         }, 100);
     }
