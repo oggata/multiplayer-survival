@@ -138,7 +138,7 @@ const GameConfig = {
     MAP: {
         SIZE:   6000,
         CHUNK_SIZE:     110,
-        VISLBLE_DISTANCE:   180,
+        VISLBLE_DISTANCE:   300,
         BOUNDARY_WALL_HEIGHT:  0,
         BIOME: {
             RADIUS: 500, // バイオームの半径
