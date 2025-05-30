@@ -43,7 +43,6 @@
             left: 0;
             right: 0;
             padding: 20px;
-            background: rgba(0, 0, 0, 0.3);
             z-index: 1000;
         }
         #leftJoystick {
@@ -66,43 +65,16 @@
             border-radius: 50px;
         }
 
-        #messageButton {
-            position: fixed;
-            right: 160px;
-            bottom: 20px;
-            width: 60px;
-            height: 60px;
-            background: rgba(0, 255, 0, 0.5);
-            border-radius: 10px;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+        #messageButton, #warpButton, #backpackButton, #cameraButton, #jumpButton, #mapButton {
+            position: static !important;
+            width: auto !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            right: auto !important;
+            bottom: auto !important;
         }
-        #backpackButton {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-            width: 60px;
-            height: 60px;
-            background-color: rgba(255, 170, 68, 0.8);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        #backpackButton:active {
-            background-color: rgba(255, 170, 68, 1);
-        }
+
         #coordinates {
             position: fixed;
             top: 20px;
@@ -138,26 +110,6 @@
             font-family: monospace;
             font-size: 16px;
             z-index: 100;
-        }
-        #warpButton {
-            position: fixed;
-            right: 20px;
-            bottom: 90px;
-            width: 60px;
-            height: 60px;
-            background-color: rgba(68, 170, 255, 0.8);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        #warpButton:active {
-            background-color: rgba(68, 170, 255, 1);
         }
         #healthBar {
             position: fixed;
@@ -395,6 +347,64 @@
             margin-top: -10px;
         }
 
+        /* 新しいボタンコンテナのスタイル */
+        .control-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: grid;
+            grid-template-columns: 50px 50px 50px;
+            grid-template-rows: 50px 50px;
+            gap: 10px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 15px;
+        }
+
+        .control-button {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .control-button:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        .message-btn { background: rgba(0, 255, 0, 0.5); }
+        .warp-btn { background: rgba(68, 170, 255, 0.8); }
+        .backpack-btn { background: rgba(255, 170, 68, 0.8); }
+        .camera-btn { background: rgba(128, 128, 128, 0.8); }
+        .jump-btn { background: rgba(255, 100, 100, 0.8); }
+        .map-btn { background: rgba(100, 255, 100, 0.8); }
+
+        @media (max-width: 768px) {
+            .control-buttons {
+                bottom: 10px;
+                right: 10px;
+                gap: 8px;
+                grid-template-columns: 45px 45px 45px;
+                grid-template-rows: 45px 45px;
+            }
+
+            .control-button {
+                width: 45px;
+                height: 45px;
+                font-size: 18px;
+            }
+        }
+
     </style>
 </head>
 <body><canvas id="gameCanvas"></canvas>
@@ -436,15 +446,13 @@
             <div id="joystickKnob"></div>
         </div>
 
-        <div id="buttonContainer" style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000;">
-            <div style="display: flex; gap: 10px;">
-                <button id="messageButton" style="width: 60px; height: 60px; background: rgba(0, 255, 0, 0.5); border-radius: 10px; border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i class="fas fa-comment"></i></button>
-                <button id="backpackButton" style="width: 60px; height: 60px; background-color: rgba(255, 170, 68, 0.8); border: none; border-radius: 10px; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">🎒</button>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button id="warpButton" style="width: 60px; height: 60px; background-color: rgba(68, 170, 255, 0.8); border: none; border-radius: 10px; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">🚀</button>
-                <button id="cameraButton" style="width: 60px; height: 60px; background-color: rgba(128, 128, 128, 0.8); border: none; border-radius: 10px; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;"><i class="fas fa-camera"></i></button>
-            </div>
+        <div class="control-buttons">
+            <button id="messageButton" class="control-button message-btn" title="メッセージ"><i class="fas fa-comment"></i></button>
+            <button id="warpButton" class="control-button warp-btn" title="ワープ">🚀</button>
+            <button id="backpackButton" class="control-button backpack-btn" title="バックパック">🎒</button>
+            <button id="cameraButton" class="control-button camera-btn" title="カメラ"><i class="fas fa-camera"></i></button>
+            <button id="jumpButton" class="control-button jump-btn" title="ジャンプ"><i class="fas fa-arrow-up"></i></button>
+            <button id="mapButton" class="control-button map-btn" title="マップ"><i class="fas fa-map"></i></button>
         </div>
     </div>
     
