@@ -29,6 +29,12 @@ class Character {
 		// 射撃アニメーション用の変数
 		this.isShooting = false;
 
+		// ジャンプアニメーション用の変数
+		this.isJumping = false;
+		this.jumpTime = 0;
+		this.jumpDuration = 0.8;
+		this.jumpHeight = 1.0;
+
 		// キャラクターの作成
 		this.createCharacter();
 	}
@@ -244,6 +250,11 @@ class Character {
 
 	updateLimbAnimation(deltaTime) {
 		this.animationTime += deltaTime * this.animationSpeed;
+		//this.isJumping = true;
+		if (this.isJumping) {
+			this.updateJumpAnimation(deltaTime);
+			return;
+		}
 
 		if (this.isAttacking) {
 			this.updateAttackAnimation(deltaTime);
@@ -364,6 +375,43 @@ class Character {
 			this.isAttacking = false;
 			this.leftShoulderBone.rotation.x = 0;
 			this.rightShoulderBone.rotation.x = 0;
+		}
+	}
+
+	updateJumpAnimation(deltaTime) {
+		this.jumpTime += deltaTime;
+		const progress = Math.min(this.jumpTime / this.jumpDuration, 1);
+		
+		// ジャンプの高さ計算（放物線）
+		const jumpProgress = Math.sin(progress * Math.PI);
+		this.rootBone.position.y = 3 + jumpProgress * this.jumpHeight;
+		
+		// 膝の曲げ具合
+		const kneeBend = Math.sin(progress * Math.PI * 2) * 0.5;
+		this.leftKneeBone.rotation.x = kneeBend;
+		this.rightKneeBone.rotation.x = kneeBend;
+		
+		// 腕の水平挙上
+		const armRaise = Math.min(progress * 2, 1) * Math.PI / 2;
+		this.leftShoulderBone.rotation.x = -armRaise;
+		this.rightShoulderBone.rotation.x = -armRaise;
+		
+		// ジャンプ終了時の処理
+		if (progress >= 1) {
+			this.isJumping = false;
+			this.jumpTime = 0;
+			// 元の姿勢に戻す
+			this.leftKneeBone.rotation.x = 0;
+			this.rightKneeBone.rotation.x = 0;
+			this.leftShoulderBone.rotation.x = 0;
+			this.rightShoulderBone.rotation.x = 0;
+		}
+	}
+
+	startJump() {
+		if (!this.isJumping && !this.isAttacking && !this.isShooting) {
+			this.isJumping = true;
+			this.jumpTime = 0;
 		}
 	}
 

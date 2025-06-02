@@ -159,6 +159,7 @@ class EnhancedEnemy {
         // サーバーに敵の死亡を通知
         this.game.socket.emit('enemyDied', this.id);
 
+        /*
         // GameConfig.ITEMSからランダムにアイテムタイプを選択
         const itemTypes = Object.entries(GameConfig.ITEMS)
             .filter(([_, item]) => item.dropChance !== undefined)
@@ -173,7 +174,7 @@ class EnhancedEnemy {
             this.model.getPosition().z
         );
         this.spawnItem(selectedType, position);
-
+*/
         // 敵を削除
         setTimeout(() => {
             this.dispose();
