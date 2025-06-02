@@ -4,7 +4,7 @@
 const GameConfig = {
     // プレイヤー設定
     PLAYER: {
-        MOVE_SPEED: 14.5,
+        MOVE_SPEED: 4.5,
         ROTATION_SPEED: 0.05,
         MAX_HEALTH: 100,
         COLLISION_RADIUS: 1.0,
@@ -485,7 +485,7 @@ const GameConfig = {
     // 視覚設定
     VISION: {
         FOV: 80,
-        MAX_DISTANCE: 120,  // 最大表示距離を50に増加
+        MAX_DISTANCE: 100,  // 最大表示距離を50に増加
         FADE_START: 125,    // フェード開始距離を40に増加
         UPDATE_INTERVAL: 500
     },

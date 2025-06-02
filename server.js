@@ -52,10 +52,10 @@ const PLAYER_PREDICTION_RANGE = 50; // 予測範囲を短縮
 
 // 時間帯ごとの敵の最大数
 const MAX_ENEMIES = {
-    MORNING:  1000,   // 朝（6:00-12:00）0
-    DAY: 1000,      // 昼（12:00-18:00）0
-    EVENING: 1000,  // 夕方（18:00-24:00） 30
-    NIGHT: 1000     // 夜（0:00-6:00）70
+    MORNING:  30,   // 朝（6:00-12:00）0
+    DAY: 50,      // 昼（12:00-18:00）0
+    EVENING: 100,  // 夕方（18:00-24:00） 30
+    NIGHT: 300     // 夜（0:00-6:00）70
 };
 
 const SPAWN_DISTANCE_TO_PLAYER = 1000;

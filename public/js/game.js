@@ -52,6 +52,11 @@ class Game {
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.shadowMap.enabled = true;
 		console.log('GameConfig.ITEMS', GameConfig.ITEMS);
+
+
+		this.setupJumpButton();
+
+
 		// モノクロ効果用のシェーダーを追加
 		this.monochromeShader = {
 			uniforms: {
@@ -1333,13 +1338,8 @@ class Game {
 		if (this.keys['s']) moveZ = this.moveSpeed;
 		if (this.keys['a']) rotateY = this.rotationSpeed; // 方向を反転
 		if (this.keys['d']) rotateY = -this.rotationSpeed; // 方向を反転
-		if (this.keys[' ']) this.shoot(); // スペースキーで発射
+		//if (this.keys[' ']) this.shoot(); // スペースキーで発射
 		if (this.keys['shift']) isRunning = true;
-// スペースキーが押されたときにジャンプを開始
-if (this.keys['space']) {
-	console.log('jump');
-    this.playerModel.startJump();
-}
 
 
 		// 移動中かどうかを判定
@@ -2013,6 +2013,9 @@ if (this.keys['space']) {
 			if (nearestEnemy && nearestEnemy.distance < this.autoShootRadius) {
 				// 自動射撃
 				//console.log("自動射撃");
+				if (this.playerModel) {
+					this.playerModel.startShooting();
+				}
 				this.shoot();
 			}
 		}
@@ -3554,6 +3557,17 @@ if (this.keys['space']) {
 			}
 		});
 		return nearbyEnemies;
+	}
+
+	setupJumpButton() {
+		const jumpButton = document.getElementById('jumpButton');
+		if (!jumpButton) return;
+
+			jumpButton.addEventListener('click', () => {
+				if (this.playerModel) {
+					this.playerModel.startJump();
+				}
+			});
 	}
 
 	setupCameraButton() {

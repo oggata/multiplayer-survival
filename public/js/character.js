@@ -35,6 +35,11 @@ class Character {
 		this.jumpDuration = 0.8;
 		this.jumpHeight = 1.0;
 
+		// 仰向けアニメーション用の変数
+		this.isFallingBack = false;
+		this.fallBackTime = 0;
+		this.fallBackDuration = 1.0;
+
 		// キャラクターの作成
 		this.createCharacter();
 	}
@@ -250,7 +255,12 @@ class Character {
 
 	updateLimbAnimation(deltaTime) {
 		this.animationTime += deltaTime * this.animationSpeed;
-		//this.isJumping = true;
+
+		if (this.isFallingBack) {
+			this.updateFallBackAnimation(deltaTime);
+			return;
+		}
+
 		if (this.isJumping) {
 			this.updateJumpAnimation(deltaTime);
 			return;
@@ -406,6 +416,50 @@ class Character {
 			this.leftShoulderBone.rotation.x = 0;
 			this.rightShoulderBone.rotation.x = 0;
 		}
+	}
+
+	updateFallBackAnimation(deltaTime) {
+		this.fallBackTime += deltaTime;
+		const progress = Math.min(this.fallBackTime / this.fallBackDuration, 1);
+		
+		// 胴体を後ろに倒す
+		this.spineBone.rotation.x = progress * Math.PI / 2;
+		
+		// 腕を広げる
+		const armSpread = progress * Math.PI / 2;
+		this.leftShoulderBone.rotation.z = -armSpread;
+		this.rightShoulderBone.rotation.z = armSpread;
+		
+		// 膝を曲げる
+		const kneeBend = progress * Math.PI / 4;
+		this.leftKneeBone.rotation.x = kneeBend;
+		this.rightKneeBone.rotation.x = kneeBend;
+		
+		// 頭を後ろに倒す
+		this.headBone.rotation.x = progress * Math.PI / 4;
+		
+		// 全体を少し下げる
+		this.rootBone.position.y = 3 - progress * 0.5;
+	}
+
+	startFallBack() {
+		if (!this.isFallingBack && !this.isJumping && !this.isAttacking && !this.isShooting) {
+			this.isFallingBack = true;
+			this.fallBackTime = 0;
+		}
+	}
+
+	stopFallBack() {
+		this.isFallingBack = false;
+		this.fallBackTime = 0;
+		// 元の姿勢に戻す
+		this.spineBone.rotation.x = 0;
+		this.leftShoulderBone.rotation.z = -0.15;
+		this.rightShoulderBone.rotation.z = 0.15;
+		this.leftKneeBone.rotation.x = 0;
+		this.rightKneeBone.rotation.x = 0;
+		this.headBone.rotation.x = 0;
+		this.rootBone.position.y = 3;
 	}
 
 	startJump() {
