@@ -103,6 +103,7 @@ class Game {
 		this.socket = io();
 		this.players = new Map();
 		this.enemies = new Map(); // 敵を管理するMapを追加
+		this.enemyBullets = new Map(); // 敵の弾丸を管理するマップを追加
 		this.bullets = [];
 		this.moveSpeed = GameConfig.PLAYER.MOVE_SPEED;
 		this.rotationSpeed = GameConfig.PLAYER.ROTATION_SPEED;
@@ -158,7 +159,7 @@ class Game {
 		this.playerStatus.health = this.currentHealth; // 初期HPを同期
 
 		// アイテム管理
-		this.items = [];
+		this.items = []; // Mapから配列に戻す
 		this.maxItems = GameConfig.ITEM.MAX_COUNT;
 		this.inventory = []; // プレイヤーのインベントリ
 
@@ -219,11 +220,11 @@ class Game {
 		// メッセージ表示用の要素を追加
 		this.messageIndicators = new Map(); // メッセージインジケーターを管理
 		this.createMessageIndicatorContainer();
-
+/*
 		// WebSocketのメッセージハンドラを追加
 		this.socket.onmessage = (event) => {
 			const data = JSON.parse(event.data);
-
+			console.log("data" + data);
 			switch (data.type) {
 				case 'enemySpawn':
 					this.spawnEnemy(data.enemy);
@@ -242,7 +243,7 @@ class Game {
 					break;
 			}
 		};
-
+*/
 		// アイテム効果表示用の要素
 		this.effectsContainer = document.createElement('div');
 		this.effectsContainer.id = 'effectsContainer';
@@ -1013,8 +1014,17 @@ class Game {
 		});
 
 		this.socket.on('enemySpawned', (enemy) => {
+			//console.log("enemySpawned" + enemy);
 			this.spawnEnemy(enemy);
 		});
+
+
+		this.socket.on('enemyBulletSpawn', (bullet) => {
+			
+			this.spawnEnemyBullet(bullet);
+		});
+
+
 
 
 		this.socket.on('enemiesKilled', (enemyIds) => {
@@ -1979,6 +1989,7 @@ class Game {
 
 		// 弾丸の更新を追加
 		this.updateBullets(deltaTime);
+		this.updateEnemyBullets(deltaTime); // 敵の弾丸の更新を追加
 
 		// 敵の表示/非表示を更新
 		//itemの更新
@@ -2083,7 +2094,7 @@ class Game {
 		if (!this.playerModel) return;
 
 		const playerPosition = this.playerModel.getPosition();
-		const COLLECTION_DISTANCE = 2.0;
+		const COLLECTION_DISTANCE = 3.0;
 
 		for (let i = this.items.length - 1; i >= 0; i--) {
 			const item = this.items[i];
@@ -2708,7 +2719,7 @@ class Game {
 		if (!position) return;
 		
 		// 10%の確率でアイテムをスポーン
-		if (Math.random() < 0.1) {
+		if (Math.random() < 1.1) {
 			// GameConfig.ITEMSからランダムにアイテムタイプを選択
 			const itemTypes = Object.entries(GameConfig.ITEMS)
 				.filter(([_, item]) => item.dropChance !== undefined)
@@ -2728,18 +2739,9 @@ class Game {
 	}
 
 	spawnItem(itemType, position) {
-		if (!itemType || !GameConfig.ITEMS[itemType]) {
-			console.error('無効なアイテムタイプです:', itemType);
-			return;
-		}
+		if (this.items.length >= this.maxItems) return;
 
-		// positionがTHREE.Vector3でない場合は変換
-		const itemPosition = position instanceof THREE.Vector3 ? 
-			position : 
-			new THREE.Vector3(position.x, position.y, position.z);
-
-		const item = new Item(itemType, itemPosition);
-		this.scene.add(item.mesh);
+		const item = new Item(this.scene, itemType, position);
 		this.items.push(item);
 	}
 
@@ -3051,40 +3053,29 @@ class Game {
 			});
 		}
 	}
-	/*
+	
 	    // 敵の弾丸を更新するメソッド
 	    updateEnemyBullets(deltaTime) {
-	        for (let i = this.enemyBullets.length - 1; i >= 0; i--) {
-	            const bullet = this.enemyBullets[i];
+	        // 敵の弾丸の更新
+	        for (const [bulletId, bullet] of this.enemyBullets) {
+	            // 弾丸の位置を更新
+	            const result = bullet.update(deltaTime);
 	            
-	            // 弾丸を更新
-	            const isAlive = bullet.update(deltaTime);
-	            
-	            // 弾丸が寿命を迎えた場合は削除
-	            if (!isAlive) {
-	                this.enemyBullets.splice(i, 1);
+	            // 弾丸が寿命を迎えた場合
+	            if (!result) {
+	                this.removeEnemyBullet(bulletId);
 	                continue;
 	            }
-	            
+
 	            // プレイヤーとの衝突判定
 	            const playerPosition = this.playerModel.getPosition();
-	            const distance = bullet.checkCollision(playerPosition, GameConfig.PLAYER.COLLISION_RADIUS);
-	            
-	            // デバッグ用のログ
-	            //console.log('弾の位置:', bullet.model.position);
-	            //console.log('プレイヤーの位置:', playerPosition);
-	            //console.log('距離:', distance);
-	            
-	            if (distance) {
-	                //console.log('プレイヤーにダメージ:', bullet.damage);
-	                // プレイヤーにダメージを与える
-	        this.takeDamage(bullet.damage);
-	                bullet.dispose();
-	                this.enemyBullets.splice(i, 1);
+	            if (bullet.checkCollision(playerPosition, GameConfig.PLAYER.COLLISION_RADIUS)) {
+	                this.takeDamage(bullet.damage);
+	                this.removeEnemyBullet(bulletId);
 	            }
 	        }
 	    }
-	*/
+	
 	collectItem(itemType) {
 		if (!itemType) {
 			console.error('無効なアイテムタイプです:', itemType);
@@ -3185,6 +3176,9 @@ class Game {
 	}
 
 	spawnEnemyBullet(bulletData) {
+
+		//console.log("spawnEnemyBullet");
+
 		const bullet = new EnemyBullet(
 			this.scene,
 			new THREE.Vector3(bulletData.position.x, bulletData.position.y, bulletData.position.z),

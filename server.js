@@ -95,9 +95,12 @@ const ENEMY_CONFIG = {
     SHOOTER: {
         model: 'hexapod',
         visionRange: 40,
-        speed: 0.8,
+        speed: 0.2,
         health: 25,
-        weight: 0.15
+        weight: 0.15,
+        shootInterval: 6000, // 3秒ごとに弾を発射
+        bulletSpeed: 15,
+        bulletDamage: 15
     },
     GIANT: {
         model: 'giant',
@@ -385,9 +388,13 @@ function spawnEnemy() {
         target: null,
         state: 'wandering',
         lastAttack: 0,
+        lastShootTime: 0,
         config: {
             visionRange: enemyConfig.visionRange,
-            speed: enemyConfig.speed
+            speed: enemyConfig.speed,
+            shootInterval: enemyConfig.shootInterval,
+            bulletSpeed: enemyConfig.bulletSpeed,
+            bulletDamage: enemyConfig.bulletDamage
         }
     };
     
@@ -534,6 +541,63 @@ function updateEnemies() {
     enemyList.forEach(enemy => {
         // 敵が死亡している場合はスキップ
         if (enemy.health <= 0) return;
+        //console.log("enemy.type" + enemy.type);
+        // SHOOTERタイプの敵の弾丸発射処理
+        if (enemy.type === 'SHOOTER') {
+            //console.log("now" + now);
+            //console.log("enemy.shootInterval" +  enemy.config.shootInterval);
+            // 最後の発射から一定時間経過しているかチェック
+            if (now - (enemy.lastShootTime || 0) >= enemy.config.shootInterval) {
+
+                //console.log("enemy.config.shootInterval" + enemy.config.shootInterval);
+                // 最も近いプレイヤーを探す
+                let closestPlayer = null;
+                let minDistance = Infinity;
+
+                Object.values(players).forEach(player => {
+                    if (player.health <= 0) return;
+                    const dx = player.position.x - enemy.position.x;
+                    const dz = player.position.z - enemy.position.z;
+                    const distance = Math.sqrt(dx * dx + dz * dz);
+
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestPlayer = player;
+                    }
+                });
+
+                // プレイヤーが射程範囲内にいる場合、弾を発射
+                if (closestPlayer && minDistance < enemy.config.visionRange) {
+                    // プレイヤーの方向を計算
+                    const dx = closestPlayer.position.x - enemy.position.x;
+                    const dz = closestPlayer.position.z - enemy.position.z;
+                    const direction = {
+                        x: dx / minDistance,
+                        y: 0,
+                        z: dz / minDistance
+                    };
+
+                    // 弾丸データを作成
+                    const bulletData = {
+                        id: `enemy_bullet_${Date.now()}_${enemy.id}`,
+                        position: {
+                            x: enemy.position.x,
+                            y: enemy.position.y + 1, // 敵の高さの半分くらいの位置から発射
+                            z: enemy.position.z
+                        },
+                        direction: direction,
+                        speed: enemy.config.bulletSpeed,
+                        damage: enemy.config.bulletDamage
+                    };
+                    //console.log("enemyBulletSpawn" + bulletData);
+                    // 弾丸発射を通知
+                    io.emit('enemyBulletSpawn', bulletData);
+
+                    // 最後の発射時間を更新
+                    enemy.lastShootTime = now;
+                }
+            }
+        }
 
         // プレイヤーとの距離を計算
         let closestPlayer = null;

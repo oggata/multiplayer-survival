@@ -270,6 +270,8 @@ class Character {
 			this.updateAttackAnimation(deltaTime);
 			return;
 		}
+
+		/*
 		//this.isShooting = true;
 		if (this.isShooting) {
 			// 腰の上下動と前後の傾き
@@ -305,6 +307,7 @@ class Character {
 			this.headBone.rotation.x = Math.sin(this.animationTime * 2) * 0.05;
 			return;
 		}
+			*/
 
 		if (this.isMoving) {
 			// 腰の上下動と前後の傾き

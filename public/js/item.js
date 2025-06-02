@@ -1,5 +1,6 @@
 class Item {
-    constructor(itemType, position) {
+    constructor(scene, itemType, position) {
+        this.scene = scene;
         this.type = itemType;
         this.itemConfig = GameConfig.ITEMS[itemType];
         if (!this.itemConfig) {
@@ -23,6 +24,9 @@ class Item {
         
         // アイテムを少し浮かせる
         this.mesh.position.y += 0.5;
+        
+        // シーンに追加
+        this.scene.add(this.mesh);
         
         // 回転アニメーション用の変数
         this.rotationSpeed = 0.1;
@@ -51,5 +55,16 @@ class Item {
             this.mesh.parent.remove(this.mesh);
         }
         return this.type;
+    }
+
+    // リソースの解放
+    dispose() {
+        if (this.mesh) {
+            if (this.mesh.parent) {
+                this.mesh.parent.remove(this.mesh);
+            }
+            this.mesh.geometry.dispose();
+            this.mesh.material.dispose();
+        }
     }
 } 
