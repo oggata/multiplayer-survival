@@ -648,6 +648,7 @@ class Game {
 		if (this.playerHash) {
 			const color = this.generateColorFromHash(this.playerHash);
 			this.playerModel.setColor(color);
+			console.log("color" + color);
 		}
 
 		// 初期位置は(0,0,0)に設定し、後でcurrentPlayersイベントで正しい位置に設定される

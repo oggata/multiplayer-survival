@@ -338,14 +338,6 @@ class Character {
 			// 頭の自然な動き
 			this.headBone.rotation.y = Math.sin(this.animationTime * 0.5) * 0.1;
 			this.headBone.rotation.x = Math.sin(this.animationTime * 2) * 0.05;
-
-			/*
-			// 上下の動きを追加（プレイヤー以外は適用しない）
-			if (this.type !== "player") {
-				const verticalOffset = Math.sin(this.animationTime * 2) * 0.1;
-				this.character.position.y = this.position.y + verticalOffset;
-			}
-				*/
 		} else {
 			// アイドルアニメーション
 			this.rootBone.position.y = 3;
@@ -528,14 +520,18 @@ class Character {
 	}
 
 	setColor(color) {
+
+		//console.log("color-" + color);
+
 		// 色を16進数に変換
 		const hexColor = (typeof color === 'string') ? parseInt(color, 16) : color;
 		
 		// デバッグログ
-		console.log('Setting character color:', hexColor.toString(16));
+		//console.log('Setting character color:', hexColor.toString(16));
 		
 		// 上半身のパーツ（胴体、腕）
 		const upperBodyParts = [
+			this.headMesh,
 			this.torsoMesh,
 			this.leftUpperArmMesh,
 			this.leftLowerArmMesh,
@@ -566,9 +562,9 @@ class Character {
 		const upperColor = (upperR << 16) | (upperG << 8) | upperB;
 
 		// 下半身用の色を作成（上半身より暗め）
-		const lowerR = Math.min(255, Math.floor(r * 1.2));
-		const lowerG = Math.min(255, Math.floor(g * 1.2));
-		const lowerB = Math.min(255, Math.floor(b * 1.2));
+		const lowerR = Math.min(255, Math.floor(r * 0.8));
+		const lowerG = Math.min(255, Math.floor(g * 0.8));
+		const lowerB = Math.min(255, Math.floor(b * 0.8));
 		const lowerColor = (lowerR << 16) | (lowerG << 8) | lowerB;
 
 		// 上半身のパーツに色を設定
@@ -577,9 +573,9 @@ class Character {
 				part.material = new THREE.MeshPhongMaterial({
 					color: upperColor,
 					shininess: 5,
-					specular: 0x111111,
-					emissive: 0x000000,
-					emissiveIntensity: 0,
+					specular: upperColor,
+					emissive: upperColor,
+					emissiveIntensity: 0.6,
 					side: THREE.DoubleSide
 				});
 				part.material.needsUpdate = true;
@@ -592,9 +588,9 @@ class Character {
 				part.material = new THREE.MeshPhongMaterial({
 					color: lowerColor,
 					shininess: 5,
-					specular: 0x111111,
-					emissive: 0x000000,
-					emissiveIntensity: 0,
+					specular: lowerColor,
+					emissive: lowerColor,
+					emissiveIntensity: 0.6,
 					side: THREE.DoubleSide
 				});
 				part.material.needsUpdate = true;
