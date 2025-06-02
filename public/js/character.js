@@ -26,6 +26,9 @@ class Character {
 		this.attackTime = 0;
 		this.attackDuration = 0.5;
 
+		// 射撃アニメーション用の変数
+		this.isShooting = false;
+
 		// キャラクターの作成
 		this.createCharacter();
 	}
@@ -246,6 +249,41 @@ class Character {
 			this.updateAttackAnimation(deltaTime);
 			return;
 		}
+		//this.isShooting = true;
+		if (this.isShooting) {
+			// 腰の上下動と前後の傾き
+			this.rootBone.position.y = 3 + Math.sin(this.animationTime * 2) * 0.1;
+			this.rootBone.rotation.x = Math.sin(this.animationTime * 2) * 0.02;
+			
+			// 胴体の微妙な揺れ
+			this.spineBone.rotation.z = Math.sin(this.animationTime) * 0.05;
+			this.spineBone.rotation.x = Math.sin(this.animationTime * 2) * 0.02;
+			
+			// 左脚の動き
+			this.leftHipBone.rotation.x = Math.sin(this.animationTime) * this.walkAmplitude;
+			this.leftKneeBone.rotation.x = Math.max(0, Math.sin(this.animationTime - 0.5) * this.walkAmplitude * 1.2);
+			this.leftFootBone.rotation.x = Math.sin(this.animationTime - 1) * 0.3;
+			
+			// 右脚の動き（左脚と逆位相）
+			this.rightHipBone.rotation.x = Math.sin(this.animationTime + Math.PI) * this.walkAmplitude;
+			this.rightKneeBone.rotation.x = Math.max(0, Math.sin(this.animationTime + Math.PI - 0.5) * this.walkAmplitude * 1.2);
+			this.rightFootBone.rotation.x = Math.sin(this.animationTime + Math.PI - 1) * 0.3;
+			
+			// 左腕の射撃姿勢
+			this.leftShoulderBone.rotation.z = -0.15;
+			this.leftShoulderBone.rotation.x = -Math.PI / 4; // 45度前方に
+			this.leftElbowBone.rotation.x = -1.5; // 肘を曲げる
+			
+			// 右腕の射撃姿勢
+			this.rightShoulderBone.rotation.z = 0.15;
+			this.rightShoulderBone.rotation.x = -Math.PI / 6; // 30度前方に
+			this.rightElbowBone.rotation.x = -0.8; // 肘を少し曲げる
+			
+			// 頭の自然な動き
+			this.headBone.rotation.y = Math.sin(this.animationTime * 0.5) * 0.1;
+			this.headBone.rotation.x = Math.sin(this.animationTime * 2) * 0.05;
+			return;
+		}
 
 		if (this.isMoving) {
 			// 腰の上下動と前後の傾き
@@ -377,6 +415,14 @@ class Character {
 	startAttack() {
 		this.isAttacking = true;
 		this.attackTime = 0;
+	}
+
+	startShooting() {
+		this.isShooting = true;
+	}
+
+	stopShooting() {
+		this.isShooting = false;
 	}
 
 	setColor(color) {

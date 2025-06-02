@@ -1843,6 +1843,19 @@ class Game {
 			// スキップフラグがある場合は更新しない
 			if (enemy.skipUpdate) return;
 
+			// プレイヤーとの距離を計算
+			const playerPosition = this.playerModel.getPosition();
+			const enemyPosition = enemy.model.getPosition();
+			const distance = playerPosition.distanceTo(enemyPosition);
+
+			// 視認距離を超えている場合は非表示にする
+			if (distance > GameConfig.MAP.VISIBLE_DISTANCE) {
+				enemy.model.character.visible = false;
+				return;
+			} else {
+				enemy.model.character.visible = true;
+			}
+
 			// 更新優先度が低い敵は3フレームに1回だけ更新
 			if (enemy.updatePriority === 'low' && this.frameCount % 3 !== 0) return;
 
@@ -2597,8 +2610,8 @@ class Game {
 		const position = enemy.model.getPosition();
 		if (!position) return;
 		
-		// 20%の確率でアイテムをスポーン
-		if (Math.random() < 0.2) {
+		// 10%の確率でアイテムをスポーン
+		if (Math.random() < 0.1) {
 			// GameConfig.ITEMSからランダムにアイテムタイプを選択
 			const itemTypes = Object.entries(GameConfig.ITEMS)
 				.filter(([_, item]) => item.dropChance !== undefined)
