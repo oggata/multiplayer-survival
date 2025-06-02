@@ -126,7 +126,22 @@ class FieldMap {
                 base: new THREE.Color(colors.base),
                 highlight: new THREE.Color(colors.highlight),
                 mid: new THREE.Color(colors.mid),
-                top: new THREE.Color(colors.top)
+                top: new THREE.Color(colors.top),
+                // 12色のマスターパレットを追加
+                palette: {
+                    color1: new THREE.Color(colors.palette?.color1 || 0x2C3E50),  // 深い青
+                    color2: new THREE.Color(colors.palette?.color2 || 0x34495E),  // 濃い青
+                    color3: new THREE.Color(colors.palette?.color3 || 0x7F8C8D),  // グレー
+                    color4: new THREE.Color(colors.palette?.color4 || 0x95A5A6),  // 明るいグレー
+                    color5: new THREE.Color(colors.palette?.color5 || 0xBDC3C7),  // 薄いグレー
+                    color6: new THREE.Color(colors.palette?.color6 || 0xECF0F1),  // ほぼ白
+                    color7: new THREE.Color(colors.palette?.color7 || 0xE74C3C),  // 赤
+                    color8: new THREE.Color(colors.palette?.color8 || 0xC0392B),  // 濃い赤
+                    color9: new THREE.Color(colors.palette?.color9 || 0x8E44AD),  // 紫
+                    color10: new THREE.Color(colors.palette?.color10 || 0x9B59B6), // 明るい紫
+                    color11: new THREE.Color(colors.palette?.color11 || 0x3498DB), // 青
+                    color12: new THREE.Color(colors.palette?.color12 || 0x2980B9)  // 濃い青
+                }
             };
         });
 
@@ -457,7 +472,19 @@ class FieldMap {
                 baseColor: { value: biomeColor.base },
                 highlightColor: { value: biomeColor.highlight },
                 midColor: { value: biomeColor.mid },
-                topColor: { value: biomeColor.top }
+                topColor: { value: biomeColor.top },
+                color1: { value: biomeColor.palette.color1 },
+                color2: { value: biomeColor.palette.color2 },
+                color3: { value: biomeColor.palette.color3 },
+                color4: { value: biomeColor.palette.color4 },
+                color5: { value: biomeColor.palette.color5 },
+                color6: { value: biomeColor.palette.color6 },
+                color7: { value: biomeColor.palette.color7 },
+                color8: { value: biomeColor.palette.color8 },
+                color9: { value: biomeColor.palette.color9 },
+                color10: { value: biomeColor.palette.color10 },
+                color11: { value: biomeColor.palette.color11 },
+                color12: { value: biomeColor.palette.color12 }
             },
             vertexShader: `
                 varying vec3 vPosition;
@@ -487,27 +514,59 @@ class FieldMap {
                 uniform vec3 highlightColor;
                 uniform vec3 midColor;
                 uniform vec3 topColor;
+                uniform vec3 color1;
+                uniform vec3 color2;
+                uniform vec3 color3;
+                uniform vec3 color4;
+                uniform vec3 color5;
+                uniform vec3 color6;
+                uniform vec3 color7;
+                uniform vec3 color8;
+                uniform vec3 color9;
+                uniform vec3 color10;
+                uniform vec3 color11;
+                uniform vec3 color12;
 
                 void main() {
                     float height = vHeight;
                     vec3 finalColor;
 
-                    // 高さに基づいて4つの色をブレンド
-                    float heightFactor1 = smoothstep(0.0, 2.0, height);
-                    float heightFactor2 = smoothstep(2.0, 4.0, height);
-                    float heightFactor3 = smoothstep(4.0, 8.0, height);
-
-                    vec3 color1 = mix(baseColor, midColor, heightFactor1);
-                    vec3 color2 = mix(midColor, highlightColor, heightFactor2);
-                    vec3 color3 = mix(highlightColor, topColor, heightFactor3);
+                    // 高さに基づいて12色をブレンド
+                    float heightFactor1 = smoothstep(0.0, 1.0, height);
+                    float heightFactor2 = smoothstep(1.0, 2.0, height);
+                    float heightFactor3 = smoothstep(2.0, 3.0, height);
+                    float heightFactor4 = smoothstep(3.0, 4.0, height);
+                    float heightFactor5 = smoothstep(4.0, 5.0, height);
+                    float heightFactor6 = smoothstep(5.0, 6.0, height);
+                    float heightFactor7 = smoothstep(6.0, 7.0, height);
+                    float heightFactor8 = smoothstep(7.0, 8.0, height);
+                    float heightFactor9 = smoothstep(8.0, 9.0, height);
+                    float heightFactor10 = smoothstep(9.0, 10.0, height);
+                    float heightFactor11 = smoothstep(10.0, 11.0, height);
 
                     vec3 terrainColor;
-                    if (height < 2.0) {
-                        terrainColor = color1;
+                    if (height < 1.0) {
+                        terrainColor = mix(color1, color2, heightFactor1);
+                    } else if (height < 2.0) {
+                        terrainColor = mix(color2, color3, heightFactor2);
+                    } else if (height < 3.0) {
+                        terrainColor = mix(color3, color4, heightFactor3);
                     } else if (height < 4.0) {
-                        terrainColor = color2;
+                        terrainColor = mix(color4, color5, heightFactor4);
+                    } else if (height < 5.0) {
+                        terrainColor = mix(color5, color6, heightFactor5);
+                    } else if (height < 6.0) {
+                        terrainColor = mix(color6, color7, heightFactor6);
+                    } else if (height < 7.0) {
+                        terrainColor = mix(color7, color8, heightFactor7);
+                    } else if (height < 8.0) {
+                        terrainColor = mix(color8, color9, heightFactor8);
+                    } else if (height < 9.0) {
+                        terrainColor = mix(color9, color10, heightFactor9);
+                    } else if (height < 10.0) {
+                        terrainColor = mix(color10, color11, heightFactor10);
                     } else {
-                        terrainColor = color3;
+                        terrainColor = mix(color11, color12, heightFactor11);
                     }
 
                     // ノイズを追加して荒廃感を出す（強度を下げる）

@@ -409,52 +409,99 @@ class FieldObject {
         // 木の種類に応じて葉の形状を変更
         switch(treeType.name) {
             case 'pine':
-                // 松の木は円錐状の葉
-                const pineLeavesGeometry = new THREE.ConeGeometry(treeType.leavesSize, leavesHeight * 2, 8);
-                const pineLeavesMaterial = new THREE.MeshStandardMaterial({
-                    color: treeType.leavesColor,
-                    roughness: 0.8,
-                    metalness: 0.1
-                });
-                const pineLeaves = new THREE.Mesh(pineLeavesGeometry, pineLeavesMaterial);
-                pineLeaves.position.y = trunkHeight + leavesHeight;
-                pineLeaves.castShadow = true;
-                pineLeaves.receiveShadow = true;
-                treeGroup.add(pineLeaves);
+                // 松の木は複数の円錐を重ねて表現
+                const pineLevels = 5;
+                for (let i = 0; i < pineLevels; i++) {
+                    const levelHeight = leavesHeight * 0.4;
+                    const levelRadius = treeType.leavesSize * (1 - i * 0.15);
+                    const pineLeavesGeometry = new THREE.ConeGeometry(levelRadius, levelHeight, 8);
+                    const pineLeavesMaterial = new THREE.MeshStandardMaterial({
+                        color: treeType.leavesColor,
+                        roughness: 0.8,
+                        metalness: 0.1
+                    });
+                    const pineLeaves = new THREE.Mesh(pineLeavesGeometry, pineLeavesMaterial);
+                    pineLeaves.position.y = trunkHeight + (i * levelHeight * 0.7);
+                    pineLeaves.castShadow = true;
+                    pineLeaves.receiveShadow = true;
+                    treeGroup.add(pineLeaves);
+                }
                 break;
 
             case 'oak':
-                // オークは球状の葉
-                const oakLeavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
-                const oakLeavesMaterial = new THREE.MeshStandardMaterial({
-                    color: treeType.leavesColor,
-                    roughness: 0.8,
-                    metalness: 0.1
-                });
-                const oakLeaves = new THREE.Mesh(oakLeavesGeometry, oakLeavesMaterial);
-                oakLeaves.position.y = trunkHeight + leavesHeight * 0.6;
-                oakLeaves.castShadow = true;
-                oakLeaves.receiveShadow = true;
-                treeGroup.add(oakLeaves);
+                // オークは枝と葉を組み合わせて表現
+                const branchCount = 8;
+                for (let i = 0; i < branchCount; i++) {
+                    const angle = (i * Math.PI * 2) / branchCount;
+                    const branchHeight = trunkHeight * (0.6 + this.rng() * 0.3);
+                    
+                    // 枝の作成
+                    const branchGeometry = new THREE.CylinderGeometry(
+                        treeType.trunkWidth * 0.2,
+                        treeType.trunkWidth * 0.1,
+                        treeType.leavesSize * 2,
+                        8
+                    );
+                    const branch = new THREE.Mesh(branchGeometry, trunkMaterial);
+                    branch.position.set(
+                        Math.cos(angle) * treeType.leavesSize,
+                        branchHeight,
+                        Math.sin(angle) * treeType.leavesSize
+                    );
+                    branch.rotation.z = Math.PI / 4;
+                    branch.rotation.y = angle;
+                    treeGroup.add(branch);
+
+                    // 枝の先端に葉を追加
+                    const leavesGeometry = new THREE.SphereGeometry(treeType.leavesSize * 0.8, 8, 8);
+                    const leavesMaterial = new THREE.MeshStandardMaterial({
+                        color: treeType.leavesColor,
+                        roughness: 0.8,
+                        metalness: 0.1
+                    });
+                    const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                    leaves.position.set(
+                        Math.cos(angle) * treeType.leavesSize * 2,
+                        branchHeight + treeType.leavesSize,
+                        Math.sin(angle) * treeType.leavesSize * 2
+                    );
+                    treeGroup.add(leaves);
+                }
                 break;
 
             case 'palm':
-                // ヤシの木は葉を放射状に配置
+                // ヤシの木は葉を放射状に配置し、より自然な形状に
                 const trunkTop = trunkHeight + 0.5;
-                for (let i = 0; i < 8; i++) {
-                    const leafGeometry = new THREE.PlaneGeometry(2, 4);
+                const leafCount = 12;
+                for (let i = 0; i < leafCount; i++) {
+                    const angle = (i * Math.PI * 2) / leafCount;
+                    const leafLength = treeType.leavesSize * 3;
+                    
+                    // 葉の形状をより自然に
+                    const leafShape = new THREE.Shape();
+                    leafShape.moveTo(0, 0);
+                    leafShape.quadraticCurveTo(
+                        leafLength * 0.5, leafLength * 0.2,
+                        leafLength, 0
+                    );
+                    leafShape.quadraticCurveTo(
+                        leafLength * 0.5, -leafLength * 0.2,
+                        0, 0
+                    );
+                    
+                    const leafGeometry = new THREE.ShapeGeometry(leafShape);
                     const leafMaterial = new THREE.MeshStandardMaterial({
                         color: treeType.leavesColor,
                         roughness: 0.8,
                         metalness: 0.1,
                         side: THREE.DoubleSide
                     });
+                    
                     const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
-                    const angle = (i * Math.PI * 2) / 8;
                     leaf.position.set(
-                        Math.cos(angle) * 1,
+                        Math.cos(angle) * treeType.leavesSize,
                         trunkTop,
-                        Math.sin(angle) * 1
+                        Math.sin(angle) * treeType.leavesSize
                     );
                     leaf.rotation.y = angle;
                     leaf.rotation.x = Math.PI / 4;
@@ -465,18 +512,44 @@ class FieldObject {
                 break;
 
             default:
-                // その他の木は基本的な形状
-                const defaultLeavesGeometry = new THREE.SphereGeometry(treeType.leavesSize, 8, 8);
-                const defaultLeavesMaterial = new THREE.MeshStandardMaterial({
-                    color: treeType.leavesColor,
-                    roughness: 0.8,
-                    metalness: 0.1
-                });
-                const defaultLeaves = new THREE.Mesh(defaultLeavesGeometry, defaultLeavesMaterial);
-                defaultLeaves.position.y = trunkHeight + leavesHeight * 0.6;
-                defaultLeaves.castShadow = true;
-                defaultLeaves.receiveShadow = true;
-                treeGroup.add(defaultLeaves);
+                // その他の木は枝と葉を組み合わせて表現
+                const defaultBranchCount = 6;
+                for (let i = 0; i < defaultBranchCount; i++) {
+                    const angle = (i * Math.PI * 2) / defaultBranchCount;
+                    const branchHeight = trunkHeight * (0.5 + this.rng() * 0.4);
+                    
+                    // 枝の作成
+                    const branchGeometry = new THREE.CylinderGeometry(
+                        treeType.trunkWidth * 0.15,
+                        treeType.trunkWidth * 0.05,
+                        treeType.leavesSize * 1.5,
+                        8
+                    );
+                    const branch = new THREE.Mesh(branchGeometry, trunkMaterial);
+                    branch.position.set(
+                        Math.cos(angle) * treeType.leavesSize * 0.8,
+                        branchHeight,
+                        Math.sin(angle) * treeType.leavesSize * 0.8
+                    );
+                    branch.rotation.z = Math.PI / 3;
+                    branch.rotation.y = angle;
+                    treeGroup.add(branch);
+
+                    // 枝の先端に葉を追加
+                    const leavesGeometry = new THREE.SphereGeometry(treeType.leavesSize * 0.6, 8, 8);
+                    const leavesMaterial = new THREE.MeshStandardMaterial({
+                        color: treeType.leavesColor,
+                        roughness: 0.8,
+                        metalness: 0.1
+                    });
+                    const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+                    leaves.position.set(
+                        Math.cos(angle) * treeType.leavesSize * 1.5,
+                        branchHeight + treeType.leavesSize * 0.8,
+                        Math.sin(angle) * treeType.leavesSize * 1.5
+                    );
+                    treeGroup.add(leaves);
+                }
         }
 
         return { mesh: treeGroup, position: treeGroup.position };

@@ -331,8 +331,6 @@ class Game {
 	}
 
 	showMessagePopupForPlayer(playerId, position) {
-		//console.log('メッセージを表示:', playerId, position);
-
 		// プレイヤーの位置を取得
 		const playerPosition = this.players.get(playerId)?.getPosition();
 		if (!playerPosition) return;
@@ -419,6 +417,95 @@ class Game {
 		}, 3000);
 	}
 
+	showBossEnemyPopup(bossId) {
+		const boss = this.enemies.get(bossId);
+		if (!boss) return;
+		
+		const bossPosition = boss.getPosition();
+		this.showBossEnemyPopupForPlayer(bossId, bossPosition);
+	}
+
+	showBossEnemyPopupForPlayer(enemyId, position) {
+		// 画面内かどうかをチェック
+		const screenPosition = this.getScreenPosition(position);
+		const isOnScreen = screenPosition.x >= 0 && screenPosition.x <= window.innerWidth &&
+			screenPosition.y >= 0 && screenPosition.y <= window.innerHeight;
+
+		if (isOnScreen) {
+			// 画面内の場合は通常のポップアップを表示
+			if (!this.messagePopups) {
+				this.messagePopups = new Map();
+			}
+
+			if (this.messagePopups.has(enemyId)) {
+				this.messagePopups.get(enemyId).remove();
+				this.messagePopups.delete(enemyId);
+			}
+
+			const popup = document.createElement('div');
+			popup.className = 'message-popup';
+			popup.textContent = 'boss';
+			document.body.appendChild(popup);
+
+			this.messagePopups.set(enemyId, popup);
+
+			popup.style.left = `${screenPosition.x}px`;
+			popup.style.top = `${screenPosition.y}px`;
+
+
+		} else {
+			// 画面外の場合は方向インジケーターを表示
+			this.showBossEnemyIndicator(enemyId, screenPosition);
+		}
+	}
+
+	showBossEnemyIndicator(enemyId, screenPosition) {
+		// 既存のインジケーターを削除
+		if (this.messageIndicators.has(enemyId)) {
+			this.messageIndicators.get(enemyId).remove();
+			this.messageIndicators.delete(enemyId);
+		}
+
+		// 新しいインジケーターを作成
+		const indicator = document.createElement('div');
+		indicator.className = 'message-indicator';
+		indicator.innerHTML = '<i class="fas fa-exclamation-circle"></i> boss';
+		indicator.style.position = 'fixed';
+		indicator.style.color = 'yellow';
+		indicator.style.fontSize = '20px';
+		indicator.style.pointerEvents = 'none';
+		indicator.style.zIndex = '1000';
+
+		// 画面の端に配置
+		const edgeMargin = 20;
+		let left = screenPosition.x;
+		let top = screenPosition.y;
+
+		// 画面外の位置を調整
+		if (left < 0) left = edgeMargin;
+		if (left > window.innerWidth) left = window.innerWidth - edgeMargin;
+		if (top < 0) top = edgeMargin;
+		if (top > window.innerHeight) top = window.innerHeight - edgeMargin;
+
+		indicator.style.left = `${left}px`;
+		indicator.style.top = `${top}px`;
+
+		// インジケーターを追加
+		document.getElementById('messageIndicators').appendChild(indicator);
+		this.messageIndicators.set(playerId, indicator);
+
+		/*
+		// 3秒後に削除
+		setTimeout(() => {
+			if (this.messageIndicators.has(enemyId)) {
+				this.messageIndicators.get(enemyId).remove();
+				this.messageIndicators.delete(enemyId);
+			}
+		}, 3000);
+		*/
+	}
+
+	
 	updateMessageIndicators() {
 		if (!this.messageIndicators || this.messageIndicators.size === 0) return;
 

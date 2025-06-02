@@ -4,7 +4,7 @@
 const GameConfig = {
     // プレイヤー設定
     PLAYER: {
-        MOVE_SPEED: 4.5,
+        MOVE_SPEED: 14.5,
         ROTATION_SPEED: 0.05,
         MAX_HEALTH: 100,
         COLLISION_RADIUS: 1.0,
@@ -144,41 +144,105 @@ const GameConfig = {
             RADIUS: 500, // バイオームの半径
             TYPES: ['urban', 'forest', 'ruins', 'industrial', 'canyon'], // バイオームの種類
             COLORS: {
-                'urban': {
-                    base: 0x2C2C2C,      // 暗いグレー
-                    highlight: 0x404040,  // やや明るいグレー
-                    mid: 0x1A1A1A,       // 非常に暗いグレー
-                    top: 0x333333        // 中間のグレー
+                canyon: {
+                    base: '#8B4513',
+                    highlight: '#A0522D',
+                    mid: '#CD853F',
+                    top: '#DEB887',
+                    palette: {
+                        color1: '#2C3E50',  // 深い青
+                        color2: '#34495E',  // 濃い青
+                        color3: '#7F8C8D',  // グレー
+                        color4: '#95A5A6',  // 明るいグレー
+                        color5: '#BDC3C7',  // 薄いグレー
+                        color6: '#ECF0F1',  // ほぼ白
+                        color7: '#E74C3C',  // 赤
+                        color8: '#C0392B',  // 濃い赤
+                        color9: '#8E44AD',  // 紫
+                        color10: '#9B59B6', // 明るい紫
+                        color11: '#3498DB', // 青
+                        color12: '#2980B9'  // 濃い青
+                    }
                 },
-                'forest': {
-                    base: 0x1B3D1B,      // 暗い緑
-                    highlight: 0x2D4D2D,  // やや明るい緑
-                    mid: 0x0F2F0F,       // 非常に暗い緑
-                    top: 0x3D5D3D        // 中間の緑
+                forest: {
+                    base: '#228B22',
+                    highlight: '#32CD32',
+                    mid: '#90EE90',
+                    top: '#98FB98',
+                    palette: {
+                        color1: '#1B4D3E',  // 深い緑
+                        color2: '#2E7D32',  // 濃い緑
+                        color3: '#388E3C',  // 緑
+                        color4: '#43A047',  // 明るい緑
+                        color5: '#66BB6A',  // 薄い緑
+                        color6: '#81C784',  // ほぼ白緑
+                        color7: '#A5D6A7',  // 薄い緑
+                        color8: '#C8E6C9',  // 明るい緑
+                        color9: '#E8F5E9',  // 白緑
+                        color10: '#F1F8E9', // 明るい白緑
+                        color11: '#DCEDC8', // 薄い黄緑
+                        color12: '#F9FBE7'  // 明るい黄緑
+                    }
                 },
-                'ruins': {
-                    base: 0x4A3A2A,      // 暗い茶色
-                    highlight: 0x5A4A3A,  // やや明るい茶色
-                    mid: 0x3A2A1A,       // 非常に暗い茶色
-                    top: 0x6A5A4A        // 中間の茶色
+                ruins: {
+                    base: '#696969',
+                    highlight: '#808080',
+                    mid: '#A9A9A9',
+                    top: '#D3D3D3',
+                    palette: {
+                        color1: '#263238',  // 深いグレー
+                        color2: '#37474F',  // 濃いグレー
+                        color3: '#455A64',  // グレー
+                        color4: '#546E7A',  // 明るいグレー
+                        color5: '#607D8B',  // 薄いグレー
+                        color6: '#78909C',  // ほぼ白グレー
+                        color7: '#90A4AE',  // 薄いグレー
+                        color8: '#B0BEC5',  // 明るいグレー
+                        color9: '#CFD8DC',  // 白グレー
+                        color10: '#ECEFF1', // 明るい白グレー
+                        color11: '#F5F5F5', // 薄い白
+                        color12: '#FAFAFA'  // 明るい白
+                    }
                 },
-                'industrial': {
-                    base: 0x2A2A2A,      // 暗いグレー
-                    highlight: 0x3A3A3A,  // やや明るいグレー
-                    mid: 0x1A1A1A,       // 非常に暗いグレー
-                    top: 0x4A4A4A        // 中間のグレー
+                urban: {
+                    base: '#4A4A4A',
+                    highlight: '#696969',
+                    mid: '#808080',
+                    top: '#A9A9A9',
+                    palette: {
+                        color1: '#212121',  // 深いグレー
+                        color2: '#424242',  // 濃いグレー
+                        color3: '#616161',  // グレー
+                        color4: '#757575',  // 明るいグレー
+                        color5: '#9E9E9E',  // 薄いグレー
+                        color6: '#BDBDBD',  // ほぼ白グレー
+                        color7: '#E0E0E0',  // 薄いグレー
+                        color8: '#EEEEEE',  // 明るいグレー
+                        color9: '#F5F5F5',  // 白グレー
+                        color10: '#FAFAFA', // 明るい白グレー
+                        color11: '#FFFFFF', // 白
+                        color12: '#F8F9FA'  // 明るい白
+                    }
                 },
-                'beach': {
-                    base: 0x3A3A2A,      // 暗い砂色
-                    highlight: 0x4A4A3A,  // やや明るい砂色
-                    mid: 0x2A2A1A,       // 非常に暗い砂色
-                    top: 0x5A5A4A        // 中間の砂色
-                },
-                'canyon': {
-                    base: 0x8B4513,      // 暗い茶色
-                    highlight: 0xA0522D,  // やや明るい茶色
-                    mid: 0x6B3E2E,       // 非常に暗い茶色
-                    top: 0xCD853F        // 中間の茶色
+                industrial: {
+                    base: '#2F4F4F',
+                    highlight: '#3F5F5F',
+                    mid: '#4F6F6F',
+                    top: '#5F7F7F',
+                    palette: {
+                        color1: '#4A148C',  // 深い紫
+                        color2: '#6A1B9A',  // 濃い紫
+                        color3: '#7B1FA2',  // 紫
+                        color4: '#8E24AA',  // 明るい紫
+                        color5: '#9C27B0',  // 薄い紫
+                        color6: '#AB47BC',  // ほぼ白紫
+                        color7: '#BA68C8',  // 薄い紫
+                        color8: '#CE93D8',  // 明るい紫
+                        color9: '#E1BEE7',  // 白紫
+                        color10: '#F3E5F5', // 明るい白紫
+                        color11: '#F5F5F5', // 薄い白
+                        color12: '#FAFAFA'  // 明るい白
+                    }
                 }
             },
             SETTINGS: {

@@ -966,6 +966,7 @@ function spawnBosses() {
 console.log('ボスを生成しました:', bossData);
         enemies[bossId] = bossData;
         io.emit('enemySpawned', bossData);
+        io.emit('showBossEnemyPopup', bossId);
     }
 
     bossesSpawned = true;
