@@ -695,6 +695,19 @@ class FieldMap {
         // 基本的な地形の高さを計算
         const baseHeight = this.generateBaseTerrain(x, z);
         
+        // 安全なスポーン位置との距離をチェック
+        const isNearSafeSpot = this.safeSpawnPositions.some(pos => {
+            const dx = x - pos.x;
+            const dz = z - pos.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            return distance < this.SAFE_SPOT_DISTANCE;
+        });
+
+        // 安全なスポーン位置の近くの場合は、メサを生成しない
+        if (isNearSafeSpot) {
+            return baseHeight;
+        }
+        
         // メサが生成される確率を計算（キャニオン以外のバイオームで低確率）
         let mesaChance = 0.015;
 

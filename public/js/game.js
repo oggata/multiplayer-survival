@@ -55,6 +55,7 @@ class Game {
 
 
 		this.setupJumpButton();
+		this.setupMapButton();
 
 
 		// モノクロ効果用のシェーダーを追加
@@ -3583,6 +3584,29 @@ class Game {
 			}
 			// カメラ位置を更新
 			this.updateCameraPosition();
+		});
+	}
+
+	setupMapButton() {
+		const mapButton = document.getElementById('mapButton');
+		const mapModal = document.getElementById('mapModal');
+		const closeMapModal = document.getElementById('closeMapModal');
+
+		if (!mapButton || !mapModal || !closeMapModal) return;
+
+		mapButton.addEventListener('click', () => {
+			mapModal.style.display = 'block';
+		});
+
+		closeMapModal.addEventListener('click', () => {
+			mapModal.style.display = 'none';
+		});
+
+		// モーダル外をクリックしても閉じる
+		mapModal.addEventListener('click', (e) => {
+			if (e.target === mapModal) {
+				mapModal.style.display = 'none';
+			}
 		});
 	}
 

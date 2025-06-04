@@ -121,40 +121,37 @@ class Weather {
      * 雲を初期化
      */
     initClouds() {
+        const loader = new THREE.GLTFLoader();
+        
         for (let i = 0; i < GameConfig.WEATHER.CLOUD.COUNT; i++) {
-            const size = GameConfig.WEATHER.CLOUD.MIN_SIZE + 
-                        Math.random() * (GameConfig.WEATHER.CLOUD.MAX_SIZE - GameConfig.WEATHER.CLOUD.MIN_SIZE);
-            
-            const cloudGeometry = new THREE.SphereGeometry(size, 8, 8);
-            const cloudMaterial = new THREE.MeshStandardMaterial({
-                color: GameConfig.WEATHER.CLOUD.COLOR,
-                transparent: true,
-                opacity: 0.8,
-                roughness: 0.5,
-                metalness: 0.1
+            loader.load('/gltf/cloud001.glb', (gltf) => {
+                const cloud = gltf.scene;
+                
+                // スケールをランダムに設定
+                const scale = GameConfig.WEATHER.CLOUD.MIN_SIZE + 
+                            Math.random() * (GameConfig.WEATHER.CLOUD.MAX_SIZE - GameConfig.WEATHER.CLOUD.MIN_SIZE);
+                cloud.scale.set(scale, scale, scale);
+                
+                // ランダムな位置を設定
+                cloud.position.set(
+                    (Math.random() - 0.5) * 200,
+                    50 + Math.random() * 30,
+                    (Math.random() - 0.5) * 200
+                );
+                
+                // ランダムな速度を設定
+                cloud.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * GameConfig.WEATHER.CLOUD.SPEED,
+                        0,
+                        (Math.random() - 0.5) * GameConfig.WEATHER.CLOUD.SPEED
+                    )
+                };
+                
+                this.weatherObjects.clouds.push(cloud);
+                cloud.visible = false;
+                this.scene.add(cloud);
             });
-            
-            const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
-            
-            // ランダムな位置を設定
-            cloud.position.set(
-                (Math.random() - 0.5) * 200,
-                50 + Math.random() * 30,
-                (Math.random() - 0.5) * 200
-            );
-            
-            // ランダムな速度を設定
-            cloud.userData = {
-                velocity: new THREE.Vector3(
-                    (Math.random() - 0.5) * GameConfig.WEATHER.CLOUD.SPEED,
-                    0,
-                    (Math.random() - 0.5) * GameConfig.WEATHER.CLOUD.SPEED
-                )
-            };
-            
-            this.weatherObjects.clouds.push(cloud);
-            cloud.visible = false;
-            this.scene.add(cloud);
         }
     }
     

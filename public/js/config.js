@@ -520,7 +520,7 @@ const GameConfig = {
 // 攻撃武器
 shotgun: {
     name: 'shotgun',
-    description: '４方向に弾丸を発射',
+    description: 'Fires bullets in 4 directions',
     color: 0x666666,
     dropChance: 0.05,
     effects: {                
@@ -540,7 +540,7 @@ shotgun: {
 },
 machinegun: {
     name: 'machinegun',
-    description: '５連続で弾丸を発射',
+    description: 'Fired 5 consecutive bullets',
     color: 0x666666,
     dropChance: 0.05,
     effects: {                
@@ -560,7 +560,7 @@ machinegun: {
 },
 magnum: {
     name: 'magnum',
-    description: '威力のある弾丸を発射',
+    description: 'Fires a powerful bullet',
     color: 0x666666,
     dropChance: 0.05,
     effects: {                
@@ -580,7 +580,7 @@ magnum: {
 },
 sniperrifle: {
     name: 'sniperrifle',
-    description: '威力のある弾丸を発射',
+    description: 'Fires a powerful bullet',
     color: 0x666666,
     dropChance: 0.05,
     effects: {                
@@ -600,7 +600,7 @@ sniperrifle: {
 },
 rocketlauncher: {
     name: 'rocketlauncher',
-    description: '威力のある弾丸を発射',
+    description: 'Fires a powerful bullet',
     color: 0x666666,
     dropChance: 0.05,
     effects: {                
@@ -620,7 +620,7 @@ rocketlauncher: {
 },
 lasergun: {
             name: 'lasergun',
-            description: '連続的なレーザーを発射',
+            description: 'Fires continuous lasers',
             color: 0xff0000,
             dropChance: 0.05,
             effects: {                
@@ -640,7 +640,7 @@ lasergun: {
         },
         grenadelauncher: {
             name: 'grenadelauncher',
-            description: '爆発する弾を発射',
+            description: 'Firing Exploding Bullets',
             color: 0x666666,
             dropChance: 0.05,
             effects: {                
@@ -660,7 +660,7 @@ lasergun: {
         },
         flamethrower: {
             name: 'flamethrower',
-            description: '広範囲の火炎を放射',
+            description: 'Emits a wide range of flame',
             color: 0xff6600,
             dropChance: 0.05,
             effects: {                
@@ -680,7 +680,7 @@ lasergun: {
         },
         plasmacannon: {
             name: 'plasmacannon',
-            description: '電撃的な弾を発射',
+            description: 'Fires an electrifying bullet.',
             color: 0x00ffff,
             dropChance: 0.05,
             effects: {                
@@ -700,7 +700,7 @@ lasergun: {
         },
         missilelauncher: {
             name: 'missilelauncher',
-            description: '追尾型のミサイルを発射',
+            description: 'Launches tracked missiles.',
             color: 0x666666,
             dropChance: 0.05,
             effects: {                

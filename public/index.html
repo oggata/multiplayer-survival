@@ -441,6 +441,18 @@
         <div>GameOver</div>
         <button id="restartButton">Restart</button>
     </div>
+
+    <!-- マップモーダル -->
+    <div id="mapModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 2000;">
+        <div style="position: relative; width: 80%; max-width: 500px; margin: 50px auto; background-color: #333; padding: 20px; border-radius: 10px;">
+            <button id="closeMapModal" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: white; font-size: 20px; cursor: pointer;">×</button>
+            <h2 style="text-align: center; margin-bottom: 20px; color: #ffaa44;">share qr</h2>
+            <div style="text-align: center;">
+                <img src="images/QR.png" alt="share qr" style="max-width: 100%; height: auto;">
+            </div>
+        </div>
+    </div>
+
     <div id="mobileControls">
         <div id="leftJoystick">
             <div id="joystickKnob"></div>
@@ -452,7 +464,7 @@
             <button id="backpackButton" class="control-button backpack-btn" title="バックパック"><i class="fas fa-briefcase"></i></button>
             <button id="cameraButton" class="control-button camera-btn" title="カメラ"><i class="fas fa-camera"></i></button>
             <button id="jumpButton" class="control-button jump-btn" title="ジャンプ"><i class="fas fa-arrow-up"></i></button>
-            <button id="mapButton" class="control-button map-btn" title="マップ"><i class="fas fa-map"></i></button>
+            <button id="mapButton" class="control-button map-btn" title="マップ"><i class="fas fa-qrcode"></i></button>
         </div>
     </div>
     

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Walking Human</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        Three.js ボーン付き人間モデル<br>
+        マウスドラッグで回転 / スクロールでズーム<br>
+        ボックスがボーンに追従して動きます
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // シーン、カメラ、レンダラーの初期化
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a);
+        
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 10);
+        camera.lookAt(0, 3, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+        
+        // ライティングの設定
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        directionalLight.position.set(5, 10, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.camera.near = 0.1;
+        directionalLight.shadow.camera.far = 50;
+        directionalLight.shadow.camera.left = -10;
+        directionalLight.shadow.camera.right = 10;
+        directionalLight.shadow.camera.top = 10;
+        directionalLight.shadow.camera.bottom = -10;
+        scene.add(directionalLight);
+        
+        // 地面の作成
+        const groundGeometry = new THREE.PlaneGeometry(20, 20);
+        const groundMaterial = new THREE.MeshPhongMaterial({ color: 0x303030 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        // グリッドヘルパーの追加
+        const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+        scene.add(gridHelper);
+        
+        // 人間モデルのグループ（全体の位置調整用）
+        const humanGroup = new THREE.Group();
+        scene.add(humanGroup);
+        
+        // マテリアルの定義
+        const bodyMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x4488ff,
+            side: THREE.DoubleSide
+        });
+        
+        const headMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0xffaa88,
+            side: THREE.DoubleSide
+        });
+        
+        const handMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0xffaa88,
+            side: THREE.DoubleSide
+        });
+        
+        // ボーンシステムの作成
+        // ここで重要なのは、各ボーンに対応するメッシュを作成し、
+        // そのメッシュをボーンの子として追加することです
+        
+        // ルートボーン（腰）
+        const rootBone = new THREE.Bone();
+        rootBone.position.y = 3;
+        
+        // 腰のメッシュ
+        const hipGeometry = new THREE.BoxGeometry(2, 1, 1);
+        const hipMesh = new THREE.Mesh(hipGeometry, bodyMaterial);
+        hipMesh.castShadow = true;
+        hipMesh.receiveShadow = true;
+        rootBone.add(hipMesh);
+        
+        // 胴体ボーン
+        const spineBone = new THREE.Bone();
+        spineBone.position.y = 1;
+        rootBone.add(spineBone);
+        
+        // 胴体メッシュ
+        const torsoGeometry = new THREE.BoxGeometry(2, 2, 1);
+        const torsoMesh = new THREE.Mesh(torsoGeometry, bodyMaterial);
+        torsoMesh.position.y = 0.5;
+        torsoMesh.castShadow = true;
+        torsoMesh.receiveShadow = true;
+        spineBone.add(torsoMesh);
+        
+        // 首ボーン
+        const neckBone = new THREE.Bone();
+        neckBone.position.y = 1.5;
+        spineBone.add(neckBone);
+        
+        // 首メッシュ
+        const neckGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const neckMesh = new THREE.Mesh(neckGeometry, bodyMaterial);
+        neckMesh.castShadow = true;
+        neckBone.add(neckMesh);
+        
+        // 頭ボーン
+        const headBone = new THREE.Bone();
+        headBone.position.y = 0.5;
+        neckBone.add(headBone);
+        
+        // 頭メッシュ
+        const headGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const headMesh = new THREE.Mesh(headGeometry, headMaterial);
+        headMesh.position.y = 0.5;
+        headMesh.castShadow = true;
+        headBone.add(headMesh);
+        
+        // 左腕の作成
+        // 左肩ボーン（位置を体に近づける）
+        const leftShoulderBone = new THREE.Bone();
+        leftShoulderBone.position.set(1.2, 1, 0);
+        spineBone.add(leftShoulderBone);
+        
+        // 左上腕メッシュ（腕を下向きに配置）
+        const leftUpperArmGeometry = new THREE.BoxGeometry(0.4, 1.2, 0.4);
+        const leftUpperArmMesh = new THREE.Mesh(leftUpperArmGeometry, bodyMaterial);
+        leftUpperArmMesh.position.y = -0.6; // 下向きに配置
+        leftUpperArmMesh.castShadow = true;
+        leftShoulderBone.add(leftUpperArmMesh);
+        
+        // 左肘ボーン（下向きの位置に配置）
+        const leftElbowBone = new THREE.Bone();
+        leftElbowBone.position.y = -1.2;
+        leftShoulderBone.add(leftElbowBone);
+        
+        // 左前腕メッシュ（肘から下向きに）
+        const leftLowerArmGeometry = new THREE.BoxGeometry(0.3, 1.0, 0.3);
+        const leftLowerArmMesh = new THREE.Mesh(leftLowerArmGeometry, bodyMaterial);
+        leftLowerArmMesh.position.y = -0.5;
+        leftLowerArmMesh.castShadow = true;
+        leftElbowBone.add(leftLowerArmMesh);
+        
+        // 左手ボーン
+        const leftHandBone = new THREE.Bone();
+        leftHandBone.position.y = -1.0;
+        leftElbowBone.add(leftHandBone);
+        
+        // 左手メッシュ
+        const leftHandGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.2);
+        const leftHandMesh = new THREE.Mesh(leftHandGeometry, handMaterial);
+        leftHandMesh.position.y = -0.2;
+        leftHandMesh.castShadow = true;
+        leftHandBone.add(leftHandMesh);
+        
+        // 右腕の作成
+        // 右肩ボーン（位置を体に近づける）
+        const rightShoulderBone = new THREE.Bone();
+        rightShoulderBone.position.set(-1.2, 1, 0);
+        spineBone.add(rightShoulderBone);
+        
+        // 右上腕メッシュ（腕を下向きに配置）
+        const rightUpperArmGeometry = new THREE.BoxGeometry(0.4, 1.2, 0.4);
+        const rightUpperArmMesh = new THREE.Mesh(rightUpperArmGeometry, bodyMaterial);
+        rightUpperArmMesh.position.y = -0.6; // 下向きに配置
+        rightUpperArmMesh.castShadow = true;
+        rightShoulderBone.add(rightUpperArmMesh);
+        
+        // 右肘ボーン（下向きの位置に配置）
+        const rightElbowBone = new THREE.Bone();
+        rightElbowBone.position.y = -1.2;
+        rightShoulderBone.add(rightElbowBone);
+        
+        // 右前腕メッシュ（肘から下向きに）
+        const rightLowerArmGeometry = new THREE.BoxGeometry(0.3, 1.0, 0.3);
+        const rightLowerArmMesh = new THREE.Mesh(rightLowerArmGeometry, bodyMaterial);
+        rightLowerArmMesh.position.y = -0.5;
+        rightLowerArmMesh.castShadow = true;
+        rightElbowBone.add(rightLowerArmMesh);
+        
+        // 右手ボーン
+        const rightHandBone = new THREE.Bone();
+        rightHandBone.position.y = -1.0;
+        rightElbowBone.add(rightHandBone);
+        
+        // 右手メッシュ
+        const rightHandGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.2);
+        const rightHandMesh = new THREE.Mesh(rightHandGeometry, handMaterial);
+        rightHandMesh.position.y = -0.2;
+        rightHandMesh.castShadow = true;
+        rightHandBone.add(rightHandMesh);
+        
+        // 左脚の作成
+        // 左股関節ボーン
+        const leftHipBone = new THREE.Bone();
+        leftHipBone.position.set(0.5, -0.5, 0);
+        rootBone.add(leftHipBone);
+        
+        // 左太ももメッシュ
+        const leftThighGeometry = new THREE.BoxGeometry(0.6, 1.5, 0.6);
+        const leftThighMesh = new THREE.Mesh(leftThighGeometry, bodyMaterial);
+        leftThighMesh.position.y = -0.75;
+        leftThighMesh.castShadow = true;
+        leftHipBone.add(leftThighMesh);
+        
+        // 左膝ボーン
+        const leftKneeBone = new THREE.Bone();
+        leftKneeBone.position.y = -1.5;
+        leftHipBone.add(leftKneeBone);
+        
+        // 左すねメッシュ
+        const leftShinGeometry = new THREE.BoxGeometry(0.5, 1.5, 0.5);
+        const leftShinMesh = new THREE.Mesh(leftShinGeometry, bodyMaterial);
+        leftShinMesh.position.y = -0.75;
+        leftShinMesh.castShadow = true;
+        leftKneeBone.add(leftShinMesh);
+        
+        // 左足首ボーン
+        const leftFootBone = new THREE.Bone();
+        leftFootBone.position.y = -1.5;
+        leftKneeBone.add(leftFootBone);
+        
+        // 左足メッシュ
+        const leftFootGeometry = new THREE.BoxGeometry(0.5, 0.2, 0.8);
+        const leftFootMesh = new THREE.Mesh(leftFootGeometry, bodyMaterial);
+        leftFootMesh.position.set(0, -0.1, 0.2);
+        leftFootMesh.castShadow = true;
+        leftFootBone.add(leftFootMesh);
+        
+        // 右脚の作成
+        // 右股関節ボーン
+        const rightHipBone = new THREE.Bone();
+        rightHipBone.position.set(-0.5, -0.5, 0);
+        rootBone.add(rightHipBone);
+        
+        // 右太ももメッシュ
+        const rightThighGeometry = new THREE.BoxGeometry(0.6, 1.5, 0.6);
+        const rightThighMesh = new THREE.Mesh(rightThighGeometry, bodyMaterial);
+        rightThighMesh.position.y = -0.75;
+        rightThighMesh.castShadow = true;
+        rightHipBone.add(rightThighMesh);
+        
+        // 右膝ボーン
+        const rightKneeBone = new THREE.Bone();
+        rightKneeBone.position.y = -1.5;
+        rightHipBone.add(rightKneeBone);
+        
+        // 右すねメッシュ
+        const rightShinGeometry = new THREE.BoxGeometry(0.5, 1.5, 0.5);
+        const rightShinMesh = new THREE.Mesh(rightShinGeometry, bodyMaterial);
+        rightShinMesh.position.y = -0.75;
+        rightShinMesh.castShadow = true;
+        rightKneeBone.add(rightShinMesh);
+        
+        // 右足首ボーン
+        const rightFootBone = new THREE.Bone();
+        rightFootBone.position.y = -1.5;
+        rightKneeBone.add(rightFootBone);
+        
+        // 右足メッシュ
+        const rightFootGeometry = new THREE.BoxGeometry(0.5, 0.2, 0.8);
+        const rightFootMesh = new THREE.Mesh(rightFootGeometry, bodyMaterial);
+        rightFootMesh.position.set(0, -0.1, 0.2);
+        rightFootMesh.castShadow = true;
+        rightFootBone.add(rightFootMesh);
+        
+        // ボーンシステムをシーンに追加
+        humanGroup.add(rootBone);
+        
+        // スケルトンヘルパーの追加（ボーンの可視化）
+        const skeletonHelper = new THREE.SkeletonHelper(rootBone);
+        skeletonHelper.material.linewidth = 2;
+        scene.add(skeletonHelper);
+        
+        // アニメーション変数
+        let walkTime = 0;
+        const walkSpeed = 2;
+        const walkAmplitude = 0.4;
+        const armSwingAmplitude = 0.6; // 腕の振り幅を大きくして見やすく
+        
+        // カメラコントロール
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetRotationX = 0;
+        let targetRotationY = 0;
+        let mouseDown = false;
+        
+        document.addEventListener('mousedown', () => mouseDown = true);
+        document.addEventListener('mouseup', () => mouseDown = false);
+        
+        document.addEventListener('mousemove', (event) => {
+            if (mouseDown) {
+                mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                mouseY = (event.clientY / window.innerHeight) * 2 - 1;
+                targetRotationY = mouseX * Math.PI;
+                targetRotationX = mouseY * Math.PI / 2;
+            }
+        });
+        
+        document.addEventListener('wheel', (event) => {
+            camera.position.z += event.deltaY * 0.01;
+            camera.position.z = Math.max(5, Math.min(20, camera.position.z));
+        });
+        
+        // アニメーション関数
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 歩行アニメーション
+            walkTime += 0.02 * walkSpeed;
+            
+            // 腰の上下動と前後の傾き
+            rootBone.position.y = 3 + Math.sin(walkTime * 2) * 0.1;
+            rootBone.rotation.x = Math.sin(walkTime * 2) * 0.02;
+            
+            // 胴体の微妙な揺れ
+            spineBone.rotation.z = Math.sin(walkTime) * 0.05;
+            spineBone.rotation.x = Math.sin(walkTime * 2) * 0.02;
+            
+            // 左脚の動き
+            leftHipBone.rotation.x = Math.sin(walkTime) * walkAmplitude;
+            leftKneeBone.rotation.x = Math.max(0, Math.sin(walkTime - 0.5) * walkAmplitude * 1.2);
+            leftFootBone.rotation.x = Math.sin(walkTime - 1) * 0.3;
+            
+            // 右脚の動き（左脚と逆位相）
+            rightHipBone.rotation.x = Math.sin(walkTime + Math.PI) * walkAmplitude;
+            rightKneeBone.rotation.x = Math.max(0, Math.sin(walkTime + Math.PI - 0.5) * walkAmplitude * 1.2);
+            rightFootBone.rotation.x = Math.sin(walkTime + Math.PI - 1) * 0.3;
+            
+            // 左腕の振り（右脚と同位相）
+            // 腕全体を少し内側に傾ける（脇を締める）
+            leftShoulderBone.rotation.z = -0.15;
+            // 肩から腕を前後に振る
+            leftShoulderBone.rotation.x = Math.sin(walkTime + Math.PI) * armSwingAmplitude * 0.4;
+            // 肘を曲げる（約90度）
+            leftElbowBone.rotation.x = -1.2; // ラジアンで約70度
+            // 歩行に合わせて肘の曲げ伸ばしを少し追加
+            leftElbowBone.rotation.x += Math.sin(walkTime + Math.PI - 0.5) * 0.1;
+            
+            // 右腕の振り（左脚と同位相）
+            // 腕全体を少し内側に傾ける（脇を締める）
+            rightShoulderBone.rotation.z = 0.15;
+            // 肩から腕を前後に振る
+            rightShoulderBone.rotation.x = Math.sin(walkTime) * armSwingAmplitude * 0.4;
+            // 肘を曲げる（約90度）
+            rightElbowBone.rotation.x = -1.2; // ラジアンで約70度
+            // 歩行に合わせて肘の曲げ伸ばしを少し追加
+            rightElbowBone.rotation.x += Math.sin(walkTime - 0.5) * 0.1;
+            
+            // 頭の自然な動き
+            headBone.rotation.y = Math.sin(walkTime * 0.5) * 0.1;
+            headBone.rotation.x = Math.sin(walkTime * 2) * 0.05;
+            
+            // カメラの回転
+            humanGroup.rotation.y += (targetRotationY - humanGroup.rotation.y) * 0.05;
+            camera.position.y = 5 + targetRotationX * 5;
+            camera.lookAt(0, 3, 0);
+            
+            // レンダリング
+            renderer.render(scene, camera);
+        }
+        
+        // ウィンドウサイズ変更の処理
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // アニメーション開始
+        animate();
+    </script>
+</body>
+</html>

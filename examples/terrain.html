@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D地形システム</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 100;
+        }
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <div>チャンク数: <span id="chunkCount">0</span></div>
+        <div>描画頂点数: <span id="vertexCount">0</span></div>
+        <div>FPS: <span id="fps">0</span></div>
+        <div>プレイヤー位置: <span id="playerPos">0, 0</span></div>
+    </div>
+    
+    <div id="controls">
+        <div>移動: WASD | 視点: マウス | 上昇/下降: Space/Shift</div>
+        <div>描画距離: 300ユニット | LOD: 4段階 | 決定論的地形生成</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // シーン、カメラ、レンダラーの初期化
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x87CEEB); // 空色
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // 地形システム設定
+        const CHUNK_SIZE = 50;
+        const RENDER_DISTANCE = 300; // 150から300に拡張
+        const NOISE_SCALE = 0.02;
+        const HEIGHT_SCALE = 20;
+        const LOD_DISTANCES = [75, 150, 225, 300]; // 4段階LODに拡張
+        const LOD_RESOLUTIONS = [64, 32, 16, 8]; // 各LODレベルの分割数
+
+        // プレイヤー制御
+        const player = {
+            position: new THREE.Vector3(0, 40, 0), // より高い位置から開始
+            velocity: new THREE.Vector3(0, 0, 0),
+            speed: 3.0, // 移動速度を向上
+            rotationX: 0,
+            rotationY: 0
+        };
+
+        // チャンク管理
+        const chunks = new Map();
+        const activeChunks = new Set();
+
+        // 入力管理
+        const keys = {};
+        let mouseX = 0, mouseY = 0;
+        let isPointerLocked = false;
+
+        // 決定論的乱数生成器（LCG - Linear Congruential Generator）
+        function deterministicRandom(seed) {
+            const a = 1664525;
+            const c = 1013904223;
+            const m = Math.pow(2, 32);
+            return ((a * seed + c) % m) / m;
+        }
+
+        // ハッシュ関数（座標からシードを生成）
+        function hash(x, y) {
+            let h = Math.floor(x) * 374761393 + Math.floor(y) * 668265263;
+            h = (h ^ (h >>> 13)) * 1274126177;
+            h = h ^ (h >>> 16);
+            return Math.abs(h);
+        }
+
+        // 補間関数（滑らかな補間）
+        function smoothstep(t) {
+            return t * t * (3 - 2 * t);
+        }
+
+        // 線形補間
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        // 決定論的ノイズ関数（Perlin noise風）
+        function deterministicNoise(x, y) {
+            const ix = Math.floor(x);
+            const iy = Math.floor(y);
+            const fx = x - ix;
+            const fy = y - iy;
+
+            // 4つのコーナーのハッシュ値から疑似乱数を生成
+            const a = deterministicRandom(hash(ix, iy));
+            const b = deterministicRandom(hash(ix + 1, iy));
+            const c = deterministicRandom(hash(ix, iy + 1));
+            const d = deterministicRandom(hash(ix + 1, iy + 1));
+
+            // 双線形補間
+            const i1 = lerp(a, b, smoothstep(fx));
+            const i2 = lerp(c, d, smoothstep(fx));
+            return lerp(i1, i2, smoothstep(fy));
+        }
+
+        // フラクタルノイズ（マルチオクターブ）
+        function fractalNoise(x, y, octaves = 6) {
+            let value = 0;
+            let amplitude = 1;
+            let frequency = 1;
+            let maxValue = 0;
+
+            for (let i = 0; i < octaves; i++) {
+                value += deterministicNoise(x * frequency, y * frequency) * amplitude;
+                maxValue += amplitude;
+                amplitude *= 0.5;
+                frequency *= 2;
+            }
+
+            return value / maxValue;
+        }
+
+        // リッジノイズ（山脈用）
+        function ridgeNoise(x, y) {
+            return 1 - Math.abs(deterministicNoise(x, y) * 2 - 1);
+        }
+
+        // メイン地形ノイズ関数
+        function noise(x, y) {
+            const nx = x * NOISE_SCALE;
+            const ny = y * NOISE_SCALE;
+            
+            // ベース地形（大きな起伏）
+            const baseNoise = fractalNoise(nx * 0.3, ny * 0.3, 4) * 25;
+            
+            // 詳細ノイズ（小さな起伏）
+            const detailNoise = fractalNoise(nx, ny, 6) * 8;
+            
+            // 山脈ノイズ
+            const mountainNoise = ridgeNoise(nx * 0.2, ny * 0.2) * 15;
+            
+            // 大陸形状（中央が高く、端が低い）
+            const continentShape = 1 - Math.min(1, Math.sqrt(x*x + y*y) * 0.001);
+            
+            // 全て組み合わせ
+            const finalHeight = (baseNoise + detailNoise + mountainNoise) * continentShape;
+            
+            return finalHeight * HEIGHT_SCALE * 0.4;
+        }
+
+        // チャンククラス
+        class TerrainChunk {
+            constructor(chunkX, chunkZ) {
+                this.chunkX = chunkX;
+                this.chunkZ = chunkZ;
+                this.worldX = chunkX * CHUNK_SIZE;
+                this.worldZ = chunkZ * CHUNK_SIZE;
+                this.mesh = null;
+                this.currentLOD = -1;
+                this.geometries = {}; // 各LODレベルのジオメトリを保存
+            }
+
+            generateGeometry(lodLevel) {
+                if (this.geometries[lodLevel]) {
+                    return this.geometries[lodLevel];
+                }
+
+                const resolution = LOD_RESOLUTIONS[lodLevel];
+                const geometry = new THREE.PlaneGeometry(
+                    CHUNK_SIZE, 
+                    CHUNK_SIZE, 
+                    resolution - 1, 
+                    resolution - 1
+                );
+
+                const vertices = geometry.attributes.position.array;
+                const colors = [];
+
+                // 平面を水平に回転（Y-up座標系）
+                geometry.rotateX(-Math.PI / 2);
+
+                for (let i = 0; i < vertices.length; i += 3) {
+                    const x = vertices[i] + this.worldX;
+                    const z = vertices[i + 2] + this.worldZ;
+                    const height = noise(x, z);
+                    
+                    vertices[i + 1] = height; // Y座標（高さ）を設定
+
+                    // 高度に応じた色設定（より詳細な分類）
+                    let r, g, b;
+                    if (height < -5) {
+                        // 深海 - 濃い青
+                        r = 0.0; g = 0.1; b = 0.4;
+                    } else if (height < -2) {
+                        // 深い水 - 青
+                        r = 0.1; g = 0.2; b = 0.8;
+                    } else if (height < 0) {
+                        // 浅い水 - 水色
+                        r = 0.2; g = 0.6; b = 0.9;
+                    } else if (height < 1) {
+                        // 砂浜 - 明るい黄色
+                        r = 0.95; g = 0.9; b = 0.7;
+                    } else if (height < 3) {
+                        // 低地草原 - 明るい緑
+                        r = 0.4; g = 0.8; b = 0.2;
+                    } else if (height < 8) {
+                        // 森林 - 深い緑
+                        r = 0.2; g = 0.6; b = 0.1;
+                    } else if (height < 15) {
+                        // 丘陵 - 薄茶色
+                        r = 0.6; g = 0.5; b = 0.3;
+                    } else if (height < 25) {
+                        // 山地 - 灰色
+                        r = 0.5; g = 0.5; b = 0.5;
+                    } else {
+                        // 高山 - 白（雪）
+                        r = 0.9; g = 0.9; b = 0.9;
+                    }
+                    
+                    colors.push(r, g, b);
+                }
+
+                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+                geometry.computeVertexNormals();
+
+                this.geometries[lodLevel] = geometry;
+                return geometry;
+            }
+
+            update(playerPos) {
+                const distance = Math.sqrt(
+                    Math.pow(playerPos.x - (this.worldX + CHUNK_SIZE/2), 2) +
+                    Math.pow(playerPos.z - (this.worldZ + CHUNK_SIZE/2), 2)
+                );
+
+                // LODレベル決定
+                let newLOD = LOD_DISTANCES.length - 1;
+                for (let i = 0; i < LOD_DISTANCES.length; i++) {
+                    if (distance < LOD_DISTANCES[i]) {
+                        newLOD = i;
+                        break;
+                    }
+                }
+
+                // LODが変更された場合のみメッシュを更新
+                if (newLOD !== this.currentLOD) {
+                    this.currentLOD = newLOD;
+                    
+                    if (this.mesh) {
+                        scene.remove(this.mesh);
+                        this.mesh.geometry.dispose();
+                    }
+
+                    const geometry = this.generateGeometry(newLOD);
+                    const material = new THREE.MeshLambertMaterial({
+                        vertexColors: true,
+                        wireframe: false
+                    });
+
+                    this.mesh = new THREE.Mesh(geometry, material);
+                    this.mesh.position.set(
+                        this.worldX + CHUNK_SIZE/2,
+                        0,
+                        this.worldZ + CHUNK_SIZE/2
+                    );
+                    this.mesh.receiveShadow = true;
+                    scene.add(this.mesh);
+                }
+            }
+
+            dispose() {
+                if (this.mesh) {
+                    scene.remove(this.mesh);
+                    this.mesh.geometry.dispose();
+                    this.mesh.material.dispose();
+                }
+                
+                // 全てのLODジオメトリを破棄
+                Object.values(this.geometries).forEach(geometry => {
+                    geometry.dispose();
+                });
+                this.geometries = {};
+            }
+        }
+
+        // チャンク管理システム
+        function updateChunks() {
+            const playerChunkX = Math.floor(player.position.x / CHUNK_SIZE);
+            const playerChunkZ = Math.floor(player.position.z / CHUNK_SIZE);
+            const renderChunks = Math.ceil(RENDER_DISTANCE / CHUNK_SIZE);
+
+            const newActiveChunks = new Set();
+
+            // 必要なチャンクを特定
+            for (let dx = -renderChunks; dx <= renderChunks; dx++) {
+                for (let dz = -renderChunks; dz <= renderChunks; dz++) {
+                    const chunkX = playerChunkX + dx;
+                    const chunkZ = playerChunkZ + dz;
+                    
+                    const distance = Math.sqrt(dx*dx + dz*dz) * CHUNK_SIZE;
+                    if (distance <= RENDER_DISTANCE) {
+                        const key = `${chunkX},${chunkZ}`;
+                        newActiveChunks.add(key);
+
+                        // 新しいチャンクを作成
+                        if (!chunks.has(key)) {
+                            chunks.set(key, new TerrainChunk(chunkX, chunkZ));
+                        }
+                    }
+                }
+            }
+
+            // 不要なチャンクを削除
+            const chunksToRemove = [];
+            chunks.forEach((chunk, key) => {
+                if (!newActiveChunks.has(key)) {
+                    chunk.dispose();
+                    chunksToRemove.push(key);
+                }
+            });
+            chunksToRemove.forEach(key => chunks.delete(key));
+
+            // アクティブなチャンクを更新
+            newActiveChunks.forEach(key => {
+                const chunk = chunks.get(key);
+                chunk.update(player.position);
+            });
+
+            activeChunks.clear();
+            newActiveChunks.forEach(key => activeChunks.add(key));
+        }
+
+        // ライティング設定
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        directionalLight.position.set(50, 100, 50);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 1024;
+        directionalLight.shadow.mapSize.height = 1024;
+        directionalLight.shadow.camera.near = 0.5;
+        directionalLight.shadow.camera.far = 400;
+        directionalLight.shadow.camera.left = -200;
+        directionalLight.shadow.camera.right = 200;
+        directionalLight.shadow.camera.top = 200;
+        directionalLight.shadow.camera.bottom = -200;
+        scene.add(directionalLight);
+
+        // カメラ初期位置
+        camera.position.copy(player.position);
+        
+        // フォグを追加して遠景を自然に（より遠くまで見えるように調整）
+        scene.fog = new THREE.Fog(0x87CEEB, 150, 400);
+
+        // コントロール設定
+        document.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        document.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        // ポインターロック
+        document.addEventListener('click', () => {
+            if (!isPointerLocked) {
+                document.body.requestPointerLock();
+            }
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            isPointerLocked = document.pointerLockElement === document.body;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isPointerLocked) {
+                mouseX += e.movementX * 0.002;
+                mouseY += e.movementY * 0.002;
+                mouseY = Math.max(-Math.PI/2, Math.min(Math.PI/2, mouseY));
+            }
+        });
+
+        // プレイヤー更新
+        function updatePlayer() {
+            const forward = new THREE.Vector3(0, 0, -1);
+            const right = new THREE.Vector3(1, 0, 0);
+            
+            forward.applyEuler(new THREE.Euler(0, mouseX, 0));
+            right.applyEuler(new THREE.Euler(0, mouseX, 0));
+
+            const moveVector = new THREE.Vector3(0, 0, 0);
+
+            if (keys['KeyW']) moveVector.add(forward);
+            if (keys['KeyS']) moveVector.sub(forward);
+            if (keys['KeyA']) moveVector.sub(right);
+            if (keys['KeyD']) moveVector.add(right);
+            if (keys['Space']) moveVector.y += 1;
+            if (keys['ShiftLeft']) moveVector.y -= 1;
+
+            moveVector.normalize().multiplyScalar(player.speed);
+            player.position.add(moveVector);
+
+            // 地面の高さを取得して調整（地面から少し上を維持）
+            const groundHeight = noise(player.position.x, player.position.z) + 3;
+            if (player.position.y < groundHeight) {
+                player.position.y = groundHeight;
+            }
+
+            // カメラ更新
+            camera.position.copy(player.position);
+            camera.rotation.set(mouseY, mouseX, 0);
+        }
+
+        // 統計情報更新
+        let frameCount = 0;
+        let lastTime = performance.now();
+        
+        function updateStats() {
+            frameCount++;
+            const currentTime = performance.now();
+            
+            if (currentTime - lastTime >= 1000) {
+                const fps = Math.round(frameCount * 1000 / (currentTime - lastTime));
+                document.getElementById('fps').textContent = fps;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+
+            document.getElementById('chunkCount').textContent = chunks.size;
+            document.getElementById('playerPos').textContent = 
+                `${Math.round(player.position.x)}, ${Math.round(player.position.z)}`;
+                
+            // 頂点数計算
+            let vertexCount = 0;
+            chunks.forEach(chunk => {
+                if (chunk.mesh) {
+                    vertexCount += chunk.mesh.geometry.attributes.position.count;
+                }
+            });
+            document.getElementById('vertexCount').textContent = vertexCount.toLocaleString();
+        }
+
+        // メインループ
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            updatePlayer();
+            updateChunks();
+            updateStats();
+            
+            renderer.render(scene, camera);
+        }
+
+        // ウィンドウリサイズ対応
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 開始
+        console.log("地形システム初期化中...");
+        
+        // 初期チャンクを強制生成
+        updateChunks();
+        console.log("初期チャンク生成完了:", chunks.size, "個");
+        
+        animate();
+    </script>
+</body>
+</html>
