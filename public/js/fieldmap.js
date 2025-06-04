@@ -409,6 +409,14 @@ class FieldMap {
         const indices = [];
         const uvs = [];
 
+        // 草のジオメトリを作成
+        const grassGeometry = new THREE.BufferGeometry();
+        const grassVertices = [];
+        const grassIndices = [];
+        const grassUvs = [];
+        const grassColors = [];
+        const grassCount = 3000; // 草の本数を3000に増やす
+
         // 頂点の生成
         for (let z = 0; z <= segments; z++) {
             for (let x = 0; x <= segments; x++) {
@@ -432,6 +440,51 @@ class FieldMap {
 
                 // UV座標を追加
                 uvs.push(gridX, gridZ);
+
+                // 草を生成（高さが0.8から2.5の範囲の場合のみ）- 範囲を広げる
+                if (height >= 0.8 && height <= 2.5) {
+                    // 各グリッドセルあたりの草の本数を増やす
+                    const grassPerCell = Math.floor(grassCount / (segments * segments)) * 3; // 3倍に増やす
+                    for (let i = 0; i < grassPerCell; i++) {
+                        const offsetX = (Math.random() - 0.5) * (this.chunkSize / segments);
+                        const offsetZ = (Math.random() - 0.5) * (this.chunkSize / segments);
+                        const grassHeight = 0.3 + Math.random() * 0.7; // 高さの範囲を調整
+                        const grassWidth = 0.08 + Math.random() * 0.12; // 幅の範囲を調整
+
+                        // 草の頂点を追加
+                        const baseX = worldX + offsetX;
+                        const baseZ = worldZ + offsetZ;
+                        const baseY = height;
+
+                        // 草の色をランダムに設定（より自然な色合いに）
+                        const color = new THREE.Color();
+                        const hue = 0.25 + Math.random() * 0.15; // より広い色相範囲
+                        const saturation = 0.7 + Math.random() * 0.3; // より高い彩度
+                        const lightness = 0.3 + Math.random() * 0.3; // より広い明度範囲
+                        color.setHSL(hue, saturation, lightness);
+
+                        // 草の頂点を追加
+                        const vertexCount = grassVertices.length / 3;
+                        grassVertices.push(
+                            baseX - grassWidth/2, baseY, baseZ,
+                            baseX + grassWidth/2, baseY, baseZ,
+                            baseX, baseY + grassHeight, baseZ
+                        );
+
+                        // インデックスを追加
+                        grassIndices.push(
+                            vertexCount, vertexCount + 1, vertexCount + 2
+                        );
+
+                        // UV座標を追加
+                        grassUvs.push(0, 0, 1, 0, 0.5, 1);
+
+                        // 色を追加
+                        for (let j = 0; j < 3; j++) {
+                            grassColors.push(color.r, color.g, color.b);
+                        }
+                    }
+                }
             }
         }
 
@@ -450,18 +503,25 @@ class FieldMap {
             }
         }
 
-        // ジオメトリの作成
+        // 地形のジオメトリを作成
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
         geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
         geometry.setIndex(indices);
         geometry.computeVertexNormals();
 
+        // 草のジオメトリを設定
+        grassGeometry.setAttribute('position', new THREE.Float32BufferAttribute(grassVertices, 3));
+        grassGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(grassUvs, 2));
+        grassGeometry.setAttribute('color', new THREE.Float32BufferAttribute(grassColors, 3));
+        grassGeometry.setIndex(grassIndices);
+        grassGeometry.computeVertexNormals();
+
         // バイオームを取得
         const biome = this.getBiomeAt(position.x, position.z);
         const biomeColor = this.biomeColors[biome.type] || this.biomeColors['urban'];
 
-        // マテリアルの設定
+        // 地形のマテリアル
         const material = new THREE.ShaderMaterial({
             uniforms: {
                 lightDirection: { value: new THREE.Vector3(0.5, 1, 0.5).normalize() },
@@ -599,13 +659,23 @@ class FieldMap {
             side: THREE.DoubleSide
         });
 
+        // 草のマテリアル
+        const grassMaterial = new THREE.MeshStandardMaterial({
+            vertexColors: true,
+            side: THREE.DoubleSide,
+            transparent: true,
+            alphaTest: 0.5
+        });
+
         const terrainChunk = new THREE.Mesh(geometry, material);
+        const grassMesh = new THREE.Mesh(grassGeometry, grassMaterial);
         terrainChunk.position.copy(position);
+        grassMesh.position.copy(position);
 
         // チャンクを管理配列に追加
         this.terrainChunks.push({
             mesh: terrainChunk,
-            //box: box,
+            grassMesh: grassMesh,
             chunkX: chunkX,
             chunkZ: chunkZ,
             geometry: geometry,
@@ -614,7 +684,7 @@ class FieldMap {
         });
 
         this.scene.add(terrainChunk);
-        //this.scene.add(box);
+        this.scene.add(grassMesh);
     }
 
     // 指定された座標での高さを計算
@@ -736,7 +806,7 @@ class FieldMap {
             if (distance > this.visibleDistance) {
                 if (chunk.mesh.visible) {
                     chunk.mesh.visible = false;
-                    if (chunk.box) chunk.box.visible = false;
+                    if (chunk.grassMesh) chunk.grassMesh.visible = false;
                     // チャンクに関連するオブジェクトも非表示にする
                     const chunkKey = `${chunk.chunkX},${chunk.chunkZ}`;
                     const chunkObjects = this.objectChunks.get(chunkKey);
@@ -754,7 +824,7 @@ class FieldMap {
             // 視界内のチャンクを表示
             if (!chunk.mesh.visible) {
                 chunk.mesh.visible = true;
-                if (chunk.box) chunk.box.visible = true;
+                if (chunk.grassMesh) chunk.grassMesh.visible = true;
                 // チャンクに関連するオブジェクトも表示する
                 const chunkKey = `${chunk.chunkX},${chunk.chunkZ}`;
                 const chunkObjects = this.objectChunks.get(chunkKey);
@@ -853,15 +923,15 @@ class FieldMap {
                     this.objectChunks.delete(chunkKey);
                 }
                 
-                // チャンクのメッシュとboxを削除
+                // チャンクのメッシュと草のメッシュを削除
                 this.scene.remove(chunk.mesh);
-                this.scene.remove(chunk.box);
+                if (chunk.grassMesh) {
+                    this.scene.remove(chunk.grassMesh);
+                    chunk.grassMesh.geometry.dispose();
+                    chunk.grassMesh.material.dispose();
+                }
                 chunk.geometry.dispose();
                 chunk.material.dispose();
-                if (chunk.box) {
-                    chunk.box.geometry.dispose();
-                    chunk.box.material.dispose();
-                }
                 return false;
             }
             return true;

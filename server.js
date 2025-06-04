@@ -75,14 +75,14 @@ const ENEMY_CONFIG = {
         model: 'humanoid',
         visionRange: 30,
         speed:  0.2,
-        health: 20,
+        health: 40,
         weight: 0.6
     },
     SLIME: {
         model: 'slime',
         visionRange: 10,
         speed: 0.2,
-        health: 30,
+        health: 40,
         weight: 0.3
     },
     FAST: {
@@ -96,7 +96,7 @@ const ENEMY_CONFIG = {
         model: 'hexapod',
         visionRange: 40,
         speed: 0.2,
-        health: 25,
+        health: 40,
         weight: 0.15,
         shootInterval: 6000, // 3秒ごとに弾を発射
         bulletSpeed: 15,
@@ -106,14 +106,14 @@ const ENEMY_CONFIG = {
         model: 'giant',
         visionRange: 40,
         speed: 0.1,
-        health: 100,
+        health: 70,
         weight: 0.1
     },
     CRAB: {
         model: 'crab',
         visionRange: 20,
         speed: 0.3,
-        health: 35,
+        health: 50,
         weight: 0.2
     },
     FLYING: {
@@ -127,7 +127,7 @@ const ENEMY_CONFIG = {
         model: 'boss',
         visionRange: 40,
         speed: 0.2,
-        health: 200,
+        health: 300,
         weight: 0.05
     }
 };

@@ -264,18 +264,17 @@ class Game {
 		// 初期表示を設定
 		this.updateEffectsDisplay();
 
-/*
+
 		// ゲーム開始時にランダムなアイテムを3つバックパックに入れる
 		const itemTypes = Object.entries(GameConfig.ITEMS)
 			.filter(([_, item]) => item.dropChance !== undefined)
 			.map(([type]) => type);
 
 			
-		for (let i = 0; i < 8; i++) {
-			//const randomIndex = Math.floor(Math.random() * itemTypes.length);
-			const selectedType = itemTypes[i];
-			//const selectedType = itemTypes[0];
-			console.log('selectedType', selectedType);
+		for (let i = 0; i < 2; i++) {
+			const randomIndex = Math.floor(Math.random() * itemTypes.length);
+			const selectedType = itemTypes[randomIndex];
+			//console.log('selectedType', selectedType);
 			if (selectedType) {
 				this.inventory.push({
 					id: Date.now() + i,
@@ -285,7 +284,7 @@ class Game {
 		}
 
 		this.updateBackpackUI();
-			*/
+			
 		// 電波塔の管理を追加
 		//this.radioTowerManager = new RadioTowerManager(this.scene);
 
@@ -2719,7 +2718,7 @@ class Game {
 		if (!position) return;
 		
 		// 10%の確率でアイテムをスポーン
-		if (Math.random() < 1.1) {
+		if (Math.random() < 0.2) {
 			// GameConfig.ITEMSからランダムにアイテムタイプを選択
 			const itemTypes = Object.entries(GameConfig.ITEMS)
 				.filter(([_, item]) => item.dropChance !== undefined)

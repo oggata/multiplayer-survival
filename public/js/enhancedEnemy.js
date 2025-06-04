@@ -199,13 +199,13 @@ class EnhancedEnemy {
             this.dispose();
         }, 100); // 0.1秒後に削除
     }
-
+/*
     spawnItem(itemType, position) {
         const item = new Item(itemType, position);
         this.scene.add(item.mesh);
         this.game.items.push(item);
     }
-
+*/
     createDeathEffect() {
         // パーティクルエフェクトの作成
         const particleCount = 50;

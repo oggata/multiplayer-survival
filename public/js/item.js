@@ -38,6 +38,8 @@ class Item {
     
     // アイテムのアニメーションを更新
     update(deltaTime) {
+        if (!this.mesh) return;
+        
         this.time += deltaTime;
         
         // 回転
