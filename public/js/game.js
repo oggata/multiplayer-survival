@@ -3342,28 +3342,7 @@ class Game {
 	}
 
 	getHeightAt(x, z) {
-		const height = this.fieldMap.getHeightAt(x, z);
-		return height;
-	}
-
-	getHeightPlayer(x, z) {
-
-		
-		var height = 0;
-		if (this.fieldMap) {
-			height = this.fieldMap.getHeightAt(x, z);
-		}
 		this.testCount++;
-		
-		if (this.testCount > 100) {
-			console.log("getHeightPlayer");
-			console.log("x:", x, "z:", z, "height:", height);
-			this.testCount = 0;
-		}
-		return height;
-	}
-
-	getHeightAt2(x, z) {
 		// レイキャストを使用して高さを取得
 		const raycaster = new THREE.Raycaster();
 		const down = new THREE.Vector3(0, -1, 0);
@@ -3466,12 +3445,6 @@ class Game {
 						relX * (1 - relZ) * h2 +
 						(1 - relX) * relZ * h3 +
 						relX * relZ * h4;
-
-					// 高さが異常に低い場合は警告
-					if (height < 1.0) {
-						console.warn('Suspiciously low height calculated:', height);
-					}
-
 					//console.log('Final calculated height:', height);
 					return height;
 				} else {
@@ -3487,6 +3460,12 @@ class Game {
 			const height = this.fieldMap.getHeightAt(x, z);
 			//console.log('Using fallback height:', height);
 			return height;
+		}
+
+		if (this.testCount > 100) {
+			//console.log("getHeightPlayer");
+			//console.log("x:", x, "z:", z, "height:", height);
+			this.testCount = 0;
 		}
 
 		return 0;
@@ -3731,7 +3710,7 @@ class Game {
 		// プレイヤーの高さを更新
 		if (this.playerModel) {
 			const position = this.playerModel.getPosition();
-			const terrainHeight = this.getHeightPlayer(position.x, position.z);
+			const terrainHeight = this.getHeightAt(position.x, position.z);
 			//console.log('Terrain height:', terrainHeight);
 			//const terrainHeight = this.fieldMap.getHeightAt(position.x, position.z);
 			this.playerModel.setPosition(position.x, terrainHeight, position.z);

@@ -4,7 +4,7 @@
 const GameConfig = {
     // プレイヤー設定
     PLAYER: {
-        MOVE_SPEED: 25.5,
+        MOVE_SPEED: 5.5,
         ROTATION_SPEED: 0.05,
         MAX_HEALTH: 100,
         COLLISION_RADIUS: 1.0,
@@ -310,7 +310,7 @@ const GameConfig = {
         },
         LOD: {
             DISTANCES: [100, 200, 300], // LODの距離閾値
-            SEGMENTS: [ 10, 5, 2] // 各LODレベルのセグメント数（より細かいメッシュに変更）
+            SEGMENTS: [10, 5, 2] // 各LODレベルのセグメント数
         },
         DEBUG: {
             SHOW_WIREFRAME: false, // メッシュのワイヤーフレームを表示するかどうか

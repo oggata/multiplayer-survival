@@ -169,6 +169,12 @@ class FieldMap {
         this.createMap();
 
         this.isInitialized = false;
+
+        // 高さ計算のキャッシュを追加
+        this.heightCache = new Map();
+        this.cacheSize = 1000; // キャッシュの最大サイズ
+        this.cacheTimeout = 1000; // キャッシュの有効期限（ミリ秒）
+        this.lastCacheCleanup = Date.now();
     }
     
     async initialize() {
@@ -966,6 +972,21 @@ class FieldMap {
     }
 
     getHeightAt(x, z) {
+        // キャッシュのクリーンアップ（1秒ごと）
+        const now = Date.now();
+        if (now - this.lastCacheCleanup > this.cacheTimeout) {
+            this.heightCache.clear();
+            this.lastCacheCleanup = now;
+        }
+
+        // キャッシュキーの生成（座標を丸めてキャッシュの精度を調整）
+        const cacheKey = `${Math.round(x * 10) / 10},${Math.round(z * 10) / 10}`;
+        
+        // キャッシュをチェック
+        if (this.heightCache.has(cacheKey)) {
+            return this.heightCache.get(cacheKey);
+        }
+
         // 最も近いチャンクを探す
         let closestChunk = null;
         let minDistance = Infinity;
@@ -975,7 +996,7 @@ class FieldMap {
 
             const dx = x - chunk.mesh.position.x;
             const dz = z - chunk.mesh.position.z;
-            const distance = Math.sqrt(dx * dx + dz * dz);
+            const distance = dx * dx + dz * dz; // 平方根を避けてパフォーマンスを改善
             
             if (distance < minDistance) {
                 minDistance = distance;
@@ -983,6 +1004,7 @@ class FieldMap {
             }
         }
 
+        let height;
         if (closestChunk) {
             // チャンクのローカル座標に変換
             const localX = x - closestChunk.mesh.position.x;
@@ -991,46 +1013,50 @@ class FieldMap {
             // ジオメトリから頂点データを取得
             const positions = closestChunk.geometry.attributes.position.array;
             const segments = this.lodSegments[0];
-            const vertexCount = (segments + 1) * (segments + 1);
 
-            // 最も近い4つの頂点を探す
-            let closestVertices = [];
-            let minDistances = [];
+            // グリッド上の位置を計算（より粗いグリッドを使用）
+            const gridX = Math.floor((localX / this.chunkSize) * segments);
+            const gridZ = Math.floor((localZ / this.chunkSize) * segments);
 
-            for (let i = 0; i < vertexCount; i++) {
-                const vx = positions[i * 3];
-                const vz = positions[i * 3 + 2];
-                const distance = Math.sqrt(
-                    Math.pow(localX - vx, 2) + 
-                    Math.pow(localZ - vz, 2)
-                );
+            // グリッドの範囲をチェック
+            if (gridX >= 0 && gridX < segments && gridZ >= 0 && gridZ < segments) {
+                // 4つの頂点のインデックスを計算
+                const v1 = gridX + gridZ * (segments + 1);
+                const v2 = v1 + 1;
+                const v3 = v1 + (segments + 1);
+                const v4 = v2 + (segments + 1);
 
-                if (closestVertices.length < 4) {
-                    closestVertices.push(i);
-                    minDistances.push(distance);
-                } else {
-                    const maxIndex = minDistances.indexOf(Math.max(...minDistances));
-                    if (distance < minDistances[maxIndex]) {
-                        closestVertices[maxIndex] = i;
-                        minDistances[maxIndex] = distance;
-                    }
-                }
+                // 頂点の高さを取得
+                const h1 = positions[v1 * 3 + 1];
+                const h2 = positions[v2 * 3 + 1];
+                const h3 = positions[v3 * 3 + 1];
+                const h4 = positions[v4 * 3 + 1];
+
+                // グリッド内の相対位置を計算
+                const fracX = (localX / this.chunkSize) * segments - gridX;
+                const fracZ = (localZ / this.chunkSize) * segments - gridZ;
+
+                // 双線形補間で高さを計算
+                height = h1 * (1 - fracX) * (1 - fracZ) +
+                        h2 * fracX * (1 - fracZ) +
+                        h3 * (1 - fracX) * fracZ +
+                        h4 * fracX * fracZ;
+            } else {
+                height = this.calculateHeightAt(x, z);
             }
-
-            // 4つの頂点の高さを取得
-            const heights = closestVertices.map(index => positions[index * 3 + 1]);
-            const distances = minDistances.map(d => 1 / (d + 0.0001)); // 0除算を防ぐ
-            const totalWeight = distances.reduce((a, b) => a + b, 0);
-
-            // 重み付き平均で高さを計算
-            const height = heights.reduce((sum, h, i) => 
-                sum + h * (distances[i] / totalWeight), 0);
-
-            return height;
+        } else {
+            height = this.calculateHeightAt(x, z);
         }
 
-        // チャンクが見つからない場合は直接ノイズ関数で計算
-        return this.calculateHeightAt(x, z);
+        // キャッシュに保存
+        if (this.heightCache.size >= this.cacheSize) {
+            // キャッシュが一杯になったら古いエントリを削除
+            const firstKey = this.heightCache.keys().next().value;
+            this.heightCache.delete(firstKey);
+        }
+        this.heightCache.set(cacheKey, height);
+
+        return height;
     }
 
     generateObjects() {
@@ -1311,7 +1337,7 @@ class FieldMap {
         if (this.game && this.game.playerModel) {
             const playerPos = this.game.playerModel.getPosition();
             if (Math.abs(playerPos.x - x) < 1 && Math.abs(playerPos.z - z) < 1) {
-                console.log('現在のバイオーム:', closestBiome.type, '位置:', {x: x, z: z});
+                //console.log('現在のバイオーム:', closestBiome.type, '位置:', {x: x, z: z});
             }
         }
         
