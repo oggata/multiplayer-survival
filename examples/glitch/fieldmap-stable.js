@@ -738,7 +738,7 @@ class FieldMap {
         }else{
             mesaChance = 0.1;
         }
-/*
+
         // メサの生成判定
         if (this.getDeterministicRandom(x, z, 'mesa') < mesaChance) {
             // メサの中心からの距離を計算
@@ -803,7 +803,7 @@ class FieldMap {
             // 基本地形とメサの高さを組み合わせ
             return baseHeight + mesaHeightContribution + cliffHeightContribution;
         }
-*/        
+        
         return baseHeight;
     }
 
@@ -993,39 +993,43 @@ class FieldMap {
             const segments = this.lodSegments[0];
             const vertexCount = (segments + 1) * (segments + 1);
 
-            // グリッド上の位置を計算
-            const gridX = Math.floor((localX / this.chunkSize) * segments);
-            const gridZ = Math.floor((localZ / this.chunkSize) * segments);
+            // 最も近い4つの頂点を探す
+            let closestVertices = [];
+            let minDistances = [];
 
-            // グリッドの範囲をチェック
-            if (gridX >= 0 && gridX < segments && gridZ >= 0 && gridZ < segments) {
-                // 4つの頂点のインデックスを計算
-                const v1 = gridX + gridZ * (segments + 1);
-                const v2 = v1 + 1;
-                const v3 = v1 + (segments + 1);
-                const v4 = v2 + (segments + 1);
+            for (let i = 0; i < vertexCount; i++) {
+                const vx = positions[i * 3];
+                const vz = positions[i * 3 + 2];
+                const distance = Math.sqrt(
+                    Math.pow(localX - vx, 2) + 
+                    Math.pow(localZ - vz, 2)
+                );
 
-                // 頂点の高さを取得
-                const h1 = positions[v1 * 3 + 1];
-                const h2 = positions[v2 * 3 + 1];
-                const h3 = positions[v3 * 3 + 1];
-                const h4 = positions[v4 * 3 + 1];
-
-                // グリッド内の相対位置を計算
-                const fracX = (localX / this.chunkSize) * segments - gridX;
-                const fracZ = (localZ / this.chunkSize) * segments - gridZ;
-
-                // 双線形補間で高さを計算
-                const height = h1 * (1 - fracX) * (1 - fracZ) +
-                             h2 * fracX * (1 - fracZ) +
-                             h3 * (1 - fracX) * fracZ +
-                             h4 * fracX * fracZ;
-
-                return height;
+                if (closestVertices.length < 4) {
+                    closestVertices.push(i);
+                    minDistances.push(distance);
+                } else {
+                    const maxIndex = minDistances.indexOf(Math.max(...minDistances));
+                    if (distance < minDistances[maxIndex]) {
+                        closestVertices[maxIndex] = i;
+                        minDistances[maxIndex] = distance;
+                    }
+                }
             }
+
+            // 4つの頂点の高さを取得
+            const heights = closestVertices.map(index => positions[index * 3 + 1]);
+            const distances = minDistances.map(d => 1 / (d + 0.0001)); // 0除算を防ぐ
+            const totalWeight = distances.reduce((a, b) => a + b, 0);
+
+            // 重み付き平均で高さを計算
+            const height = heights.reduce((sum, h, i) => 
+                sum + h * (distances[i] / totalWeight), 0);
+
+            return height;
         }
 
-        // チャンクが見つからない場合や範囲外の場合は直接ノイズ関数で計算
+        // チャンクが見つからない場合は直接ノイズ関数で計算
         return this.calculateHeightAt(x, z);
     }
 

@@ -738,7 +738,7 @@ class FieldMap {
         }else{
             mesaChance = 0.1;
         }
-/*
+
         // メサの生成判定
         if (this.getDeterministicRandom(x, z, 'mesa') < mesaChance) {
             // メサの中心からの距離を計算
@@ -803,7 +803,7 @@ class FieldMap {
             // 基本地形とメサの高さを組み合わせ
             return baseHeight + mesaHeightContribution + cliffHeightContribution;
         }
-*/        
+        
         return baseHeight;
     }
 
