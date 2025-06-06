@@ -417,7 +417,7 @@ class FieldMap {
         const grassColors = [];
         const grassCount = 5000; // 草の本数を5000に増やす
 
-        // 頂点の生成
+        // 頂点の生成（より細かいメッシュ）
         for (let z = 0; z <= segments; z++) {
             for (let x = 0; x <= segments; x++) {
                 // グリッド上の位置を計算
@@ -428,7 +428,7 @@ class FieldMap {
                 const worldX = position.x + gridX * this.chunkSize;
                 const worldZ = position.z + gridZ * this.chunkSize;
 
-                // 高さを計算
+                // 高さを計算（より細かいノイズ）
                 const height = this.calculateHeightAt(worldX, worldZ);
 
                 // 頂点を追加
@@ -441,26 +441,26 @@ class FieldMap {
                 // UV座標を追加
                 uvs.push(gridX, gridZ);
 
-                // 草を生成（高さが0.8から2.5の範囲の場合のみ）- 範囲を広げる
+                // 草を生成（高さが0.8から2.5の範囲の場合のみ）
                 if (height >= 0.8 && height <= 2.5) {
                     // 各グリッドセルあたりの草の本数を増やす
-                    const grassPerCell = Math.floor(grassCount / (segments * segments)) * 5; // 5倍に増やす
+                    const grassPerCell = Math.floor(grassCount / (segments * segments)) * 5;
                     for (let i = 0; i < grassPerCell; i++) {
                         const offsetX = (Math.random() - 0.5) * (this.chunkSize / segments);
                         const offsetZ = (Math.random() - 0.5) * (this.chunkSize / segments);
-                        const grassHeight = 0.3 + Math.random() * 0.7; // 高さの範囲を調整
-                        const grassWidth = 0.08 + Math.random() * 0.12; // 幅の範囲を調整
+                        const grassHeight = 0.3 + Math.random() * 0.7;
+                        const grassWidth = 0.08 + Math.random() * 0.12;
 
                         // 草の頂点を追加
                         const baseX = worldX + offsetX;
                         const baseZ = worldZ + offsetZ;
                         const baseY = height;
 
-                        // 草の色をランダムに設定（より自然な色合いに）
+                        // 草の色をランダムに設定
                         const color = new THREE.Color();
-                        const hue = 0.25 + Math.random() * 0.15; // より広い色相範囲
-                        const saturation = 0.7 + Math.random() * 0.3; // より高い彩度
-                        const lightness = 0.3 + Math.random() * 0.3; // より広い明度範囲
+                        const hue = 0.25 + Math.random() * 0.15;
+                        const saturation = 0.7 + Math.random() * 0.3;
+                        const lightness = 0.3 + Math.random() * 0.3;
                         color.setHSL(hue, saturation, lightness);
 
                         // 草の頂点を追加
@@ -488,7 +488,7 @@ class FieldMap {
             }
         }
 
-        // インデックスの生成
+        // インデックスの生成（より細かいメッシュ用に最適化）
         for (let z = 0; z < segments; z++) {
             for (let x = 0; x < segments; x++) {
                 const a = x + z * (segments + 1);
@@ -671,6 +671,20 @@ class FieldMap {
         const grassMesh = new THREE.Mesh(grassGeometry, grassMaterial);
         terrainChunk.position.copy(position);
         grassMesh.position.copy(position);
+
+        // デバッグモードが有効な場合、ワイヤーフレームを追加
+        if (GameConfig.MAP.DEBUG.SHOW_WIREFRAME) {
+            const wireframe = new THREE.LineSegments(
+                new THREE.WireframeGeometry(geometry),
+                new THREE.LineBasicMaterial({
+                    color: GameConfig.MAP.DEBUG.WIREFRAME_COLOR,
+                    transparent: true,
+                    opacity: 0.5
+                })
+            );
+            wireframe.position.copy(position);
+            this.scene.add(wireframe);
+        }
 
         // チャンクを管理配列に追加
         this.terrainChunks.push({

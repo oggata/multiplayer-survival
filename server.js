@@ -1204,6 +1204,121 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
+// autoPlayersの設定
+const AUTO_PLAYERS_COUNT = 0; // 自動プレイヤーの数
+const AUTO_PLAYER_UPDATE_INTERVAL = 100; // 自動プレイヤーの更新間隔（ミリ秒）
+const AUTO_PLAYER_MOVE_RANGE = 50; // 自動プレイヤーの移動範囲
+
+// autoPlayersの状態を管理
+const autoPlayers = {};
+
+// autoPlayerを生成する関数
+function createAutoPlayer() {
+    const autoPlayerId = 'auto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const spawnPosition = getSpawnPosition();
+    
+    // 使用可能な色からランダムに選択
+    const availableColors = playerColors.filter(color => !usedColors.has(color));
+    let playerColor;
+    
+    if (availableColors.length > 0) {
+        playerColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+    } else {
+        playerColor = playerColors[0];
+    }
+    
+    usedColors.add(playerColor);
+    
+    const autoPlayer = {
+        id: autoPlayerId,
+        position: spawnPosition,
+        rotation: { y: Math.random() * Math.PI * 2 },
+        health: 100,
+        color: playerColor,
+        hash: generatePlayerHash(),
+        spawnTime: Date.now(),
+        isAutoPlayer: true,
+        targetPosition: null,
+        lastUpdate: Date.now()
+    };
+    
+    return autoPlayer;
+}
+
+// autoPlayerの移動を更新する関数
+function updateAutoPlayers() {
+    const now = Date.now();
+    
+    Object.values(autoPlayers).forEach(autoPlayer => {
+        if (autoPlayer.health <= 0) return;
+        
+        // 目標位置が設定されていない、または一定時間経過した場合に新しい目標位置を設定
+        if (!autoPlayer.targetPosition || now - autoPlayer.lastUpdate > 3000) {
+            const randomAngle = Math.random() * Math.PI * 2;
+            const randomDistance = Math.random() * AUTO_PLAYER_MOVE_RANGE;
+            
+            autoPlayer.targetPosition = {
+                x: autoPlayer.position.x + Math.cos(randomAngle) * randomDistance,
+                y: 0,
+                z: autoPlayer.position.z + Math.sin(randomAngle) * randomDistance
+            };
+            
+            autoPlayer.lastUpdate = now;
+        }
+        
+        // 目標位置に向かって移動
+        const dx = autoPlayer.targetPosition.x - autoPlayer.position.x;
+        const dz = autoPlayer.targetPosition.z - autoPlayer.position.z;
+        const distance = Math.sqrt(dx * dx + dz * dz);
+        
+        if (distance > 0.1) {
+            const moveSpeed = 0.1;
+            const moveX = (dx / distance) * moveSpeed;
+            const moveZ = (dz / distance) * moveSpeed;
+            
+            // 移動方向を計算（ラジアン）
+            const moveAngle = Math.atan2(dx, dz);
+            
+            // 現在の向きと目標の向きの差を計算
+            let angleDiff = moveAngle - autoPlayer.rotation.y;
+            
+            // 角度の差を-πからπの範囲に正規化
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            
+            // 滑らかに回転（回転速度を制限）
+            const rotationSpeed = 0.1;
+            if (Math.abs(angleDiff) > 0.1) {
+                autoPlayer.rotation.y += angleDiff * rotationSpeed;
+            } else {
+                autoPlayer.rotation.y = moveAngle;
+            }
+            
+            // 位置を更新
+            autoPlayer.position.x += moveX;
+            autoPlayer.position.z += moveZ;
+            
+            // マップの境界チェック
+            autoPlayer.position.x = Math.max(-MAP_SIZE/2, Math.min(MAP_SIZE/2, autoPlayer.position.x));
+            autoPlayer.position.z = Math.max(-MAP_SIZE/2, Math.min(MAP_SIZE/2, autoPlayer.position.z));
+            
+            // 移動を通知
+            io.emit('playerMoved', autoPlayer);
+        }
+    });
+}
+
+// 定期的にautoPlayersを更新
+setInterval(updateAutoPlayers, AUTO_PLAYER_UPDATE_INTERVAL);
+
+// サーバー起動時にautoPlayersを生成
+for (let i = 0; i < AUTO_PLAYERS_COUNT; i++) {
+    const autoPlayer = createAutoPlayer();
+    autoPlayers[autoPlayer.id] = autoPlayer;
+    players[autoPlayer.id] = autoPlayer;
+}
+
 http.listen(PORT, () => {
     console.log(`サーバーが起動しました: http://localhost:${PORT}`);
 }); 

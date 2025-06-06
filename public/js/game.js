@@ -221,6 +221,8 @@ class Game {
 		// メッセージ表示用の要素を追加
 		this.messageIndicators = new Map(); // メッセージインジケーターを管理
 		this.createMessageIndicatorContainer();
+
+		this.testCount = 0;
 /*
 		// WebSocketのメッセージハンドラを追加
 		this.socket.onmessage = (event) => {
@@ -3340,6 +3342,28 @@ class Game {
 	}
 
 	getHeightAt(x, z) {
+		const height = this.fieldMap.getHeightAt(x, z);
+		return height;
+	}
+
+	getHeightPlayer(x, z) {
+
+		
+		var height = 0;
+		if (this.fieldMap) {
+			height = this.fieldMap.getHeightAt(x, z);
+		}
+		this.testCount++;
+		
+		if (this.testCount > 100) {
+			console.log("getHeightPlayer");
+			console.log("x:", x, "z:", z, "height:", height);
+			this.testCount = 0;
+		}
+		return height;
+	}
+
+	getHeightAt2(x, z) {
 		// レイキャストを使用して高さを取得
 		const raycaster = new THREE.Raycaster();
 		const down = new THREE.Vector3(0, -1, 0);
@@ -3349,14 +3373,14 @@ class Game {
 		// フィールドマップの地形チャンクを取得
 		let terrainObject = null;
 		if (this.fieldMap && this.fieldMap.terrainChunks && this.fieldMap.terrainChunks.length > 0) {
-			console.log('Terrain chunks available:', this.fieldMap.terrainChunks.length);
+			//console.log('Terrain chunks available:', this.fieldMap.terrainChunks.length);
 			// 最も近いチャンクを探す
 			let closestChunk = null;
 			let minDistance = Infinity;
 
 			for (const chunk of this.fieldMap.terrainChunks) {
 				if (!chunk || !chunk.mesh) {
-					console.log('Invalid chunk found');
+					//console.log('Invalid chunk found');
 					continue;
 				}
 
@@ -3371,27 +3395,27 @@ class Game {
 			}
 
 			if (closestChunk) {
-				console.log('Found closest chunk at distance:', minDistance);
+				//console.log('Found closest chunk at distance:', minDistance);
 				terrainObject = closestChunk.mesh;
 			} else {
-				console.log('No closest chunk found');
+				//console.log('No closest chunk found');
 			}
 		} else {
-			console.log('No terrain chunks available');
+			//console.log('No terrain chunks available');
 		}
 
 		if (terrainObject) {
-			console.log('Attempting raycast on terrain object');
+			//console.log('Attempting raycast on terrain object');
 			// レイキャストの設定を調整
 			raycaster.firstHitOnly = true;
 			raycaster.far = 300; // レイキャストの最大距離を設定
 			raycaster.near = 0; // 近接面の距離を0に設定
 
 			// デバッグ情報を追加
-			console.log('Ray origin:', raycaster.ray.origin);
-			console.log('Ray direction:', raycaster.ray.direction);
-			console.log('Chunk position:', terrainObject.position);
-			console.log('Chunk rotation:', terrainObject.rotation);
+			//console.log('Ray origin:', raycaster.ray.origin);
+			//console.log('Ray direction:', raycaster.ray.direction);
+			//console.log('Chunk position:', terrainObject.position);
+			//console.log('Chunk rotation:', terrainObject.rotation);
 
 			// チャンクのジオメトリを取得
 			const geometry = terrainObject.geometry;
@@ -3411,9 +3435,9 @@ class Game {
 				const cellZ = Math.floor(localZ / cellSize);
 
 				// デバッグ情報を追加
-				console.log('Local coordinates:', { localX, localZ });
-				console.log('Cell indices:', { cellX, cellZ });
-				console.log('Cell size:', cellSize);
+				//console.log('Local coordinates:', { localX, localZ });
+				//console.log('Cell indices:', { cellX, cellZ });
+				//console.log('Cell size:', cellSize);
 
 				// 4つの頂点のインデックスを計算
 				const v1 = cellZ * (segments + 1) + cellX;
@@ -3434,8 +3458,8 @@ class Game {
 					const h4 = positions[v4 * 3 + 1];
 
 					// デバッグ情報を追加
-					console.log('Vertex heights:', { h1, h2, h3, h4 });
-					console.log('Relative position:', { relX, relZ });
+					//console.log('Vertex heights:', { h1, h2, h3, h4 });
+					//console.log('Relative position:', { relX, relZ });
 
 					// バイリニア補間で高さを計算
 					const height = (1 - relX) * (1 - relZ) * h1 +
@@ -3448,20 +3472,20 @@ class Game {
 						console.warn('Suspiciously low height calculated:', height);
 					}
 
-					console.log('Final calculated height:', height);
+					//console.log('Final calculated height:', height);
 					return height;
 				} else {
-					console.warn('Vertex indices out of range:', { v1, v2, v3, v4, vertexCount });
+					//console.warn('Vertex indices out of range:', { v1, v2, v3, v4, vertexCount });
 				}
 			} else {
-				console.warn('Invalid geometry or missing position attribute');
+				//console.warn('Invalid geometry or missing position attribute');
 			}
 		}
 
 		// フォールバック: フィールドマップのgetHeightAtメソッドを使用
 		if (this.fieldMap) {
 			const height = this.fieldMap.getHeightAt(x, z);
-			console.log('Using fallback height:', height);
+			//console.log('Using fallback height:', height);
 			return height;
 		}
 
@@ -3486,7 +3510,7 @@ class Game {
 
 	warpToRandomPlayer() {
 
-		console.log(this.players.size);
+		//console.log(this.players.size);
 
 		if (this.players.size === 0) {
 			console.log('他のプレイヤーがいません');
@@ -3707,8 +3731,8 @@ class Game {
 		// プレイヤーの高さを更新
 		if (this.playerModel) {
 			const position = this.playerModel.getPosition();
-			const terrainHeight = this.getHeightAt(position.x, position.z);
-			console.log('Terrain height:', terrainHeight);
+			const terrainHeight = this.getHeightPlayer(position.x, position.z);
+			//console.log('Terrain height:', terrainHeight);
 			//const terrainHeight = this.fieldMap.getHeightAt(position.x, position.z);
 			this.playerModel.setPosition(position.x, terrainHeight, position.z);
 		}
