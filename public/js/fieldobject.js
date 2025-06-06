@@ -380,7 +380,7 @@ class FieldObject {
         
         // GLTFモデルのパスを選択
         const modelPaths = [
-            '/gltf/Tree 2601.glb'
+            '/gltf/tree.glb'
         ];
         const modelPath = modelPaths[Math.floor(this.rng() * modelPaths.length)];
 
@@ -390,11 +390,11 @@ class FieldObject {
             
             // モデルのスケールを調整
             var scale = height / 10; // 高さに応じてスケールを調整
-            var scale = 7;
+            var scale = 3;
             model.scale.set(scale, scale, scale);
             
             // モデルの位置を調整
-            model.position.y = -10;
+            model.position.y = 1;
             
             // モデルをグループに追加
             treeGroup.add(model);

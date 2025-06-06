@@ -4,7 +4,7 @@
 const GameConfig = {
     // プレイヤー設定
     PLAYER: {
-        MOVE_SPEED: 4.5,
+        MOVE_SPEED: 5.5,
         ROTATION_SPEED: 0.05,
         MAX_HEALTH: 100,
         COLLISION_RADIUS: 1.0,

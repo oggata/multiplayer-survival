@@ -415,7 +415,7 @@ class FieldMap {
         const grassIndices = [];
         const grassUvs = [];
         const grassColors = [];
-        const grassCount = 3000; // 草の本数を3000に増やす
+        const grassCount = 5000; // 草の本数を5000に増やす
 
         // 頂点の生成
         for (let z = 0; z <= segments; z++) {
@@ -444,7 +444,7 @@ class FieldMap {
                 // 草を生成（高さが0.8から2.5の範囲の場合のみ）- 範囲を広げる
                 if (height >= 0.8 && height <= 2.5) {
                     // 各グリッドセルあたりの草の本数を増やす
-                    const grassPerCell = Math.floor(grassCount / (segments * segments)) * 3; // 3倍に増やす
+                    const grassPerCell = Math.floor(grassCount / (segments * segments)) * 5; // 5倍に増やす
                     for (let i = 0; i < grassPerCell; i++) {
                         const offsetX = (Math.random() - 0.5) * (this.chunkSize / segments);
                         const offsetZ = (Math.random() - 0.5) * (this.chunkSize / segments);

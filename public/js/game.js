@@ -1376,11 +1376,12 @@ class Game {
 		// 移動後の位置を取得
 		const newPosition = this.playerModel.getPosition();
 
+		/*
 		// レイキャストを使用して地面の高さを取得
 		const raycaster = new THREE.Raycaster();
 		const down = new THREE.Vector3(0, -1, 0);
 		raycaster.set(new THREE.Vector3(newPosition.x, 100, newPosition.z), down);
-
+*/
 		// フィールドマップの地形ジオメトリを取得
 		let terrainObject = null;
 		if (this.fieldMap && this.fieldMap.terrainGeometry) {
@@ -1790,7 +1791,7 @@ class Game {
 			newPosition.z = Math.max(-450, Math.min(450, newPosition.z));
 
 			// 地形の高さを取得
-			const terrainHeight = this.fieldMap.getHeightAt(newPosition.x, newPosition.z);
+			const terrainHeight = this.getHeightAt(newPosition.x, newPosition.z);
 			if (terrainHeight !== null) {
 				newPosition.y = terrainHeight + 0.5;
 			}
@@ -1836,7 +1837,7 @@ class Game {
 		const selectedLocation = safeLocations[Math.floor(Math.random() * safeLocations.length)];
 
 		// 地形の高さを取得
-		const terrainHeight = this.fieldMap.getHeightAt(selectedLocation.x, selectedLocation.z);
+		const terrainHeight = this.getHeightAt(selectedLocation.x, selectedLocation.z);
 		if (terrainHeight !== null) {
 			selectedLocation.y = terrainHeight + 0.5;
 		}
@@ -2508,7 +2509,7 @@ class Game {
 			}
 
 			// 高さを設定
-			position.y = this.fieldMap.getHeightAt(position.x, position.z);
+			position.y = this.getHeightAt(position.x, position.z);
 			return position;
 
 		} while (attempts < maxAttempts);
@@ -3342,34 +3343,126 @@ class Game {
 		// レイキャストを使用して高さを取得
 		const raycaster = new THREE.Raycaster();
 		const down = new THREE.Vector3(0, -1, 0);
-		raycaster.set(new THREE.Vector3(x, 100, z), down);
+		// 開始位置をより高く設定
+		raycaster.set(new THREE.Vector3(x, 200, z), down);
 
-		// フィールドマップの地形ジオメトリを取得
+		// フィールドマップの地形チャンクを取得
 		let terrainObject = null;
-		if (this.fieldMap && this.fieldMap.terrainGeometry) {
-			terrainObject = this.fieldMap.terrainGeometry;
-		} else {
-			// フィールドマップが初期化されていない場合は、シーン内の地形オブジェクトを探す
-			this.scene.traverse((object) => {
-				if (object.userData && object.userData.type === 'terrain') {
-					terrainObject = object;
+		if (this.fieldMap && this.fieldMap.terrainChunks && this.fieldMap.terrainChunks.length > 0) {
+			console.log('Terrain chunks available:', this.fieldMap.terrainChunks.length);
+			// 最も近いチャンクを探す
+			let closestChunk = null;
+			let minDistance = Infinity;
+
+			for (const chunk of this.fieldMap.terrainChunks) {
+				if (!chunk || !chunk.mesh) {
+					console.log('Invalid chunk found');
+					continue;
 				}
-			});
+
+				const dx = x - chunk.mesh.position.x;
+				const dz = z - chunk.mesh.position.z;
+				const distance = Math.sqrt(dx * dx + dz * dz);
+				
+				if (distance < minDistance) {
+					minDistance = distance;
+					closestChunk = chunk;
+				}
+			}
+
+			if (closestChunk) {
+				console.log('Found closest chunk at distance:', minDistance);
+				terrainObject = closestChunk.mesh;
+			} else {
+				console.log('No closest chunk found');
+			}
+		} else {
+			console.log('No terrain chunks available');
 		}
 
 		if (terrainObject) {
-			const intersects = raycaster.intersectObject(terrainObject, true);
-			if (intersects.length > 0) {
-				return intersects[0].point.y;
+			console.log('Attempting raycast on terrain object');
+			// レイキャストの設定を調整
+			raycaster.firstHitOnly = true;
+			raycaster.far = 300; // レイキャストの最大距離を設定
+			raycaster.near = 0; // 近接面の距離を0に設定
+
+			// デバッグ情報を追加
+			console.log('Ray origin:', raycaster.ray.origin);
+			console.log('Ray direction:', raycaster.ray.direction);
+			console.log('Chunk position:', terrainObject.position);
+			console.log('Chunk rotation:', terrainObject.rotation);
+
+			// チャンクのジオメトリを取得
+			const geometry = terrainObject.geometry;
+			if (geometry && geometry.attributes && geometry.attributes.position) {
+				// ジオメトリの頂点データを取得
+				const positions = geometry.attributes.position.array;
+				const segments = this.fieldMap.lodSegments[0];
+				const vertexCount = (segments + 1) * (segments + 1);
+
+				// チャンクのローカル座標に変換
+				const localX = x - terrainObject.position.x;
+				const localZ = z - terrainObject.position.z;
+
+				// グリッドセルのインデックスを計算
+				const cellSize = this.fieldMap.chunkSize / segments;
+				const cellX = Math.floor(localX / cellSize);
+				const cellZ = Math.floor(localZ / cellSize);
+
+				// デバッグ情報を追加
+				console.log('Local coordinates:', { localX, localZ });
+				console.log('Cell indices:', { cellX, cellZ });
+				console.log('Cell size:', cellSize);
+
+				// 4つの頂点のインデックスを計算
+				const v1 = cellZ * (segments + 1) + cellX;
+				const v2 = v1 + 1;
+				const v3 = v1 + (segments + 1);
+				const v4 = v3 + 1;
+
+				// 頂点が有効な範囲内かチェック
+				if (v1 >= 0 && v4 < vertexCount) {
+					// セル内の相対位置を計算
+					const relX = (localX % cellSize) / cellSize;
+					const relZ = (localZ % cellSize) / cellSize;
+
+					// 4つの頂点の高さを取得
+					const h1 = positions[v1 * 3 + 1];
+					const h2 = positions[v2 * 3 + 1];
+					const h3 = positions[v3 * 3 + 1];
+					const h4 = positions[v4 * 3 + 1];
+
+					// デバッグ情報を追加
+					console.log('Vertex heights:', { h1, h2, h3, h4 });
+					console.log('Relative position:', { relX, relZ });
+
+					// バイリニア補間で高さを計算
+					const height = (1 - relX) * (1 - relZ) * h1 +
+						relX * (1 - relZ) * h2 +
+						(1 - relX) * relZ * h3 +
+						relX * relZ * h4;
+
+					// 高さが異常に低い場合は警告
+					if (height < 1.0) {
+						console.warn('Suspiciously low height calculated:', height);
+					}
+
+					console.log('Final calculated height:', height);
+					return height;
+				} else {
+					console.warn('Vertex indices out of range:', { v1, v2, v3, v4, vertexCount });
+				}
+			} else {
+				console.warn('Invalid geometry or missing position attribute');
 			}
 		}
 
 		// フォールバック: フィールドマップのgetHeightAtメソッドを使用
 		if (this.fieldMap) {
 			const height = this.fieldMap.getHeightAt(x, z);
-			if (height !== null) {
-				return height;
-			}
+			console.log('Using fallback height:', height);
+			return height;
 		}
 
 		return 0;
@@ -3613,7 +3706,11 @@ class Game {
 	updateAllCharactersHeight() {
 		// プレイヤーの高さを更新
 		if (this.playerModel) {
-			this.updatePlayerHeight(this.playerModel);
+			const position = this.playerModel.getPosition();
+			const terrainHeight = this.getHeightAt(position.x, position.z);
+			console.log('Terrain height:', terrainHeight);
+			//const terrainHeight = this.fieldMap.getHeightAt(position.x, position.z);
+			this.playerModel.setPosition(position.x, terrainHeight, position.z);
 		}
 
 		// 敵の高さを更新
@@ -3621,6 +3718,7 @@ class Game {
 			if (enemy && !enemy.isDead) {
 				const position = enemy.model.getPosition();
 				const terrainHeight = this.getHeightAt(position.x, position.z);
+				//console.log('Terrain height:', terrainHeight);
 				enemy.model.setPosition(position.x, terrainHeight + 0.5, position.z);
 			}
 		});
