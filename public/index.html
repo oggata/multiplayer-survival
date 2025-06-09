@@ -161,44 +161,44 @@
             cursor: pointer;
             font-size: 16px;
         }
-        @media {
+        @media (max-width: 768px) {
             #mobileControls {
                 display: block;
             }
             
-#joystickKnob {
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 30px;
-    top: 30px;
-    left: 30px;
-    transition: transform 0.1s ease, background-color 0.2s ease;
-}
+            #joystickKnob {
+                position: absolute;
+                width: 60px;
+                height: 60px;
+                background: rgba(255, 255, 255, 0.5);
+                border-radius: 30px;
+                top: 30px;
+                left: 30px;
+                transition: transform 0.1s ease, background-color 0.2s ease;
+            }
 
-#joystickBorder {
-    transition: border-color 0.2s ease;
-}
+            #joystickBorder {
+                transition: border-color 0.2s ease;
+            }
 
-#runIndicator {
-    background-color: rgba(255, 165, 0, 0.7);
-    border: 1px solid #ffcc00;
-    text-shadow: 0 0 3px #000;
-    font-weight: bold;
-    letter-spacing: 1px;
-    animation: pulse 1s infinite alternate;
-}
+            #runIndicator {
+                background-color: rgba(255, 165, 0, 0.7);
+                border: 1px solid #ffcc00;
+                text-shadow: 0 0 3px #000;
+                font-weight: bold;
+                letter-spacing: 1px;
+                animation: pulse 1s infinite alternate;
+            }
 
-@keyframes pulse {
-    from { opacity: 0.7; }
-    to { opacity: 1; }
-}
+            @keyframes pulse {
+                from { opacity: 0.7; }
+                to { opacity: 1; }
+            }
 
-@keyframes pulse {
-    from { opacity: 0.7; }
-    to { opacity: 1; }
-}
+            @keyframes pulse {
+                from { opacity: 0.7; }
+                to { opacity: 1; }
+            }
             #messageButton {
                 width: 100px;
                 height: 50px;
@@ -545,6 +545,7 @@
     <script src="js/bullet.js"></script>
     <script src="js/fieldobject.js"></script>
     <script src="js/game.js"></script>
+    <script src="js/mission.js"></script>
     <script src="js/enemyBullet.js"></script>
 
 

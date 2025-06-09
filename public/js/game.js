@@ -298,6 +298,8 @@ class Game {
 				this.socket.disconnect();
 			}
 		});
+
+		this.missionManager = new MissionManager(this);
 		this.animate();
 	}
 
@@ -1064,6 +1066,18 @@ class Game {
 		// 敵の攻撃
 		this.socket.on('enemyAttack', (data) => {
 			this.takeDamage(data.damage);
+		});
+
+		this.socket.on('keyItemPosition', (data) => {
+			if (this.missionManager) {
+				this.missionManager.updateKeyItemPosition(data);
+			}
+		});
+
+		this.socket.on('keyItemCollected', (data) => {
+			if (this.missionManager) {
+				this.missionManager.handleKeyItemCollected(data);
+			}
 		});
 	}
 
@@ -2041,6 +2055,9 @@ class Game {
 		        this.radioTowerManager.update(this.playerModel.getPosition());
 		    }*/
 
+		if (this.missionManager) {
+			this.missionManager.update();
+		}
 	}
 
 	updateStatusDisplay() {

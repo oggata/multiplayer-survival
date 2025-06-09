@@ -1070,6 +1070,90 @@ function updateTimeOfDay() {
     return timeOfDay;
 }
 
+// キーアイテム関連のグローバル変数
+let keyItem = null;
+let lastKeyItemBiome = null;
+let totalKeyItemsCollected = 0;
+
+// キーアイテムを生成する関数
+function spawnKeyItem() {
+    // 前回と異なるバイオームを選択
+    let biome;
+    do {
+        biome = Math.floor(Math.random() * 4); // 0: 砂漠, 1: 雪, 2: 草原, 3: 火山
+    } while (biome === lastKeyItemBiome);
+
+    lastKeyItemBiome = biome;
+
+    // バイオームに応じた位置範囲を設定
+    let minX, maxX, minZ, maxZ;
+    switch (biome) {
+        case 0: // 砂漠
+            minX = -1000; maxX = -500;
+            minZ = -1000; maxZ = -500;
+            break;
+        case 1: // 雪
+            minX = 500; maxX = 1000;
+            minZ = -1000; maxZ = -500;
+            break;
+        case 2: // 草原
+            minX = -1000; maxX = -500;
+            minZ = 500; maxZ = 1000;
+            break;
+        case 3: // 火山
+            minX = 500; maxX = 1000;
+            minZ = 500; maxZ = 1000;
+            break;
+    }
+
+    // ランダムな位置を生成
+    const x = Math.random() * (maxX - minX) + minX;
+    const z = Math.random() * (maxZ - minZ) + minZ;
+
+    // キーアイテムの位置を設定
+    keyItem = { x, z, biome };
+
+    // 全クライアントにキーアイテムの位置を通知
+    io.emit('keyItemPosition', keyItem);
+    console.log(`キーアイテムを生成: バイオーム${biome} (${x}, ${z})`);
+}
+
+// キーアイテムの収集を処理する関数
+function handleKeyItemCollection(playerId) {
+    if (!keyItem) return;
+
+    const player = players[playerId];
+    if (!player) return;
+
+    // プレイヤーとキーアイテムの距離を計算
+    const distance = Math.sqrt(
+        Math.pow(player.position.x - keyItem.x, 2) +
+        Math.pow(player.position.z - keyItem.z, 2)
+    );
+
+    // 収集判定（距離が2以内）
+    if (distance <= 2) {
+        // 収集数を増加
+        totalKeyItemsCollected++;
+        
+        // 収集通知を送信
+        io.emit('keyItemCollected', {
+            playerId,
+            playerName: player.name || 'Player ' + playerId.substring(0, 4),
+            totalCollected: totalKeyItemsCollected
+        });
+
+        // キーアイテムを削除
+        keyItem = null;
+
+        // 5秒後に新しいキーアイテムを生成
+        setTimeout(spawnKeyItem, 5000);
+    }
+}
+
+// サーバー起動時にキーアイテムを生成
+spawnKeyItem();
+
 io.on('connection', (socket) => {
     console.log('プレイヤーが接続しました:', socket.id);
     
@@ -1130,6 +1214,9 @@ io.on('connection', (socket) => {
             players[socket.id].isMoving = data.isMoving || false;
             players[socket.id].isRunning = data.isRunning || false;
             socket.broadcast.emit('playerMoved', players[socket.id]);
+
+            // キーアイテムの収集チェック
+            handleKeyItemCollection(socket.id);
         }
     });
     
@@ -1201,6 +1288,14 @@ io.on('connection', (socket) => {
             spawnBosses();
         }
     });
+
+    // 新規プレイヤーに現在のキーアイテムの位置を通知
+    if (keyItem) {
+        socket.emit('keyItemPosition', keyItem);
+    }
+
+    // 新規プレイヤーに現在の収集数を通知
+    socket.emit('totalKeyItemsCollected', totalKeyItemsCollected);
 });
 
 const PORT = process.env.PORT || 3000;
