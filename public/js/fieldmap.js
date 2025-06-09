@@ -265,7 +265,7 @@ class FieldMap {
 
         // ローディングテキスト
         const loadingText = document.createElement('div');
-        loadingText.textContent = '地形を生成中...';
+        loadingText.textContent = 'Generating terrain...';
         loadingText.style.fontSize = '24px';
         loadingText.style.marginBottom = '20px';
 
@@ -1121,7 +1121,7 @@ class FieldMap {
         });
     }
 
-    generateObjectsForChunk(chunkX, chunkZ) {
+    async generateObjectsForChunk(chunkX, chunkZ) {
         const chunkKey = `${chunkX},${chunkZ}`;
         if (this.objectChunks.has(chunkKey)) {
             return;
@@ -1222,6 +1222,34 @@ class FieldMap {
                 }
             }
         }
+
+        //car
+        for(var i = 0; i < 5; i++) {
+            const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'carX' + i) - 0.5) * this.chunkSize;
+            const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'carZ' + i) - 0.5) * this.chunkSize;
+            
+            // チャンクの範囲内かチェック
+            if (Math.abs(x - chunkPosition.x) > this.chunkSize/2 ||
+                Math.abs(z - chunkPosition.z) > this.chunkSize/2) {
+                continue;
+            }
+
+            // ランダムな回転を設定
+            const rotation = this.getDeterministicRandom(chunkX, chunkZ, 'carRot' + i) * Math.PI * 2;
+            
+            try {
+                const car = await this.fieldObject.createCar(x, z, rotation);   
+                if (car && car.mesh) {
+                    car.mesh.position.set(x, this.getHeightAt(x, z) + 0.5, z);
+                    this.scene.add(car.mesh);
+                    chunkObjects.push(car);
+                    this.objects.push(car);
+                }
+            } catch (error) {
+                console.error('車の生成に失敗しました:', error);
+            }
+        }
+
 
         // 木の生成
         let treeCount;

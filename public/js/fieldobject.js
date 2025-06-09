@@ -186,187 +186,56 @@ class FieldObject {
         }
     }
     
-    createCar(x, z, rotation) {
-        const carGroup = new THREE.Group();
-        carGroup.position.set(x, 0, z);
-        carGroup.rotation.y = rotation;
-
-        // 車体の色をランダムに設定
-        const carColors = [
-            0x000000, // 黒
-            0xFFFFFF, // 白
-            0xFF0000, // 赤
-            0x0000FF, // 青
-            0x808080  // グレー
-        ];
-        const carColor = carColors[Math.floor(Math.random() * carColors.length)];
-
-        // 車体の基本形状
-        const bodyGeometry = new THREE.BoxGeometry(4, 1.5, 2);
-        const bodyMaterial = new THREE.MeshStandardMaterial({ 
-            color: carColor,
-            metalness: 0.8,
-            roughness: 0.2
-        });
-        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        body.position.y = 0.75;
-        carGroup.add(body);
-
-        // フロントガラス
-        const windshieldGeometry = new THREE.BoxGeometry(1.2, 1, 2.1);
-        const glassMaterial = new THREE.MeshStandardMaterial({
-            color: 0x88ccff,
-            transparent: true,
-            opacity: 0.6,
-            metalness: 0.9,
-            roughness: 0.1
-        });
-        const windshield = new THREE.Mesh(windshieldGeometry, glassMaterial);
-        windshield.position.set(1.2, 1.5, 0);
-        windshield.rotation.x = Math.PI / 6;
-        carGroup.add(windshield);
-
-        // リアガラス
-        const rearWindowGeometry = new THREE.BoxGeometry(1.2, 1, 2.1);
-        const rearWindow = new THREE.Mesh(rearWindowGeometry, glassMaterial);
-        rearWindow.position.set(-1.2, 1.5, 0);
-        rearWindow.rotation.x = -Math.PI / 6;
-        carGroup.add(rearWindow);
-
-        // タイヤ
-        const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
-        const wheelMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x333333,
-            metalness: 0.5,
-            roughness: 0.7
-        });
-
-        // フロントタイヤ
-        const frontLeftWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-        frontLeftWheel.rotation.z = Math.PI / 2;
-        frontLeftWheel.position.set(1.2, 0.4, 1.1);
-        carGroup.add(frontLeftWheel);
-
-        const frontRightWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-        frontRightWheel.rotation.z = Math.PI / 2;
-        frontRightWheel.position.set(1.2, 0.4, -1.1);
-        carGroup.add(frontRightWheel);
-
-        // リアタイヤ
-        const rearLeftWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-        rearLeftWheel.rotation.z = Math.PI / 2;
-        rearLeftWheel.position.set(-1.2, 0.4, 1.1);
-        carGroup.add(rearLeftWheel);
-
-        const rearRightWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-        rearRightWheel.rotation.z = Math.PI / 2;
-        rearRightWheel.position.set(-1.2, 0.4, -1.1);
-        carGroup.add(rearRightWheel);
-
-        // ヘッドライト
-        const headlightGeometry = new THREE.SphereGeometry(0.2, 16, 16);
-        const headlightMaterial = new THREE.MeshStandardMaterial({
-            color: 0xffffcc,
-            emissive: 0xffffcc,
-            emissiveIntensity: 0.5
-        });
-
-        const leftHeadlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
-        leftHeadlight.position.set(2, 0.8, 0.6);
-        carGroup.add(leftHeadlight);
-
-        const rightHeadlight = new THREE.Mesh(headlightGeometry, headlightMaterial);
-        rightHeadlight.position.set(2, 0.8, -0.6);
-        carGroup.add(rightHeadlight);
-
-        // テールライト
-        const taillightGeometry = new THREE.SphereGeometry(0.2, 16, 16);
-        const taillightMaterial = new THREE.MeshStandardMaterial({
-            color: 0xff0000,
-            emissive: 0xff0000,
-            emissiveIntensity: 0.5
-        });
-
-        const leftTaillight = new THREE.Mesh(taillightGeometry, taillightMaterial);
-        leftTaillight.position.set(-2, 0.8, 0.6);
-        carGroup.add(leftTaillight);
-
-        const rightTaillight = new THREE.Mesh(taillightGeometry, taillightMaterial);
-        rightTaillight.position.set(-2, 0.8, -0.6);
-        carGroup.add(rightTaillight);
-
-        // バンパー
-        const bumperGeometry = new THREE.BoxGeometry(0.3, 0.4, 2.2);
-        const bumperMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x333333,
-            metalness: 0.5,
-            roughness: 0.7
-        });
-
-        const frontBumper = new THREE.Mesh(bumperGeometry, bumperMaterial);
-        frontBumper.position.set(2.15, 0.2, 0);
-        carGroup.add(frontBumper);
-
-        const rearBumper = new THREE.Mesh(bumperGeometry, bumperMaterial);
-        rearBumper.position.set(-2.15, 0.2, 0);
-        carGroup.add(rearBumper);
-
-        // ドアハンドル
-        const handleGeometry = new THREE.BoxGeometry(0.1, 0.2, 0.4);
-        const handleMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x888888,
-            metalness: 0.9,
-            roughness: 0.1
-        });
-
-        const leftHandle = new THREE.Mesh(handleGeometry, handleMaterial);
-        leftHandle.position.set(0, 1, 1.05);
-        carGroup.add(leftHandle);
-
-        const rightHandle = new THREE.Mesh(handleGeometry, handleMaterial);
-        rightHandle.position.set(0, 1, -1.05);
-        carGroup.add(rightHandle);
-
-        // ミラー
-        const mirrorGeometry = new THREE.BoxGeometry(0.1, 0.3, 0.5);
-        const mirrorMaterial = new THREE.MeshStandardMaterial({ 
-            color: carColor,
-            metalness: 0.8,
-            roughness: 0.2
-        });
-
-        const leftMirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
-        leftMirror.position.set(1.8, 1.2, 1.1);
-        carGroup.add(leftMirror);
-
-        const rightMirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
-        rightMirror.position.set(1.8, 1.2, -1.1);
-        carGroup.add(rightMirror);
-
-        // アンテナ
-        const antennaGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.5, 8);
-        const antennaMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x333333,
-            metalness: 0.8,
-            roughness: 0.2
-        });
-        const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
-        antenna.position.set(-1, 2, 0);
-        carGroup.add(antenna);
-
-        // 車の下に影を追加
-        const shadowGeometry = new THREE.PlaneGeometry(4.5, 2.5);
-        const shadowMaterial = new THREE.MeshBasicMaterial({
-            color: 0x000000,
-            transparent: true,
-            opacity: 0.3
-        });
-        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
-        shadow.rotation.x = -Math.PI / 2;
-        shadow.position.y = 0.01;
-        carGroup.add(shadow);
-
-        return carGroup;
+    async createCar(x, z, rotation) {
+        try {
+            const loader = new THREE.GLTFLoader();
+            const car = await new Promise((resolve, reject) => {
+                loader.load(
+                    '/gltf/car.glb',
+                    (gltf) => {
+                        const carGroup = new THREE.Group();
+                        const carMesh = gltf.scene;
+                        
+                        // 車のサイズを調整
+                        carMesh.scale.set(1, 1, 1);
+                        
+                        // 車の位置を設定
+                        carMesh.position.set(x, 0, z);
+                        
+                        // 車の回転を設定
+                        if (rotation !== undefined) {
+                            carMesh.rotation.y = rotation;
+                        }
+                        
+                        carGroup.add(carMesh);
+                        
+                        // 影を追加
+                        const shadowGeometry = new THREE.CircleGeometry(2, 32);
+                        const shadowMaterial = new THREE.MeshBasicMaterial({
+                            color: 0x000000,
+                            transparent: true,
+                            opacity: 0.3
+                        });
+                        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+                        shadow.rotation.x = -Math.PI / 2;
+                        shadow.position.y = 0.01;
+                        carGroup.add(shadow);
+                        
+                        resolve({ mesh: carGroup, position: carMesh.position });
+                    },
+                    undefined,
+                    (error) => {
+                        console.error('車のモデルの読み込みに失敗しました:', error);
+                        reject(error);
+                    }
+                );
+            });
+            
+            return car;
+        } catch (error) {
+            console.error('車の生成に失敗しました:', error);
+            return null;
+        }
     }
     
     createTree(x, z, height, specifiedType = null) {
