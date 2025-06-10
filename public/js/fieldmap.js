@@ -415,7 +415,7 @@ class FieldMap {
         const grassIndices = [];
         const grassUvs = [];
         const grassColors = [];
-        const grassCount = 5000; // 草の本数を5000に増やす
+        const grassCount = 0; // 5000
 
         // 頂点の生成（より細かいメッシュ）
         for (let z = 0; z <= segments; z++) {
@@ -1143,7 +1143,8 @@ class FieldMap {
         if (!biomeSetting) return;
 
         // 建物の生成
-        const buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 50 * biomeSetting.buildingDensity);
+        var buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 50 * biomeSetting.buildingDensity);
+        //buildingCount = 0;
         for (let i = 0; i < buildingCount; i++) {
             if (this.getDeterministicRandom(chunkX, chunkZ, 'building' + i) < biomeSetting.buildingDensity) {
                 let position;
@@ -1223,6 +1224,7 @@ class FieldMap {
             }
         }
 
+        /*
         //car
         for(var i = 0; i < 5; i++) {
             const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'carX' + i) - 0.5) * this.chunkSize;
@@ -1249,16 +1251,17 @@ class FieldMap {
                 console.error('車の生成に失敗しました:', error);
             }
         }
+        */
 
 
         // 木の生成
         let treeCount;
         if (biome.type === 'forest') {
-            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 100 * biomeSetting.treeDensity);
+            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 70 * biomeSetting.treeDensity);
         } else {
-            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 50 * biomeSetting.treeDensity);
+            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 40 * biomeSetting.treeDensity);
         }
-
+        //treeCount = 0;
         for (let i = 0; i < treeCount; i++) {
             const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'treeX' + i) - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'treeZ' + i) - 0.5) * this.chunkSize;
@@ -1282,7 +1285,7 @@ class FieldMap {
         }
 
         // がれきの生成
-        const debrisCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'debrisCount') * 35 * biomeSetting.debrisDensity);
+        const debrisCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'debrisCount') * 30 * biomeSetting.debrisDensity);
         for (let i = 0; i < debrisCount; i++) {
             const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'debrisX' + i) - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'debrisZ' + i) - 0.5) * this.chunkSize;
@@ -1388,20 +1391,6 @@ class FieldMap {
             Math.abs(position.z) > this.mapSize/2 - radius) {
             return true;
         }
-        
-        /*
-        // オブジェクトとの衝突判定
-        for (const object of this.objects) {
-            const dx = position.x - object.position.x;
-            const dz = position.z - object.position.z;
-            const distance = Math.sqrt(dx * dx + dz * dz);
-            
-            if (distance < radius + 1) {
-                return true;
-            }
-        }
-        */
-
         return false;
     }
 
@@ -1552,18 +1541,6 @@ class FieldMap {
         }
         
         return false;
-    }
-
-    createBuilding(position, width, height) {
-        // Implementation of createBuilding method
-    }
-
-    generateTrees() {
-        // Implementation of generateTrees method
-    }
-
-    generateDebris() {
-        // Implementation of generateDebris method
     }
 
     // 決定論的な乱数生成関数をクラスメソッドとして定義

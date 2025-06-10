@@ -641,6 +641,10 @@ class Game {
 	}
 
 	createPlayerModel() {
+
+		console.log("createPlayerModel");
+		//console.log(player.id + ">>>>> " + this.socket.id);
+
 		if (this.playerModel) {
 			this.scene.remove(this.playerModel.character);
 			this.playerModel.dispose();
@@ -886,10 +890,12 @@ class Game {
 
 		// ゲーム設定の受信
 		this.socket.on('gameConfig', (config) => {
+			console.log("gameConfig");
 			this.seed = config.seed;
 			this.gameStartTime = config.gameStartTime;
 			this.playerHash = config.playerHash;
-
+			
+console.log(this.playerId);
 			this.setupScene(this.seed);
 
 			// If player model already exists, update its color based on hash
@@ -930,7 +936,7 @@ class Game {
 
 			// 新しいプレイヤーリストを追加（自分自身を除く）
 			players.forEach(player => {
-				if (player.id !== this.socket.id) {
+				if(this.playerId !== this.socket.id){
 					this.addPlayer(player);
 				}
 			});
@@ -938,9 +944,13 @@ class Game {
 		});
 
 		this.socket.on('newPlayer', (player) => {
-			//console.log('新規のプレイヤー:', player);
-			this.addPlayer(player);
-			this.updatePlayerCount();
+
+			console.log(this.playerId + ">>>>> " + this.socket.id);
+			if(this.playerId !== this.socket.id){
+				console.log('新規のプレイヤー:', player);
+				this.addPlayer(player);
+				this.updatePlayerCount();
+			}
 		});
 
 		this.socket.on('playerDisconnected', (playerId) => {

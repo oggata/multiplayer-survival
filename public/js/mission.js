@@ -6,6 +6,7 @@ class MissionManager {
         this.keyItemModel = null;
         console.log('MissionManager initialized');
         this.setupSocketEvents();
+        this.updateCount = 0;
     }
 
     setupSocketEvents() {
@@ -180,6 +181,11 @@ class MissionManager {
     }
 
     update() {
+        this.updateCount++;
+        if(this.updateCount > 60){
+            this.updateCount = 0;
+            this.updateKeyItemIndicator();
+        }
         if (this.keyItem && this.game.playerModel) {
             this.updateKeyItemIndicator();
             
