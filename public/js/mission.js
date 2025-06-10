@@ -124,7 +124,7 @@ class MissionManager {
         this.keyItemIndicator = document.createElement('div');
         this.keyItemIndicator.className = 'key-item-indicator';
         this.keyItemIndicator.innerHTML = `
-            <i class="fas fa-key"></i>
+            <i class="fas fa-vial"></i>
             <span>: ${Math.floor(distance)}m</span>
         `;
         this.keyItemIndicator.style.position = 'fixed';

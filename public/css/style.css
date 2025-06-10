@@ -210,4 +210,54 @@
     20% { opacity: 1; }
     80% { opacity: 1; }
     100% { opacity: 0; }
+}
+
+/* How to Play Modal */
+#howToPlayModal {
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    z-index: 1000;
+    max-width: 80%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+#howToPlayModal h2 {
+    color: #ffcc00;
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+#howToPlayModal p {
+    font-size: 12px;
+    line-height: 1.4;
+    margin-bottom: 10px;
+}
+
+#howToPlayModal ul {
+    font-size: 12px;
+    line-height: 1.4;
+    margin-bottom: 15px;
+    padding-left: 20px;
+}
+
+#howToPlayModal li {
+    margin-bottom: 5px;
+}
+
+#howToPlayModal button {
+    background-color: #333;
+    color: white;
+    border: 1px solid #555;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+#howToPlayModal button:hover {
+    background-color: #444;
+    border-color: #ffcc00;
 } 

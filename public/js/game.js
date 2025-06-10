@@ -873,6 +873,17 @@ class Game {
 		}
 	}
 	setupSocketEvents() {
+		this.socket = io();
+
+		this.socket.on('connect', () => {
+			console.log('Connected to server');
+			this.playerId = this.socket.id;
+		});
+
+		this.socket.on('totalKeyItemsCollected', (total) => {
+			this.totalKeyItemsCollected = total;
+		});
+
 		// ゲーム設定の受信
 		this.socket.on('gameConfig', (config) => {
 			this.seed = config.seed;
@@ -2695,7 +2706,7 @@ class Game {
 		// 時間表示を更新
 		const timeDisplay = document.getElementById('timeDisplay');
 		if (timeDisplay) {
-			timeDisplay.innerHTML = `<i class="fas fa-user-alt"></i> ${this.players.size} <br><i class="fas fa-stopwatch"></i> ${survivalDays}D ${survivalHours.toString().padStart(2, '0')}H ${survivalMinutes.toString().padStart(2, '0')}M<br><i class="fas fa-clock"></i> ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
+			timeDisplay.innerHTML = `<i class="fas fa-vial"></i> ${this.totalKeyItemsCollected || 0} <i class="fas fa-user-alt"></i> ${this.players.size + 1} <br><i class="fas fa-stopwatch"></i> ${survivalDays}D ${survivalHours.toString().padStart(2, '0')}H ${survivalMinutes.toString().padStart(2, '0')}M<br><i class="fas fa-clock"></i> ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
 		}
 
 
