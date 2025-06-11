@@ -2,6 +2,7 @@
  * 気象システムを管理するクラス
  */
 class Raycast {
+    
     constructor(game) {
         this.game = game;
         this.fieldMap = game.fieldMap;
