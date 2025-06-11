@@ -415,7 +415,7 @@ class FieldMap {
         const grassIndices = [];
         const grassUvs = [];
         const grassColors = [];
-        const grassCount = 0; // 5000
+        const grassCount = 3300; // 5000
 
         // 頂点の生成（より細かいメッシュ）
         for (let z = 0; z <= segments; z++) {
@@ -1143,7 +1143,7 @@ class FieldMap {
         if (!biomeSetting) return;
 
         // 建物の生成
-        var buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 50 * biomeSetting.buildingDensity);
+        var buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 5 * biomeSetting.buildingDensity);
         //buildingCount = 0;
         for (let i = 0; i < buildingCount; i++) {
             if (this.getDeterministicRandom(chunkX, chunkZ, 'building' + i) < biomeSetting.buildingDensity) {

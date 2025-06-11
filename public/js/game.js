@@ -101,7 +101,8 @@ class Game {
 		this.monochromePass = new THREE.ShaderPass(this.monochromeShader);
 		this.composer.addPass(this.monochromePass);
 
-		this.socket = io();
+		// Socket.IOの初期化はsetupSocketEventsで行う
+		this.socket = null;
 		this.players = new Map();
 		this.enemies = new Map(); // 敵を管理するMapを追加
 		this.enemyBullets = new Map(); // 敵の弾丸を管理するマップを追加
@@ -465,7 +466,7 @@ class Game {
 
 		} else {
 			// 画面外の場合は方向インジケーターを表示
-			this.showBossEnemyIndicator(enemyId, screenPosition);
+			//this.showBossEnemyIndicator(enemyId, screenPosition);
 		}
 	}
 
@@ -556,9 +557,6 @@ class Game {
 		this.sunLight.shadow.mapSize.width = 2048;
 		this.sunLight.shadow.mapSize.height = 2048;
 		this.scene.add(this.sunLight);
-
-		// プレイヤーモデルの作成
-		this.createPlayerModel();
 
 		// プレイヤー用のスポットライトを作成
 		this.playerLight = new THREE.SpotLight(0xffffff, 2.0);
@@ -882,6 +880,7 @@ class Game {
 		this.socket.on('connect', () => {
 			console.log('Connected to server');
 			this.playerId = this.socket.id;
+			console.log("this.playerId" + this.playerId);
 		});
 
 		this.socket.on('totalKeyItemsCollected', (total) => {
@@ -895,9 +894,6 @@ class Game {
 			this.gameStartTime = config.gameStartTime;
 			this.playerHash = config.playerHash;
 			
-console.log(this.playerId);
-			this.setupScene(this.seed);
-
 			// If player model already exists, update its color based on hash
 			if (this.playerModel && this.playerHash) {
 				const color = this.generateColorFromHash(this.playerHash);
@@ -908,9 +904,17 @@ console.log(this.playerId);
 		this.socket.on('currentPlayers', (players) => {
 			//console.log('現在のプレイヤー:', players);
 
+			// シーンの初期化（初回のみ）
+			if (!this.fieldMap) {
+				this.setupScene(this.seed);
+			}
+
 			// 自分の初期位置を設定
 			const myPlayerData = players.find(player => player.id === this.socket.id);
-			if (myPlayerData && this.playerModel) {
+			if (myPlayerData) {
+				if (!this.playerModel) {
+					this.createPlayerModel();
+				}
 				// サーバーから送られてきた位置を設定
 				this.playerModel.setPosition(
 					myPlayerData.position.x,
@@ -936,7 +940,7 @@ console.log(this.playerId);
 
 			// 新しいプレイヤーリストを追加（自分自身を除く）
 			players.forEach(player => {
-				if(this.playerId !== this.socket.id){
+				if (player.id !== this.socket.id && !this.players.has(player.id)) {
 					this.addPlayer(player);
 				}
 			});
@@ -944,9 +948,7 @@ console.log(this.playerId);
 		});
 
 		this.socket.on('newPlayer', (player) => {
-
-			console.log(this.playerId + ">>>>> " + this.socket.id);
-			if(this.playerId !== this.socket.id){
+			if(player.id !== this.socket.id){
 				console.log('新規のプレイヤー:', player);
 				this.addPlayer(player);
 				this.updatePlayerCount();
@@ -3279,7 +3281,7 @@ console.log(this.playerId);
 			const enemy = this.enemies.get(enemyId);
 			if (enemy) {
 				// 音を再生
-				this.audioManager.play('enemyDeath');
+				//this.audioManager.play('enemyDeath');
 				enemy.die();
 				this.enemies.delete(enemyId);
 			}

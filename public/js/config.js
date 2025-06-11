@@ -137,8 +137,8 @@ const GameConfig = {
     // マップ設定
     MAP: {
         SIZE:   6000,
-        CHUNK_SIZE:     110,
-        VISLBLE_DISTANCE:   160,
+        CHUNK_SIZE:     50,
+        VISLBLE_DISTANCE:   100,
         BOUNDARY_WALL_HEIGHT:  0,
         BIOME: {
             RADIUS: 500, // バイオームの半径
@@ -305,8 +305,8 @@ const GameConfig = {
         },
         BUILDINGS: {
             DENSITY: 1,  // 建物の生成確率（0-1）
-            MIN_DISTANCE: 80,  // 建物間の最小距離（建物の最大幅40の2倍）
-            MAX_ATTEMPTS: 100  // 建物配置の最大試行回数
+            MIN_DISTANCE: 250,  // 建物間の最小距離（建物の最大幅40の2倍）
+            MAX_ATTEMPTS: 20  // 建物配置の最大試行回数
         },
         LOD: {
             DISTANCES: [100, 200, 300], // LODの距離閾値
