@@ -432,6 +432,7 @@ class Bullet {
 		this.trailMaterial = null;
 	}
 
+	
 	// 衝突判定
 	checkCollision(position, radius) {
 		return this.model.position.distanceTo(position) < radius;

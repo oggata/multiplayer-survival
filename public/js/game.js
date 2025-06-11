@@ -300,6 +300,10 @@ class Game {
 			}
 		});
 
+
+		this.raycast = new Raycast(this);
+		this.weponManager = new WeponManager(this);
+
 		this.missionManager = new MissionManager(this);
 		this.animate();
 	}
@@ -1146,6 +1150,7 @@ class Game {
 		}
 	}
 
+	/*
 	shoot() {
 		// 発射間隔チェック
 		const now = Date.now();
@@ -1290,7 +1295,9 @@ class Game {
 		// 最後の発射時間を更新
 		this.lastShootTime = Date.now();
 	}
+		*/
 
+	/*
 	updateBullets(deltaTime) {
 		for (let i = this.bullets.length - 1; i >= 0; i--) {
 			const bullet = this.bullets[i];
@@ -1351,6 +1358,7 @@ class Game {
 			}
 		}
 	}
+		*/
 
 	createBullet(position, direction, playerId, weaponId) {
 		const bullet = new Bullet(this.scene, position, direction, playerId, weaponId);
@@ -2028,7 +2036,7 @@ class Game {
 		this.weather.update(deltaTime, this.gameTime, this.timeOfDay);
 
 		// 弾丸の更新を追加
-		this.updateBullets(deltaTime);
+		this.weponManager.updateBullets(deltaTime);
 		this.updateEnemyBullets(deltaTime); // 敵の弾丸の更新を追加
 
 		// 敵の表示/非表示を更新
@@ -2068,7 +2076,7 @@ class Game {
 				if (this.playerModel) {
 					this.playerModel.startShooting();
 				}
-				this.shoot();
+				this.weponManager.shoot(this.playerModel);
 			}
 		}
 
