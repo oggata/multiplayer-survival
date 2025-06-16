@@ -275,9 +275,9 @@ class Game {
 			.map(([type]) => type);
 
 			
-		for (let i = 0; i < 8; i++) {
+		for (let i = 0; i < 3; i++) {
 			const randomIndex = Math.floor(Math.random() * itemTypes.length);
-			const selectedType = itemTypes[i];
+			const selectedType = itemTypes[randomIndex];
 			//console.log('selectedType', selectedType);
 			if (selectedType) {
 				this.inventory.push({
