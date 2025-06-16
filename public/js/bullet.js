@@ -24,82 +24,12 @@ class Bullet {
 		this.trailPoints = new THREE.Points(this.trailGeometry, this.trailMaterial);
 		this.scene.add(this.trailPoints);
 
-		if(bulletType=="bullet001") {
-			//normal
-			this.speed=15;
-			this.lifetime=1.5; // 5秒後に消える
-			this.damage=10;
-		}
-
-		if(bulletType=="shotgun") {
-			//normal
-			this.speed=20;
-			this.lifetime=1.5; // 5秒後に消える
-			this.damage=10;
-		}
-
-		if(bulletType=="machinegun") {
-			//normal
-			this.speed=20;
-			this.lifetime=1.5; // 5秒後に消える
-			this.damage=10;
-		}
-
-		if(bulletType=="magnum") {
-			//normal
-			this.speed=20;
-			this.lifetime=3; // 5秒後に消える
-			this.damage=20;
-		}
-
-		if(bulletType=="sniperrifle") {
-			//normal
-			this.speed=25;
-			this.lifetime=6; // 5秒後に消える
-			this.damage=10;
-		}
-
-		if(bulletType=="rocketlauncher") {
-			//normal
-			this.speed=15;
-			this.lifetime=1.5; // 5秒後に消える
-			this.damage=10;
-		}
-
-		if(bulletType=="lasergun") {
-			this.speed=30;
-			this.lifetime=0.5;
-			this.damage=15;
-			this.color=0xff0000;
-		}
-
-		if(bulletType=="grenadelauncher") {
-			this.speed=12;
-			this.lifetime=2.0;
-			this.damage=30;
-			this.color=0x666666;
-		}
-
-		if(bulletType=="flamethrower") {
-			this.speed=10;
-			this.lifetime=0.3;
-			this.damage=8;
-			this.color=0xff6600;
-		}
-
-		if(bulletType=="plasmacannon") {
-			this.speed=25;
-			this.lifetime=1.0;
-			this.damage=25;
-			this.color=0x00ffff;
-		}
-
-		if(bulletType=="missilelauncher") {
-			this.speed=20;
-			this.lifetime=3.0;
-			this.damage=40;
-			this.color=0x666666;
-		}
+		// GameConfigから武器の設定を取得
+		const config = GameConfig.WEAPON[bulletType.toUpperCase()] || GameConfig.WEAPON.BULLET001;
+		this.speed = config.speed;
+		this.lifetime = config.lifetime;
+		this.damage = config.damage;
+		this.color = config.color;
 
 		// 弾丸のモデルを作成
 		this.model=this.createModel(bulletType);
@@ -108,6 +38,10 @@ class Bullet {
 		// 移動方向を設定
 		this.direction=direction.clone().normalize();
 		this.velocity=this.direction.clone().multiplyScalar(this.speed);
+
+		// 重力の影響を受ける弾かどうかを設定
+		this.isAffectedByGravity = bulletType === "grenadelauncher";
+		this.gravity = 9.8; // 重力加速度
 
 		// シリンダー形状の弾の場合、進行方向に合わせて回転を設定
 		if (bulletType === "lasergun" || bulletType === "missilelauncher") {
@@ -303,6 +237,10 @@ class Bullet {
 
 	update(deltaTime) {
 		// 弾丸を移動
+		if (this.isAffectedByGravity) {
+			// 重力の影響を受ける場合
+			this.velocity.y -= this.gravity * deltaTime; // Y軸方向に重力を適用
+		}
 		this.model.position.add(this.velocity.clone().multiplyScalar(deltaTime));
 
 		// 軌跡エフェクトの更新

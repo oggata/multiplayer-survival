@@ -330,10 +330,15 @@ class PlayerStatus {
         // 持続効果を確認
         this.effects.forEach(effect => {
             if (effect.type === 'wepon' && effect.endTime > currentTime) {
-                currentWeponTypes.push(effect.attack.type);
+                currentWeponTypes.push(effect.name);
             }
         });
         return currentWeponTypes;
+    }
+
+    getWeaponConfig(weaponId) {
+        // GameConfigから武器の設定を取得
+        return GameConfig.WEAPONS[weaponId];
     }
 
     updateStatusDisplay() {

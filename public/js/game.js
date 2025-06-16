@@ -275,9 +275,9 @@ class Game {
 			.map(([type]) => type);
 
 			
-		for (let i = 0; i < 2; i++) {
+		for (let i = 0; i < 8; i++) {
 			const randomIndex = Math.floor(Math.random() * itemTypes.length);
-			const selectedType = itemTypes[randomIndex];
+			const selectedType = itemTypes[i];
 			//console.log('selectedType', selectedType);
 			if (selectedType) {
 				this.inventory.push({
@@ -3375,118 +3375,6 @@ class Game {
 		}
 	}
 
-	createExplosion(position, radius, damage) {
-		// 爆発エフェクトのジオメトリを作成
-		const geometry = new THREE.SphereGeometry(radius, 32, 32);
-		const material = new THREE.MeshPhongMaterial({
-			color: 0xff6600,
-			emissive: 0xff3300,
-			emissiveIntensity: 0.8,
-			transparent: true,
-			opacity: 0.8
-		});
-		const explosion = new THREE.Mesh(geometry, material);
-		explosion.position.copy(position);
-		this.scene.add(explosion);
-
-		// 爆発のアニメーション
-		const duration = 0.5;
-		const startTime = Date.now();
-		const animate = () => {
-			const elapsed = (Date.now() - startTime) / 1000;
-			if (elapsed < duration) {
-				const scale = 1 + elapsed * 2;
-				explosion.scale.set(scale, scale, scale);
-				explosion.material.opacity = 0.8 * (1 - elapsed / duration);
-				requestAnimationFrame(animate);
-			} else {
-				this.scene.remove(explosion);
-			}
-		};
-		animate();
-
-		// 範囲内の敵にダメージを与える
-		this.enemies.forEach((enemy, enemyId) => {
-			if (!enemy || enemy.isDead) return;
-			const distance = enemy.model.position.distanceTo(position);
-			if (distance <= radius) {
-				const damageRatio = 1 - (distance / radius);
-				const actualDamage = Math.floor(damage * damageRatio);
-				enemy.takeDamage(actualDamage);
-				this.socket.emit('enemyHit', {
-					targetId: enemyId,
-					damage: actualDamage
-				});
-			}
-		});
-	}
-
-	createLightningEffect(startPosition, endPosition) {
-		// 稲妻のジオメトリを作成
-		const points = [];
-		const segments = 10;
-		for (let i = 0; i <= segments; i++) {
-			const t = i / segments;
-			const point = new THREE.Vector3().lerpVectors(startPosition, endPosition, t);
-			if (i > 0 && i < segments) {
-				point.x += (Math.random() - 0.5) * 0.5;
-				point.y += (Math.random() - 0.5) * 0.5;
-				point.z += (Math.random() - 0.5) * 0.5;
-			}
-			points.push(point);
-		}
-
-		const geometry = new THREE.BufferGeometry().setFromPoints(points);
-		const material = new THREE.LineBasicMaterial({
-			color: 0x00ffff,
-			transparent: true,
-			opacity: 0.8
-		});
-		const lightning = new THREE.Line(geometry, material);
-		this.scene.add(lightning);
-
-		// 稲妻のアニメーション
-		const duration = 0.2;
-		const startTime = Date.now();
-		const animate = () => {
-			const elapsed = (Date.now() - startTime) / 1000;
-			if (elapsed < duration) {
-				lightning.material.opacity = 0.8 * (1 - elapsed / duration);
-				requestAnimationFrame(animate);
-			} else {
-				this.scene.remove(lightning);
-			}
-		};
-		animate();
-	}
-
-	findNearestEnemy(position, range) {
-		let nearestEnemy = null;
-		let minDistance = range;
-
-		this.enemies.forEach((enemy, enemyId) => {
-			if (!enemy || enemy.isDead) return;
-			const distance = enemy.model.position.distanceTo(position);
-			if (distance < minDistance) {
-				minDistance = distance;
-				nearestEnemy = enemy;
-			}
-		});
-
-		return nearestEnemy;
-	}
-
-	getNearbyEnemies(position, range) {
-		const nearbyEnemies = [];
-		this.enemies.forEach((enemy, enemyId) => {
-			if (!enemy || enemy.isDead) return;
-			const distance = enemy.model.position.distanceTo(position);
-			if (distance <= range) {
-				nearbyEnemies.push(enemy);
-			}
-		});
-		return nearbyEnemies;
-	}
 
 	setupJumpButton() {
 		const jumpButton = document.getElementById('jumpButton');

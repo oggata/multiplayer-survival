@@ -1257,9 +1257,9 @@ class FieldMap {
         // 木の生成
         let treeCount;
         if (biome.type === 'forest') {
-            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 70 * biomeSetting.treeDensity);
+            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 30 * biomeSetting.treeDensity);
         } else {
-            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 40 * biomeSetting.treeDensity);
+            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 20 * biomeSetting.treeDensity);
         }
         //treeCount = 0;
         for (let i = 0; i < treeCount; i++) {
