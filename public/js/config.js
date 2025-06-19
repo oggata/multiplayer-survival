@@ -640,19 +640,12 @@ const GameConfig = {
 			lifetime: 1.5,
 			color: 0xfbff00
 		},
-		LASERGUN: {
-			reload: 0.5,
-			damage: 20,
-			speed: 30,
-			lifetime: 0.5,
-			color: 0xff0000
-		},
 		GRENADELAUNCHER: {
-			reload: 2.0,
-			damage: 50,
-			speed: 15,
-			explosionRadius: 5,
-			lifetime: 1.0,
+			reload: 3.0,
+			damage: 100,
+			speed: 10,
+			explosionRadius: 6,
+			lifetime: 5.2,
 			color: 0x666666
 		},
 		FLAMETHROWER: {
@@ -663,7 +656,7 @@ const GameConfig = {
 			color: 0xff6600
 		},
 		PLASMACANNON: {
-			reload: 1.5,
+			reload: 2.5,
 			damage: 10,
 			speed: 5,
 			lifetime: 1.0,
@@ -684,17 +677,10 @@ const GameConfig = {
 			color: 0xff0000
 		},
 		MAGNUM: {
-			reload: 1.8,
-			damage: 35,
+			reload: 3,
+			damage: 50,
 			speed: 30,
-			lifetime: 3.0,
-			color: 0xfbff00
-		},
-		SNIPERRIFLE: {
-			reload: 1.8,
-			damage: 45,
-			speed: 40,
-			lifetime: 6.0,
+			lifetime: 1.5,
 			color: 0xfbff00
 		},
 		ROCKETLAUNCHER: {
@@ -705,10 +691,10 @@ const GameConfig = {
 			color: 0xfbff00
 		},
 		MACHINEGUN: {
-			reload: 0.2,
-			damage: 15,
+			reload: 0.1,
+			damage: 2,
 			speed: 35,
-			lifetime: 1.5,
+			lifetime: 1.3,
 			color: 0x85d098
 		}
 	},
@@ -885,19 +871,6 @@ const GameConfig = {
 			}
 		},
         /*
-		sniperrifle: {
-			name: 'sniperrifle',
-			description: 'Fires a powerful bullet',
-			color: 0x666666,
-			dropChance: 0.05,
-			effects: {
-				duration: {
-					type: 'wepon',
-					duration: 99999,
-					name: 'sniperrifle'
-				}
-			}
-		},
 		rocketlauncher: {
 			name: 'rocketlauncher',
 			description: 'Fires a powerful bullet',
@@ -908,19 +881,6 @@ const GameConfig = {
 					type: 'wepon',
 					duration: 99999,
 					name: 'rocketlauncher'
-				}
-			}
-		},
-		lasergun: {
-			name: 'lasergun',
-			description: 'Fires continuous lasers',
-			color: 0xff0000,
-			dropChance: 0.05,
-			effects: {
-				duration: {
-					type: 'wepon',
-					duration: 99999,
-					name: 'lasergun'
 				}
 			}
 		},

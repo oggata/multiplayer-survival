@@ -698,7 +698,8 @@ class FieldMap {
         });
 
         this.scene.add(terrainChunk);
-        this.scene.add(grassMesh);
+        //this.scene.add(grassMesh);
+
     }
 
     // 指定された座標での高さを計算
@@ -1224,7 +1225,7 @@ class FieldMap {
             }
         }
 
-        /*
+        
         //car
         for(var i = 0; i < 5; i++) {
             const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'carX' + i) - 0.5) * this.chunkSize;
@@ -1251,17 +1252,15 @@ class FieldMap {
                 console.error('車の生成に失敗しました:', error);
             }
         }
-        */
-
 
         // 木の生成
         let treeCount;
         if (biome.type === 'forest') {
-            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 30 * biomeSetting.treeDensity);
+            treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 25 * biomeSetting.treeDensity);
         } else {
             treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 20 * biomeSetting.treeDensity);
         }
-        //treeCount = 0;
+        treeCount = 1;
         for (let i = 0; i < treeCount; i++) {
             const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'treeX' + i) - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'treeZ' + i) - 0.5) * this.chunkSize;

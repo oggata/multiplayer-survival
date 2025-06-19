@@ -209,6 +209,7 @@ class FieldObject {
                         
                         carGroup.add(carMesh);
                         
+                        /*
                         // 影を追加
                         const shadowGeometry = new THREE.CircleGeometry(2, 32);
                         const shadowMaterial = new THREE.MeshBasicMaterial({
@@ -220,6 +221,7 @@ class FieldObject {
                         shadow.rotation.x = -Math.PI / 2;
                         shadow.position.y = 0.01;
                         carGroup.add(shadow);
+                        */
                         
                         resolve({ mesh: carGroup, position: carMesh.position });
                     },
@@ -249,7 +251,7 @@ class FieldObject {
         
         // GLTFモデルのパスを選択
         const modelPaths = [
-            '/gltf/Tree 2601.glb'
+            '/gltf/tree001.glb'
         ];
         const modelPath = modelPaths[Math.floor(this.rng() * modelPaths.length)];
 
@@ -259,7 +261,7 @@ class FieldObject {
             
             // モデルのスケールを調整
             //var scale = height / 10; // 高さに応じてスケールを調整
-            var scale = 5.5;
+            var scale = 0.5;
             model.scale.set(scale, scale, scale);
             
             // モデルの位置を調整

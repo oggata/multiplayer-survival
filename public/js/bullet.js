@@ -1,8 +1,9 @@
 class Bullet {
-	constructor(scene, position, direction, playerId, bulletType) {
-		this.scene=scene;
+	constructor(game, position, direction, playerId, bulletType) {
+		this.scene = game.scene;
+		this.game = game;
 		this.playerId=playerId;
-
+		this.bulletType=bulletType;
 		this.speed=20;
 		this.lifetime=3.0; // 5秒後に消える
 		this.damage=10;
@@ -37,6 +38,19 @@ class Bullet {
 
 		// 移動方向を設定
 		this.direction=direction.clone().normalize();
+		// grenadelauncherの場合は発射方向を45度上に傾ける
+		if (bulletType === "grenadelauncher") {
+			// directionのXZ成分を正規化
+			const horizontal = new THREE.Vector3(direction.x, 0, direction.z).normalize();
+			const length = direction.length();
+			const angle = Math.PI / 4; // 45度
+			// XZ方向をcos(45°)、Y方向をsin(45°)で合成
+			this.direction = new THREE.Vector3(
+				horizontal.x * Math.cos(angle),
+				Math.sin(angle),
+				horizontal.z * Math.cos(angle)
+			).normalize().multiplyScalar(length);
+		}
 		this.velocity=this.direction.clone().multiplyScalar(this.speed);
 
 		// 重力の影響を受ける弾かどうかを設定
@@ -96,7 +110,7 @@ class Bullet {
 
 		if(bulletType=="machinegun") {
 			// 弾丸のジオメトリとマテリアルを作成
-			const geometry=new THREE.SphereGeometry(0.1, 12, 12);
+			const geometry=new THREE.BoxGeometry(0.1, 0.1, 0.1);
 
 			const material=new THREE.MeshPhongMaterial( {
 					color:this.color, //yellow
@@ -236,19 +250,26 @@ class Bullet {
 	}
 
 	update(deltaTime) {
+
+// ここを追加
+if (this.bulletType == 'plasmacannon') {
+	// プレイヤーの現在位置を取得
+	const playerPos = this.game.playerModel.position.clone();
+	playerPos.y += 1.1; // 発射位置調整
+	this.model.position.copy(playerPos);
+}else{
 		// 弾丸を移動
 		if (this.isAffectedByGravity) {
 			// 重力の影響を受ける場合
 			this.velocity.y -= this.gravity * deltaTime; // Y軸方向に重力を適用
 		}
 		this.model.position.add(this.velocity.clone().multiplyScalar(deltaTime));
-
+}
 		// 軌跡エフェクトの更新
-		this.updateTrailEffect();
+		//this.updateTrailEffect();
 
 		// 寿命をチェック
 		const age=(Date.now() - this.createdAt) / 1000;
-
 		if (age > this.lifetime) {
 			this.dispose();
 			return false;

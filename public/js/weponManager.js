@@ -74,7 +74,7 @@ class WeponManager {
 				// グレネードランチャー：爆発性の弾
 				const grenade = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
 				grenade.explosionRadius = 5;
-				grenade.explosionDamage = 30;
+				grenade.explosionDamage = 100;
 				this.game.bullets.push(grenade);
 				break;
 
@@ -92,8 +92,8 @@ class WeponManager {
 				// プラズマキャノン：チェーンライトニング効果
 				const plasma = this.game.createBullet(shootPosition, direction, this.socket.id, weaponId);
 				plasma.chainLightning = true;
-				plasma.chainRange = 5;
-				plasma.chainDamage = 15;
+				plasma.chainRange = 10;
+				plasma.chainDamage = 5;
 				this.game.bullets.push(plasma);
 				break;
 
@@ -125,6 +125,13 @@ class WeponManager {
 				}
 				break;
 
+			case 'magnum':
+				const bullet1 = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
+				bullet1.nanoSwarm = true;
+				this.game.bullets.push(bullet1);
+				
+				break;
+
 			default:
 				// デフォルト武器：通常の弾
 				const bullet = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
@@ -152,7 +159,7 @@ class WeponManager {
 	}
 
 	createBullet(position, direction, playerId, weaponId) {
-		const bullet = new Bullet(this.scene, position, direction, playerId, weaponId);
+		const bullet = new Bullet(this.game, position, direction, playerId, weaponId);
 		return bullet;
 	}
 
@@ -161,6 +168,7 @@ class WeponManager {
 
 		for (let i = this.bullets.length - 1; i >= 0; i--) {
 			const bullet = this.bullets[i];
+
 			if (!bullet.update(deltaTime)) {
 				// 弾が寿命を迎えた場合
 				this.scene.remove(bullet.model);
@@ -181,6 +189,7 @@ class WeponManager {
 							bullet.createImpactEffect(bullet.model.position);
 							// 敵にダメージを与える
 							enemy.takeDamage(bullet.getDamage());
+							//enemy.takeDamage(100);
 							// 弾を削除
 							this.scene.remove(bullet.model);
 							this.bullets.splice(i, 1);
@@ -196,7 +205,7 @@ class WeponManager {
 			}
 
 			// 爆発性の弾の処理
-			if (bullet.explosionRadius && bullet.getAge() >= bullet.lifetime) {
+			if (bullet.explosionRadius && bullet.model.position.y <= 0) {
 				this.createExplosion(bullet.model.position, bullet.explosionRadius, bullet.explosionDamage);
 				this.game.scene.remove(bullet.model);
 				this.bullets.splice(i, 1);
@@ -205,7 +214,7 @@ class WeponManager {
 
 			// チェーンライトニングの処理
 			if (bullet.chainLightning) {
-				const nearbyEnemies = this.getNearbyEnemies(bullet.model.position,35);
+				const nearbyEnemies = this.getNearbyEnemies(bullet.model.position,20);
 				for (const enemy of nearbyEnemies) {
 					enemy.takeDamage(bullet.chainDamage);
 					this.createLightningEffect(bullet.model.position, enemy.model.position);
@@ -351,7 +360,8 @@ class WeponManager {
 				const distance = enemy.model.position.distanceTo(position);
 				if (distance <= radius) {
 					const damageRatio = 1 - (distance / radius);
-					const actualDamage = Math.floor(damage * damageRatio);
+					var actualDamage = Math.floor(damage * damageRatio);
+					actualDamage = damage; // 最小ダメージは1
 					enemy.takeDamage(actualDamage);
 					this.game.socket.emit('enemyHit', {
 						targetId: enemyId,

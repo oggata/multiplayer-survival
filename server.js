@@ -1349,7 +1349,7 @@ function updateAutoPlayers() {
         if (autoPlayer.health <= 0) return;
         
         // 目標位置が設定されていない、または一定時間経過した場合に新しい目標位置を設定
-        if (!autoPlayer.targetPosition || now - autoPlayer.lastUpdate > 3000) {
+        if (!autoPlayer.targetPosition || now - autoPlayer.lastUpdate > 6000) {
             const randomAngle = Math.random() * Math.PI * 2;
             const randomDistance = Math.random() * AUTO_PLAYER_MOVE_RANGE;
             

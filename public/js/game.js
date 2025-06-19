@@ -268,11 +268,28 @@ class Game {
 		// 初期表示を設定
 		this.updateEffectsDisplay();
 
-
 		// ゲーム開始時にランダムなアイテムを3つバックパックに入れる
 		const itemTypes = Object.entries(GameConfig.ITEMS)
 			.filter(([_, item]) => item.dropChance !== undefined)
 			.map(([type]) => type);
+
+if(this.isDevMode){
+
+		for (let i = 0; i < 10; i++) {
+			const randomIndex = Math.floor(Math.random() * itemTypes.length);
+			const selectedType = itemTypes[i];
+			//console.log('selectedType', selectedType);
+			if (selectedType) {
+				this.inventory.push({
+					id: Date.now() + i,
+					type: selectedType
+				});
+			}
+		}
+
+}else{
+
+
 
 			
 		for (let i = 0; i < 3; i++) {
@@ -286,6 +303,12 @@ class Game {
 				});
 			}
 		}
+
+
+
+}
+
+
 
 		this.updateBackpackUI();
 			
@@ -1151,7 +1174,7 @@ class Game {
 	}
 
 	createBullet(position, direction, playerId, weaponId) {
-		const bullet = new Bullet(this.scene, position, direction, playerId, weaponId);
+		const bullet = new Bullet(this, position, direction, playerId, weaponId);
 		return bullet;
 	}
 
@@ -2617,6 +2640,7 @@ class Game {
 		});
 	}
 
+	// http://localhost:3000/?dev=1
 	// URLパラメータをチェックしてdevモードを設定
 	checkDevMode() {
 		// URLパラメータを取得
@@ -2657,9 +2681,9 @@ class Game {
 			const distance = playerPosition.distanceTo(enemy.model.getPosition());
 
 			// 視界内かどうかをチェック（カメラの視錐台内にいるか）
-			const isInViewFrustum = this.isInViewFrustum(enemy.model.getPosition());
+			//const isInViewFrustum = this.isInViewFrustum(enemy.model.getPosition());
 
-			if (distance > maxDistance || !isInViewFrustum) {
+			if (distance > maxDistance) {
 				// 最大距離を超えているか視界外の場合は非表示
 				if (enemy.model.character) {
 					enemy.model.character.visible = false;
