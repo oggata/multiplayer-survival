@@ -26,12 +26,15 @@ class Game {
 	constructor() {
 		this.bosses = [];
 		this.bossesSpawned = false;
-		this.devMode = true;
+		this.devMode = false; // 初期値をfalseに変更
+
+		// Stats.jsの初期化（devModeがtrueの時のみ）
+		this.stats = null;
 
 		this.scene = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera(
 			GameConfig.VISION.FOV,
-			window.innerWidth / window.innerHeight,
+			1,
 			0.1,
 			1000
 		);
@@ -45,10 +48,13 @@ class Game {
 
 		// 視点切り替えボタンを追加
 		this.setupCameraButton();
+		
+		// WebGLレンダラーを使用（Three.js r128ではWebGPUがサポートされていないため）
 		this.renderer = new THREE.WebGLRenderer({
 			canvas: document.getElementById('gameCanvas'),
 			antialias: true
 		});
+		
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.shadowMap.enabled = true;
 		console.log('GameConfig.ITEMS', GameConfig.ITEMS);
@@ -328,6 +334,10 @@ if(this.isDevMode){
 		this.weponManager = new WeponManager(this);
 
 		this.missionManager = new MissionManager(this);
+		
+		// URLパラメータをチェックしてdevModeを設定
+		this.checkDevMode();
+		
 		this.animate();
 	}
 
@@ -1717,8 +1727,17 @@ if(this.isDevMode){
 	}
 
 	animate() {
-		// アニメーションループを継続
-		requestAnimationFrame(() => this.animate());
+		// Statsの更新（devModeがtrueの時のみ）
+		if (this.stats) {
+			this.stats.begin();
+		}
+
+		// FPSを30に制限（1000ms / 30fps = 約33.33ms間隔）
+		const targetFPS = 30;
+		const targetFrameTime = 1000 / targetFPS;
+
+		// アニメーションループを継続（FPS制限付き）
+		setTimeout(() => this.animate(), targetFrameTime);
 
 		// ゲームオーバーの場合は更新をスキップ
 		if (this.isGameOver) {
@@ -1791,6 +1810,11 @@ if(this.isDevMode){
 
 		// メッセージインジケーターの位置を更新
 		this.updateMessageIndicators();
+
+		// Statsの更新終了（devModeがtrueの時のみ）
+		if (this.stats) {
+			this.stats.end();
+		}
 	}
 
 	update(deltaTime) {
@@ -2646,6 +2670,9 @@ if(this.isDevMode){
 		// URLパラメータを取得
 		const urlParams = new URLSearchParams(window.location.search);
 		const isDevMode = urlParams.get('dev') === '1';
+		
+		console.log('URLパラメータ dev:', urlParams.get('dev'));
+		console.log('isDevMode:', isDevMode);
 
 		// statsウィンドウを取得
 		const statsElement = document.getElementById('stats');
@@ -2656,7 +2683,40 @@ if(this.isDevMode){
 		}
 
 		// devモードの状態を保存
-		this.isDevMode = isDevMode;
+		this.devMode = isDevMode;
+		console.log('this.devMode:', this.devMode);
+
+		// devModeがtrueの時にStats.jsを初期化
+		if (this.devMode && !this.stats) {
+			console.log('Stats.jsの初期化を開始します');
+			
+			// HTMLで読み込まれたStats.jsを使用（少し遅延させて確実に読み込まれるようにする）
+			setTimeout(() => {
+				if (typeof Stats !== 'undefined') {
+					this.stats = new Stats();
+					this.stats.showPanel(0);
+					document.body.appendChild(this.stats.dom);
+					console.log('Stats.jsが正常に初期化されました');
+				} else {
+					console.error('Statsクラスが見つかりません。HTMLでStats.jsが読み込まれているか確認してください。');
+					// フォールバック: 手動でStats.jsを読み込み
+					console.log('フォールバック: Stats.jsを手動で読み込みます');
+					const script = document.createElement('script');
+					script.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/stats.min.js';
+					script.onload = () => {
+						if (typeof Stats !== 'undefined') {
+							this.stats = new Stats();
+							this.stats.showPanel(0);
+							document.body.appendChild(this.stats.dom);
+							console.log('フォールバック: Stats.jsが正常に初期化されました');
+						}
+					};
+					document.head.appendChild(script);
+				}
+			}, 100);
+		} else {
+			console.log('Stats.jsの初期化をスキップします (devMode:', this.devMode, ', stats:', this.stats, ')');
+		}
 	}
 
 	// オブジェクトの表示/非表示を更新
