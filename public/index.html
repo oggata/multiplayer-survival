@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>bivouac - Zombie Survival Shooter</title>
     
     <!-- OGP設定 -->
@@ -31,10 +31,16 @@
             -webkit-user-select: none; /* テキスト選択を無効化 */
             user-select: none; /* テキスト選択を無効化 */
             -webkit-tap-highlight-color: transparent; /* タップ時のハイライトを無効化 */
+            /* iPhoneでの表示を最適化 */
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            -webkit-overflow-scrolling: touch;
         }
         #gameCanvas {
             width: 100%;
             height: 100%;
+            display: block; /* インライン要素の余白を削除 */
         }
         #mobileControls {
             display: none;
@@ -164,6 +170,20 @@
         @media (max-width: 768px) {
             #mobileControls {
                 display: block;
+            }
+            
+            /* iPhoneでの表示を最適化 */
+            body {
+                position: fixed;
+                width: 100vw;
+                height: 100vh;
+                overflow: hidden;
+            }
+            
+            #gameCanvas {
+                width: 100vw;
+                height: 100vh;
+                object-fit: cover;
             }
             
             #joystickKnob {

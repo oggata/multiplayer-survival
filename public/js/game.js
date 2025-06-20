@@ -34,7 +34,7 @@ class Game {
 		this.scene = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera(
 			GameConfig.VISION.FOV,
-			1,
+			window.innerWidth / window.innerHeight, // アスペクト比を正しく設定
 			0.1,
 			1000
 		);
@@ -332,6 +332,15 @@ if(this.isDevMode){
 			}
 		});
 
+		// ウィンドウリサイズ時の処理を追加
+		window.addEventListener('resize', () => {
+			// カメラのアスペクト比を更新
+			this.camera.aspect = window.innerWidth / window.innerHeight;
+			this.camera.updateProjectionMatrix();
+			
+			// レンダラーのサイズを更新
+			this.renderer.setSize(window.innerWidth, window.innerHeight);
+		});
 
 		this.raycast = new Raycast(this);
 		this.weponManager = new WeponManager(this);
