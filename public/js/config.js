@@ -317,42 +317,8 @@ const GameConfig = {
 			WIREFRAME_COLOR: 0x000000 // ワイヤーフレームの色
 		},
 		SPAWN: {
-			SAFE_SPOT_DISTANCE: 50, // 安全なスポーン位置からの最小距離
-			SAFE_POSITIONS: [{
-					x: 100,
-					y: 0,
-					z: 100
-				},
-				{
-					x: -100,
-					y: 0,
-					z: 100
-				},
-				{
-					x: 100,
-					y: 0,
-					z: -100
-				},
-				{
-					x: -100,
-					y: 0,
-					z: -100
-				},
-				{
-					x: 200,
-					y: 0,
-					z: 0
-				},
-				{
-					x: -200,
-					y: 0,
-					z: 0
-				},
-				{
-					x: 0,
-					y: 0,
-					z: 200
-				},
+			SAFE_SPOT_DISTANCE: 20, // 安全なスポーン位置からの最小距離
+			SAFE_POSITIONS: [
 				{
 					x: 0,
 					y: 0,

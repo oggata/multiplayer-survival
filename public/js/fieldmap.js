@@ -168,6 +168,9 @@ class FieldMap {
         // マップの初期化を即時実行
         this.createMap();
 
+        // 安全なスポーン位置を視覚的に表現する円柱を生成
+        this.createSafeZoneVisuals();
+
         this.isInitialized = false;
     }
     
@@ -1592,5 +1595,51 @@ class FieldMap {
 
         // 結果を0-1の範囲に正規化
         return (combinedRandom + 0.5) % 1;
+    }
+
+    // 安全なスポーン位置を視覚的に表現する円柱を生成
+    createSafeZoneVisuals() {
+        const safeZoneRadius = this.SAFE_SPOT_DISTANCE;
+        const safeZoneHeight = 50;
+        const safeZoneSegments = 32;
+
+        // 安全範囲の円柱を格納する配列
+        this.safeZoneMeshes = [];
+
+        // 各安全スポーン位置に円柱を生成
+        this.safeSpawnPositions.forEach((position, index) => {
+            const safeZoneGeometry = new THREE.CylinderGeometry(
+                safeZoneRadius, 
+                safeZoneRadius, 
+                safeZoneHeight, 
+                safeZoneSegments
+            );
+            
+            // 透過処理を適用したマテリアル
+            const safeZoneMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0x00ff00,  // 緑色
+                transparent: true,
+                opacity: 0.2,     // 透過度0.2
+                side: THREE.DoubleSide
+            });
+            
+            const safeZoneMesh = new THREE.Mesh(safeZoneGeometry, safeZoneMaterial);
+            
+            // 位置を設定（高さは地形の高さに合わせる）
+            const terrainHeight = this.getHeightAt(position.x, position.z);
+            safeZoneMesh.position.set(
+                position.x, 
+               -5, 
+                position.z
+            );
+            
+            // シーンに追加
+            this.scene.add(safeZoneMesh);
+            
+            // 配列に保存（後で管理するため）
+            this.safeZoneMeshes.push(safeZoneMesh);
+        });
+
+        console.log(`安全範囲の視覚化を生成しました: ${this.safeZoneMeshes.length}個の円柱`);
     }
 } 
