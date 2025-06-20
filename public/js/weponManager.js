@@ -396,7 +396,7 @@ class WeponManager {
 			this.scene.add(lightning);
 	
 			// 稲妻のアニメーション
-			const duration = 0.2;
+			const duration = 0.5;
 			const startTime = Date.now();
 			const animate = () => {
 				const elapsed = (Date.now() - startTime) / 1000;
@@ -458,7 +458,7 @@ class WeponManager {
 		}
 
 		createNanoSwarmEffect(position) {
-			const particleCount = 50;
+			const particleCount = 10;
 			const particles = new THREE.Group();
 			
 			for (let i = 0; i < particleCount; i++) {

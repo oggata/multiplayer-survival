@@ -56,7 +56,7 @@ class Game {
 		});
 		
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
-		this.renderer.setPixelRatio(1);
+		//this.renderer.setPixelRatio(1);
 		this.renderer.shadowMap.enabled = true;
 		console.log('GameConfig.ITEMS', GameConfig.ITEMS);
 
