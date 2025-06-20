@@ -169,16 +169,37 @@ class WeponManager {
 		for (let i = this.bullets.length - 1; i >= 0; i--) {
 			const bullet = this.bullets[i];
 
-			if (!bullet.update(deltaTime)) {
-				// 弾が寿命を迎えた場合
-				this.scene.remove(bullet.model);
+			// bulletがnullまたはmodelがnullの場合はスキップ
+			if (!bullet || !bullet.model) {
 				this.bullets.splice(i, 1);
 				continue;
 			}
 
+			if (!bullet.update(deltaTime)) {
+				// 弾が寿命を迎えた場合
+				this.scene.remove(bullet.model);
+				bullet.dispose(); // disposeメソッドを呼び出してメモリを解放
+				this.bullets.splice(i, 1);
+				continue;
+			}
+
+			// プレイヤーからの距離をチェック（メモリリーク防止）
+			if (this.game.playerModel && this.game.playerModel.getPosition) {
+				const playerPosition = this.game.playerModel.getPosition();
+				const distance = playerPosition.distanceTo(bullet.model.position);
+				
+				// 遠すぎる弾丸を削除
+				if (distance > GameConfig.MAP.VISLBLE_DISTANCE * 2) {
+					this.scene.remove(bullet.model);
+					bullet.dispose(); // disposeメソッドを呼び出してメモリを解放
+					this.bullets.splice(i, 1);
+					continue;
+				}
+			}
+
 			// 敵との当たり判定
 			for (const [enemyId, enemy] of this.enemies) {
-				if (enemy && enemy.health > 0) {
+				if (enemy && enemy.health > 0 && enemy.model) {
 					const distance = bullet.model.position.distanceTo(enemy.model.position);
 					if (distance < 2) { // 当たり判定の距離
 
@@ -192,6 +213,7 @@ class WeponManager {
 							//enemy.takeDamage(100);
 							// 弾を削除
 							this.scene.remove(bullet.model);
+							bullet.dispose(); // disposeメソッドを呼び出してメモリを解放
 							this.bullets.splice(i, 1);
 							// 敵が死亡した場合の処理
 							if (enemy.health <= 0) {
@@ -208,6 +230,7 @@ class WeponManager {
 			if (bullet.explosionRadius && bullet.model.position.y <= 0) {
 				this.createExplosion(bullet.model.position, bullet.explosionRadius, bullet.explosionDamage);
 				this.game.scene.remove(bullet.model);
+				bullet.dispose(); // disposeメソッドを呼び出してメモリを解放
 				this.bullets.splice(i, 1);
 				continue;
 			}

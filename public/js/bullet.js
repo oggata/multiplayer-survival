@@ -250,13 +250,26 @@ class Bullet {
 	}
 
 	update(deltaTime) {
+		// 既にdispose済みの場合は何もしない
+		if (!this.model) {
+			return false;
+		}
 
 // ここを追加
 if (this.bulletType == 'plasmacannon') {
-	// プレイヤーの現在位置を取得
-	const playerPos = this.game.playerModel.position.clone();
-	playerPos.y += 1.1; // 発射位置調整
-	this.model.position.copy(playerPos);
+	// プレイヤーの現在位置を取得（nullチェックを追加）
+	if (this.game.playerModel && this.game.playerModel.position) {
+		const playerPos = this.game.playerModel.position.clone();
+		playerPos.y += 1.1; // 発射位置調整
+		this.model.position.copy(playerPos);
+	} else {
+		// playerModelがnullの場合は通常の移動を行う
+		if (this.isAffectedByGravity) {
+			// 重力の影響を受ける場合
+			this.velocity.y -= this.gravity * deltaTime; // Y軸方向に重力を適用
+		}
+		this.model.position.add(this.velocity.clone().multiplyScalar(deltaTime));
+	}
 }else{
 		// 弾丸を移動
 		if (this.isAffectedByGravity) {
@@ -369,20 +382,39 @@ if (this.bulletType == 'plasmacannon') {
 	}
 
 	dispose() {
+		// 既にdispose済みの場合は何もしない
+		if (!this.model) {
+			return;
+		}
+
 		// シーンから削除
 		this.scene.remove(this.model);
-		this.scene.remove(this.trailPoints);
+		if (this.trailPoints) {
+			this.scene.remove(this.trailPoints);
+		}
 
 		// パーティクルをクリア
 		this.trailParticles = [];
-		this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
-		this.trailGeometry.attributes.position.needsUpdate = true;
+		
+		// trailGeometryが存在する場合のみ処理
+		if (this.trailGeometry) {
+			this.trailGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
+			this.trailGeometry.attributes.position.needsUpdate = true;
+		}
 
 		// ジオメトリとマテリアルを解放
-		this.model.geometry.dispose();
-		this.model.material.dispose();
-		this.trailGeometry.dispose();
-		this.trailMaterial.dispose();
+		if (this.model.geometry) {
+			this.model.geometry.dispose();
+		}
+		if (this.model.material) {
+			this.model.material.dispose();
+		}
+		if (this.trailGeometry) {
+			this.trailGeometry.dispose();
+		}
+		if (this.trailMaterial) {
+			this.trailMaterial.dispose();
+		}
 
 		// 参照をクリア
 		this.model = null;
@@ -394,6 +426,9 @@ if (this.bulletType == 'plasmacannon') {
 	
 	// 衝突判定
 	checkCollision(position, radius) {
+		if (!this.model) {
+			return false;
+		}
 		return this.model.position.distanceTo(position) < radius;
 	}
 }
