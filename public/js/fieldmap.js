@@ -930,7 +930,7 @@ class FieldMap {
                 Math.pow(cameraPosition.z - chunk.mesh.position.z, 2)
             );
             
-            if (distance > this.visibleDistance * 1.5) { // 視界距離の1.5倍以上離れたチャンクを削除
+            if (distance > this.visibleDistance ) { // 視界距離の1.5倍以上離れたチャンクを削除
                 // チャンクに関連するオブジェクトも削除
                 const chunkKey = `${chunk.chunkX},${chunk.chunkZ}`;
                 const chunkObjects = this.objectChunks.get(chunkKey);
@@ -1110,6 +1110,26 @@ class FieldMap {
                 }
             }
         }
+
+        // 追加: 各オブジェクトの実際の位置を基準にvisibleDistanceをチェック
+        if (this.objects) {
+            for (let i = this.objects.length - 1; i >= 0; i--) {
+                const obj = this.objects[i];
+                if (obj && obj.mesh && obj.position) {
+                    const distance = Math.sqrt(
+                        Math.pow(cameraPosition.x - obj.position.x, 2) +
+                        Math.pow(cameraPosition.z - obj.position.z, 2)
+                    );
+                    
+                    // visibleDistanceより遠いオブジェクトを非表示にする
+                    if (distance > this.visibleDistance) {
+                        obj.mesh.visible = false;
+                    } else {
+                        obj.mesh.visible = true;
+                    }
+                }
+            }
+        }
     }
 
     // 安全なスポーン位置かどうかをチェックする関数
@@ -1143,9 +1163,11 @@ class FieldMap {
         const biomeSetting = this.biomeSettings[biome.type];
         if (!biomeSetting) return;
 
+
+        
         // 建物の生成
         var buildingCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'building') * 5 * biomeSetting.buildingDensity);
-        //buildingCount = 0;
+        buildingCount = 1;
         for (let i = 0; i < buildingCount; i++) {
             if (this.getDeterministicRandom(chunkX, chunkZ, 'building' + i) < biomeSetting.buildingDensity) {
                 let position;
@@ -1227,7 +1249,7 @@ class FieldMap {
 
         
         //car
-        for(var i = 0; i < 5; i++) {
+        for(var i = 0; i < 2; i++) {
             const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'carX' + i) - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'carZ' + i) - 0.5) * this.chunkSize;
             
@@ -1282,7 +1304,7 @@ class FieldMap {
                 }
             }
         }
-
+/*
         // がれきの生成
         const debrisCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'debrisCount') * 30 * biomeSetting.debrisDensity);
         for (let i = 0; i < debrisCount; i++) {
@@ -1294,6 +1316,7 @@ class FieldMap {
                 Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'debrisType' + i) * biomeSetting.debrisTypes.length)
             ];
             const debrisType = this.debrisTypes.find(type => type.name === debrisTypeName);
+            
             
             if (debrisType) {
                 const scale = 0.5 + this.getDeterministicRandom(chunkX, chunkZ, 'debrisScale' + i) * 1.5;
@@ -1310,8 +1333,9 @@ class FieldMap {
                     this.objects.push(debris);
                 }
             }
+            
         }
-
+*/
         // チャンクのオブジェクトを保存
         this.objectChunks.set(chunkKey, chunkObjects);
     }
