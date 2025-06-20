@@ -1,32 +1,20 @@
-class AudioManager {
-	constructor() {
-		this.sounds = {};
-		this.loadSounds();
-	}
-
-	loadSounds() {
-		// 敵を倒した時の音
-		this.sounds.enemyDeath = new Audio('se/maou_se_system06.mp3');
-		// 銃を発射した時の音
-		this.sounds.gunShot = new Audio('se/maou_se_system45.mp3');
-		// リスタート時の音
-		this.sounds.restart = new Audio('se/maou_se_system13.mp3');
-	}
-
-	play(soundName) {
-		if (this.sounds[soundName]) {
-			// 音声を最初から再生
-			//this.sounds[soundName].currentTime = 0;
-			//this.sounds[soundName].play();
-		}
-	}
-}
-
 class Game {
 	constructor() {
+
+
+
+
 		this.bosses = [];
 		this.bossesSpawned = false;
 		this.devMode = false; // 初期値をfalseに変更
+
+
+				// URLパラメータをチェックしてdevModeを設定
+				this.checkDevMode();
+				//this.devMode = false;
+
+		// AudioManagerの初期化
+		this.audioManager = new AudioManager();
 
 		// Stats.jsの初期化（devModeがtrueの時のみ）
 		this.stats = null;
@@ -56,7 +44,7 @@ class Game {
 		});
 		
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
-		//this.renderer.setPixelRatio(1);
+		this.renderer.setPixelRatio(1);
 		this.renderer.shadowMap.enabled = true;
 		console.log('GameConfig.ITEMS', GameConfig.ITEMS);
 
@@ -214,7 +202,7 @@ class Game {
 		this.setupMessageSocketEvents();
 
 		// URLパラメータをチェックしてstatsウィンドウの表示/非表示を設定
-		this.checkDevMode();
+		//this.checkDevMode();
 
 		// 視覚更新用の変数
 		this.lastVisionUpdate = 0;
@@ -282,7 +270,9 @@ class Game {
 			.filter(([_, item]) => item.dropChance !== undefined)
 			.map(([type]) => type);
 
-if(this.isDevMode){
+
+
+if(this.devMode){
 
 		for (let i = 0; i < 10; i++) {
 			const randomIndex = Math.floor(Math.random() * itemTypes.length);
@@ -326,6 +316,9 @@ if(this.isDevMode){
 
 		// ページがアンロードされる時の処理
 		window.addEventListener('beforeunload', () => {
+			// BGMを停止
+			this.audioManager.stopBGM();
+			
 			// サーバーに切断を通知
 			if (this.socket) {
 				this.socket.disconnect();
@@ -347,8 +340,7 @@ if(this.isDevMode){
 
 		this.missionManager = new MissionManager(this);
 		
-		// URLパラメータをチェックしてdevModeを設定
-		this.checkDevMode();
+
 		
 		this.animate();
 
@@ -359,11 +351,20 @@ if(this.isDevMode){
 			popups: [],
 			indicators: []
 		};
+
+		// BGM開始のためのユーザーインタラクションUIを追加
+		this.setupAudioInteractionUI();
+		
+		// iOSデバイス用の追加設定
+		if (this.audioManager.isIOS) {
+			this.setupIOSAudioHandlers();
+		}
 	}
 
 	createMessageIndicatorContainer() {
 		const container = document.createElement('div');
 		container.id = 'messageIndicators';
+		
 		container.style.position = 'fixed';
 		container.style.top = '0';
 		container.style.left = '0';
@@ -644,11 +645,13 @@ if(this.isDevMode){
 		// シード値を使用してフィールドマップを初期化
 		this.fieldMap = new FieldMap(this.scene, seed);
 		
+		/*
 		// フィールドマップの初期化が完了するまで待機
 		this.fieldMap.initialize().then(() => {
 			// フィールドマップの初期化が完了した後にアイテムを生成
 			this.spawnItems();
 		});
+		*/
 
 		this.updateLightDirection();
 
@@ -938,6 +941,9 @@ if(this.isDevMode){
 			console.log('Connected to server');
 			this.playerId = this.socket.id;
 			console.log("this.playerId" + this.playerId);
+			
+			// ゲーム開始時にBGMを再生（自動再生ポリシーに対応）
+			this.audioManager.playBGM();
 		});
 
 		this.socket.on('totalKeyItemsCollected', (total) => {
@@ -1474,6 +1480,9 @@ if(this.isDevMode){
 	gameOver() {
 		this.isGameOver = true;
 
+		// BGMを停止
+		this.audioManager.stopBGM();
+
 		// 生存時間を計算
 		const survivalTime = Date.now() - this.playerSpawnTime;
 		const gameDayLength = GameConfig.TIME.DAY_LENGTH;
@@ -1643,6 +1652,10 @@ if(this.isDevMode){
 	restartGame() {
 		// 音を再生
 		//this.audioManager.play('restart');
+		
+		// BGMを再開
+		this.audioManager.playBGM();
+		
 		this.currentHealth = this.maxHealth;
 		this.playerStatus.reset(); // プレイヤーステータスを完全にリセット
 		this.isGameOver = false;
@@ -1819,7 +1832,7 @@ if(this.isDevMode){
 		this.updateLightDirection();
 
 		// ボスの位置表示を更新
-		this.updateBossIndicators();
+		//this.updateBossIndicators();
 
 		// プレイヤーモデルのアニメーション更新
 		if (this.playerModel) {
@@ -1979,6 +1992,7 @@ if(this.isDevMode){
 		this.playerStatus.updateUI();
 	}
 
+	/*
 	spawnItems() {
 		// フィールドマップが初期化されていない場合は処理をスキップ
 		if (!this.fieldMap || !this.fieldMap.isInitialized) {
@@ -2022,6 +2036,7 @@ if(this.isDevMode){
 			this.spawnItem(selectedType, position);
 		}
 	}
+	*/
 
 	checkItemCollisions() {
 		//console.log("aa");
@@ -2267,6 +2282,7 @@ if(this.isDevMode){
 		// 夜の時間帯を判定（0.7から0.3の間を夜とする）
 		const isNight = timeOfDay > 0.7 || timeOfDay < 0.3;
 
+		/*
 		// 夜になった時にサーバーに通知
 		if (isNight && !this.bossesSpawned) {
 			this.socket.emit('requestBossSpawn');
@@ -2279,6 +2295,7 @@ if(this.isDevMode){
 		if (isNight) {
 			this.updateBossIndicators();
 		}
+			*/
 
 		// 既存の時間更新処理
 		this.updateSunPosition();
@@ -2287,6 +2304,7 @@ if(this.isDevMode){
 		this.updateTimeDisplay();
 	}
 
+	/*
 	updateBossIndicators() {
 		if (!this.playerModel) return;
 
@@ -2449,8 +2467,7 @@ if(this.isDevMode){
 
 		// デフォルトの位置を返す
 		return new THREE.Vector3(0, 0, 0);
-	}
-
+	}*/
 	// プレイヤーライトの強度を調整するメソッド
 	updatePlayerLightIntensity() {
 		if (!this.playerLight) return;
@@ -3632,6 +3649,7 @@ if(this.isDevMode){
 				removed++;
 			}
 		}
+		/*
 		// アイテム
 		const maxItems = GameConfig.ITEM.MAX_COUNT * 3;
 		if (this.items.length > maxItems) {
@@ -3641,6 +3659,7 @@ if(this.isDevMode){
 				if (item) this.cleanupQueue.items.push(item);
 			}
 		}
+			*/
 		// ポップアップ
 		if (this.messagePopups && this.messagePopups.size > 5) {
 			const popupArray = Array.from(this.messagePopups.entries());
@@ -3703,6 +3722,181 @@ if(this.isDevMode){
 		for (let i = 0; i < 2; i++) {
 			const indicator = this.cleanupQueue.indicators.shift();
 			if (indicator && indicator.parentNode) indicator.remove();
+		}
+	}
+
+	// BGM開始のためのユーザーインタラクションUIを設定
+	setupAudioInteractionUI() {
+		// iOSデバイスかどうかを判定
+		const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+		
+		// 音声開始ボタンを作成
+		const audioButton = document.createElement('div');
+		audioButton.id = 'audioStartButton';
+		
+		// iOS用の特別なメッセージ
+		const iosMessage = isIOS ? 
+			'<div style="font-size: 12px; margin-top: 5px; color: #ff6b6b;">iOS: Tap to start background music</div>' : 
+			'<div style="font-size: 12px; margin-top: 5px; color: #ccc;">(due to the browsers autoplay policy)</div>';
+		
+		audioButton.innerHTML = `
+			<div style="
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				background: rgba(0, 0, 0, 0.9);
+				color: white;
+				padding: 25px;
+				border-radius: 15px;
+				text-align: center;
+				z-index: 10000;
+				cursor: pointer;
+				font-size: 18px;
+				border: 3px solid #4CAF50;
+				box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+				min-width: 280px;
+			">
+				<div style="margin-bottom: 15px;">
+					<i class="fas fa-volume-up" style="font-size: 32px; color: #4CAF50;"></i>
+				</div>
+				<div style="font-weight: bold; margin-bottom: 10px;">
+					${isIOS ? '🎵 StartBGM' : 'Click to start BGM'}
+				</div>
+				${iosMessage}
+				${isIOS ? '<div style="font-size: 11px; margin-top: 8px; color: #ffa500;">*Audio playback is limited on iOS.</div>' : ''}
+			</div>
+		`;
+		
+		document.body.appendChild(audioButton);
+		
+		// クリックイベントを設定
+		const startBGMHandler = () => {
+			console.log('音声開始ボタンがクリックされました');
+			
+			// iOS用の特別な処理
+			if (isIOS) {
+				this.startBGMForIOS();
+			} else {
+				// BGMを開始
+				this.audioManager.playBGM();
+			}
+			
+			// ボタンを非表示にする
+			audioButton.style.display = 'none';
+			
+			// 成功メッセージを表示
+			const successMessage = document.createElement('div');
+			successMessage.innerHTML = `
+				<div style="
+					position: fixed;
+					top: 20px;
+					right: 20px;
+					background: rgba(76, 175, 80, 0.9);
+					color: white;
+					padding: 12px 18px;
+					border-radius: 8px;
+					z-index: 10001;
+					font-size: 14px;
+					box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+				">
+					<i class="fas fa-check"></i> Start BGM
+				</div>
+			`;
+			document.body.appendChild(successMessage);
+			
+			// 3秒後にメッセージを削除
+			setTimeout(() => {
+				if (successMessage.parentNode) {
+					successMessage.remove();
+				}
+			}, 3000);
+		};
+		
+		// iOSではタッチイベントを優先
+		if (isIOS) {
+			audioButton.addEventListener('touchstart', (e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				startBGMHandler();
+			}, { passive: false });
+		}
+		
+		audioButton.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			startBGMHandler();
+		});
+		
+		// iOSではより長く表示する（15秒）
+		const autoHideTime = isIOS ? 15000 : 5000;
+		setTimeout(() => {
+			if (audioButton.parentNode && !this.audioManager.bgmReady) {
+				audioButton.style.display = 'none';
+				console.log('音声開始ボタンを自動非表示にしました');
+			}
+		}, autoHideTime);
+	}
+
+	// iOS用のBGM開始処理
+	startBGMForIOS() {
+		console.log('iOS: 特別なBGM開始処理を実行');
+		
+		// AudioContextを確実に再開
+		if (this.audioManager.audioContext && this.audioManager.audioContext.state === 'suspended') {
+			this.audioManager.audioContext.resume().then(() => {
+				console.log('iOS: AudioContext再開完了（UI経由）');
+				this.audioManager.playBGM();
+			}).catch(error => {
+				console.error('iOS: AudioContext再開エラー（UI経由）:', error);
+				// エラーが発生してもBGM再生を試行
+				this.audioManager.playBGM();
+			});
+		} else {
+			this.audioManager.playBGM();
+		}
+	}
+
+	// iOSデバイス用の音声ハンドラーを設定
+	setupIOSAudioHandlers() {
+		console.log('iOSデバイス用の音声ハンドラーを設定中...');
+		
+		// ページの可視性変更時の処理
+		document.addEventListener('visibilitychange', () => {
+			if (document.hidden) {
+				// ページが非表示になった時にBGMを一時停止
+				if (this.audioManager.bgm && !this.audioManager.bgm.paused) {
+					this.audioManager.bgm.pause();
+					console.log('iOS: ページ非表示でBGM一時停止');
+				}
+			} else {
+				// ページが表示された時にBGMを再開
+				if (this.audioManager.bgm && this.audioManager.bgmReady) {
+					this.audioManager.bgm.play().catch(error => {
+						console.log('iOS: ページ表示時のBGM再開エラー:', error);
+					});
+				}
+			}
+		});
+		
+		// タッチイベントでAudioContextを再開
+		const resumeAudioContext = () => {
+			if (this.audioManager.audioContext && this.audioManager.audioContext.state === 'suspended') {
+				this.audioManager.audioContext.resume().then(() => {
+					console.log('iOS: AudioContext再開完了');
+				});
+			}
+		};
+		
+		// 最初のタッチでAudioContextを再開
+		document.addEventListener('touchstart', resumeAudioContext, { once: true });
+		document.addEventListener('touchend', resumeAudioContext, { once: true });
+		
+		// ゲームキャンバスでのタッチでも再開
+		const canvas = document.getElementById('gameCanvas');
+		if (canvas) {
+			canvas.addEventListener('touchstart', resumeAudioContext, { once: true });
+			canvas.addEventListener('touchend', resumeAudioContext, { once: true });
 		}
 	}
 }

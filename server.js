@@ -938,9 +938,9 @@ function getSpawnPosition() {
 }
 
 // ボスの生成を管理する変数
-let bossesSpawned = false;
-let bossSpawnTime = 0;
-
+//let bossesSpawned = false;
+//let bossSpawnTime = 0;
+/*
 // ボスの生成位置を取得する関数
 function getRandomBossSpawnPosition() {
     const mapSize = MAP_SIZE;
@@ -988,8 +988,9 @@ function getRandomBossSpawnPosition() {
 
     // デフォルトの位置を返す
     return { x: 0, y: 0, z: 0 };
-}
+}*/
 
+/*
 // ボスを生成する関数
 function spawnBosses() {
     if (bossesSpawned) return;
@@ -1025,7 +1026,8 @@ console.log('ボスを生成しました:', bossData);
     bossesSpawned = true;
     bossSpawnTime = Date.now();
 }
-
+*/
+/*
 // ボスの状態をリセットする関数
 function resetBossState() {
     bossesSpawned = false;
@@ -1036,7 +1038,7 @@ function resetBossState() {
             io.emit('enemyRemoved', id);
         }
     });
-}
+}*/
 
 // 時間の更新処理
 function updateTimeOfDay() {
@@ -1047,10 +1049,11 @@ function updateTimeOfDay() {
     // 夜の時間帯を判定（0.7から0.3の間を夜とする）
     const isNight = timeOfDay > 0.7 || timeOfDay < 0.3;
 
+    /*
     // 夜になった時にボスを生成
     if (isNight && !bossesSpawned) {
         spawnBosses();
-    } 
+    } */
     
     //else if (!isNight) {
     //    resetBossState();
@@ -1267,7 +1270,7 @@ io.on('connection', (socket) => {
             position: data.position
         });
     });
-
+/*
     // ボス生成リクエストの処理
     socket.on('requestBossSpawn', () => {
         const timeOfDay = updateTimeOfDay();
@@ -1277,7 +1280,7 @@ io.on('connection', (socket) => {
             spawnBosses();
         }
     });
-
+*/
     // 新規プレイヤーに現在のキーアイテムの位置を通知
     if (keyItem) {
         socket.emit('keyItemPosition', keyItem);
