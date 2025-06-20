@@ -152,6 +152,8 @@ class Game {
 		this.gameTime = 0; // ゲーム内時間（秒）
 		this.dayLength = GameConfig.TIME.DAY_LENGTH; // 1日の長さ（秒）
 		this.timeOfDay = 0; // 0-1の値（0: 夜明け, 0.25: 朝, 0.5: 昼, 0.75: 夕方, 1: 夜）
+		// FPS制限用の時間管理
+		this.lastFrameTime = null;
 
 		this.sunLight = null; // 太陽光
 		this.ambientLight = null; // 環境光
@@ -1741,21 +1743,32 @@ if(this.isDevMode){
 			this.stats.begin();
 		}
 
-		// FPSを30に制限（1000ms / 30fps = 約33.33ms間隔）
+		// requestAnimationFrameを使用してアニメーションループを継続
+		requestAnimationFrame(() => this.animate());
+
+		// FPS制限（30FPS）
 		const targetFPS = 30;
 		const targetFrameTime = 1000 / targetFPS;
-
-		// アニメーションループを継続（FPS制限付き）
-		setTimeout(() => this.animate(), targetFrameTime);
+		
+		const currentTime = performance.now();
+		if (!this.lastFrameTime) {
+			this.lastFrameTime = currentTime;
+		}
+		
+		const deltaTime = currentTime - this.lastFrameTime;
+		if (deltaTime < targetFrameTime) {
+			// まだ次のフレームの時間になっていない場合はスキップ
+			return;
+		}
+		
+		this.lastFrameTime = currentTime;
 
 		// ゲームオーバーの場合は更新をスキップ
 		if (this.isGameOver) {
 			return;
 		}
 
-		const currentTime = performance.now();
-		const deltaTime = (currentTime - this.lastTime) / 1000;
-		this.lastTime = currentTime;
+		const gameDeltaTime = deltaTime / 1000; // 秒単位に変換
 
 		// フレームカウントを更新
 		this.frameCount = (this.frameCount || 0) + 1;
@@ -1769,7 +1782,7 @@ if(this.isDevMode){
 		this.updateAllCharactersHeight();
 
 		// プレイヤーの更新
-		this.updatePlayer(deltaTime);
+		this.updatePlayer(gameDeltaTime);
 		// オブジェクトの表示/非表示を更新
 		this.updateObjectVisibility();
 
@@ -1801,20 +1814,20 @@ if(this.isDevMode){
 
 		// プレイヤーモデルのアニメーション更新
 		if (this.playerModel) {
-			this.playerModel.updateLimbAnimation(deltaTime);
-			this.playerModel.updateLimbAnimation(deltaTime);
-			this.playerModel.updateLimbAnimation(deltaTime);
-			this.playerModel.updateLimbAnimation(deltaTime);
-			this.playerModel.updateLimbAnimation(deltaTime);
+			this.playerModel.updateLimbAnimation(gameDeltaTime);
+			this.playerModel.updateLimbAnimation(gameDeltaTime);
+			this.playerModel.updateLimbAnimation(gameDeltaTime);
+			this.playerModel.updateLimbAnimation(gameDeltaTime);
+			this.playerModel.updateLimbAnimation(gameDeltaTime);
 		}
 
 		// 他のプレイヤーのアニメーション更新
 		this.players.forEach(player => {
-			player.updateLimbAnimation(deltaTime);
+			player.updateLimbAnimation(gameDeltaTime);
 		});
 
 		// プレイヤーステータスの更新（空腹と喉の渇きの減少など）
-		this.update(deltaTime);
+		this.update(gameDeltaTime);
 
 		// レンダリング
 		if (this.currentHealth <= this.maxHealth * 0.2) {
@@ -3250,6 +3263,7 @@ if(this.isDevMode){
 		this.gameOverElement.style.display = 'none';
 		this.playerSpawnTime = Date.now();
 		this.lastTime = performance.now();
+		this.lastFrameTime = null; // FPS制限用の時間管理をリセット
 		this.frameCount = 0;
 
 		// モノクロ効果をリセット
