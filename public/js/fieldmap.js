@@ -108,6 +108,7 @@ class FieldMap {
         this.terrainChunks = []; // 地形チャンクを管理する配列
         this.chunkSize = GameConfig.MAP.CHUNK_SIZE; // チャンクのサイズ
         this.visibleDistance = GameConfig.MAP.VISLBLE_DISTANCE; // 視界距離
+        this.objectVisibleDistance = GameConfig.MAP.OBJECT_VISIBLE_DISTANCE; // オブジェクトの視界距離
         this.lodDistances = GameConfig.MAP.LOD.DISTANCES; // LODの距離閾値
         this.lodSegments = GameConfig.MAP.LOD.SEGMENTS; // 各LODレベルのセグメント数
         this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
@@ -1066,14 +1067,12 @@ class FieldMap {
                 Math.pow(cameraPosition.z - chunk.mesh.position.z, 2)
             );
             
-            if (distance <= this.visibleDistance) {
+            if (distance <= this.objectVisibleDistance) {
                 const key = `${chunk.chunkX},${chunk.chunkZ}`;
                 visibleChunks.add(key);
             }
         }
 
-      // console.log('Visible chunks count:', visibleChunks.size);
-       //console.log('Visible chunks count:', visibleChunks);
         // 視界外のチャンクのオブジェクトを削除
         if (this.objectChunks) {
             for (const [key, objects] of this.objectChunks) {
@@ -1125,7 +1124,7 @@ class FieldMap {
                     );
                     
                     // visibleDistanceより遠いオブジェクトを非表示にする
-                    if (distance > this.visibleDistance) {
+                    if (distance > this.objectVisibleDistance) {
                         obj.mesh.visible = false;
                     } else {
                         obj.mesh.visible = true;
@@ -1252,7 +1251,7 @@ class FieldMap {
 
         
         //car
-        for(var i = 0; i < 2; i++) {
+        for(var i = 0; i < 1; i++) {
             const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'carX' + i) - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'carZ' + i) - 0.5) * this.chunkSize;
             
@@ -1266,7 +1265,7 @@ class FieldMap {
             const rotation = this.getDeterministicRandom(chunkX, chunkZ, 'carRot' + i) * Math.PI * 2;
             
             try {
-                const car = await this.fieldObject.createCar(x, z, rotation);   
+                const car = await this.fieldObject.createCar2(x, z, rotation);   
                 if (car && car.mesh) {
                     car.mesh.position.set(x, this.getHeightAt(x, z) + 0.5, z);
                     this.scene.add(car.mesh);
@@ -1285,7 +1284,7 @@ class FieldMap {
         } else {
             treeCount = Math.floor(this.getDeterministicRandom(chunkX, chunkZ, 'treeCount') * 20 * biomeSetting.treeDensity);
         }
-        treeCount = 1;
+        treeCount = 3;
         for (let i = 0; i < treeCount; i++) {
             const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'treeX' + i) - 0.5) * this.chunkSize;
             const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'treeZ' + i) - 0.5) * this.chunkSize;

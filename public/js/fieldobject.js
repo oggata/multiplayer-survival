@@ -186,60 +186,51 @@ class FieldObject {
         }
     }
     
-    async createCar(x, z, rotation) {
-        try {
-            const loader = new THREE.GLTFLoader();
-            const car = await new Promise((resolve, reject) => {
-                loader.load(
-                    '/gltf/car.glb',
-                    (gltf) => {
-                        const carGroup = new THREE.Group();
-                        const carMesh = gltf.scene;
-                        
-                        // 車のサイズを調整
-                        carMesh.scale.set(1, 1, 1);
-                        
-                        // 車の位置を設定
-                        carMesh.position.set(x, 0, z);
-                        
-                        // 車の回転を設定
-                        if (rotation !== undefined) {
-                            carMesh.rotation.y = rotation;
-                        }
-                        
-                        carGroup.add(carMesh);
-                        
-                        /*
-                        // 影を追加
-                        const shadowGeometry = new THREE.CircleGeometry(2, 32);
-                        const shadowMaterial = new THREE.MeshBasicMaterial({
-                            color: 0x000000,
-                            transparent: true,
-                            opacity: 0.3
-                        });
-                        const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
-                        shadow.rotation.x = -Math.PI / 2;
-                        shadow.position.y = 0.01;
-                        carGroup.add(shadow);
-                        */
-                        
-                        resolve({ mesh: carGroup, position: carMesh.position });
-                    },
-                    undefined,
-                    (error) => {
-                        console.error('車のモデルの読み込みに失敗しました:', error);
-                        reject(error);
-                    }
-                );
-            });
+    
+ createCar2(x, z, rotation) {
+        const carGroup = new THREE.Group();
+        carGroup.position.set(x, 0, z);
+
+
+        const modelPaths = [
+            '/gltf/car.glb'
+        ];
+        const modelPath = modelPaths[Math.floor(this.rng() * modelPaths.length)];
+
+        // GLTFモデルをロード
+        this.gltfLoader.load(modelPath, (gltf) => {
+            const model = gltf.scene;
             
-            return car;
-        } catch (error) {
-            console.error('車の生成に失敗しました:', error);
-            return null;
-        }
+            // モデルのスケールを調整
+            var scale = 1;
+            model.scale.set(scale, scale, scale);
+            
+            // モデルの位置を調整
+            model.position.y = 0;
+            // 車の回転を設定
+            if (rotation !== undefined) {
+                model.rotation.y = rotation;
+            }
+                        
+            // モデルをグループに追加
+            carGroup.add(model);
+            
+            // 影の設定
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+        });
+
+        return { mesh: carGroup, position: carGroup.position };
     }
     
+
+
+
+
     createTree(x, z, height, specifiedType = null) {
         const treeGroup = new THREE.Group();
         treeGroup.position.set(x, 0, z);

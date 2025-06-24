@@ -125,8 +125,6 @@ class Game {
 		this.restartButtonElement = document.getElementById('restartButton');
 
 		// HP関連の変数
-		this.maxHealth = GameConfig.PLAYER.MAX_HEALTH;
-		this.currentHealth = this.maxHealth;
 		this.isGameOver = false;
 
 		// リスタートボタンのイベントリスナー
@@ -154,8 +152,7 @@ class Game {
 		this.autoShootEnabled = true; // 自動射撃の有効/無効
 		this.autoShootRadius = 30; // 自動射撃の検出半径
 
-		this.playerStatus = new PlayerStatus();
-		this.playerStatus.health = this.currentHealth; // 初期HPを同期
+		this.playerStatus = new PlayerStatus(this);
 
 		// アイテム管理
 		this.items = []; // Mapから配列に戻す
@@ -1064,8 +1061,7 @@ if(this.devMode){
 		this.socket.on('playerRestarted', (data) => {
 			if (data.id === this.socket.id) {
 				// 自分のリスタート
-				this.currentHealth = data.health;
-				this.playerStatus.health = this.currentHealth;
+				this.playerStatus.health = data.health;
 				this.updateHealthDisplay();
 			} else {
 				// 他のプレイヤーのリスタート
@@ -1081,8 +1077,7 @@ if(this.devMode){
 		this.socket.on('playerHealthUpdate', (data) => {
 			if (data.id === this.socket.id) {
 				// 自分のHPが更新された
-				this.currentHealth = data.health;
-				this.playerStatus.health = this.currentHealth;
+				this.playerStatus.health = data.health;
 				this.updateHealthDisplay();
 			}
 		});
@@ -1338,6 +1333,9 @@ if(this.devMode){
 				// 移動時の減少率を適用
 				this.playerStatus.decreaseHunger(GameConfig.STATUS.MOVEMENT.HUNGER * decreaseRate * deltaTime);
 				this.playerStatus.decreaseThirst(GameConfig.STATUS.MOVEMENT.THIRST * decreaseRate * deltaTime);
+			}else{
+				this.playerStatus.decreaseHunger(GameConfig.STATUS.IDLE.HUNGER * deltaTime);
+				this.playerStatus.decreaseThirst(GameConfig.STATUS.IDLE.THIRST * deltaTime);
 			}
 		}
 
@@ -1422,14 +1420,11 @@ if(this.devMode){
 
 		if (this.isGameOver) return;
 		//console.log(damage);
-		this.currentHealth -= damage;
-		this.playerStatus.health = this.currentHealth; // HPを同期
-
+		this.playerStatus.health -= damage;
 		// 出血を増加させる
 		this.playerStatus.increaseBleeding(damage);
 
-		if (this.currentHealth < 0) {
-			this.currentHealth = 0;
+		if (this.playerStatus.health < 0) {
 			this.playerStatus.health = 0;
 		}
 
@@ -1437,14 +1432,14 @@ if(this.devMode){
 		this.updateHealthDisplay();
 
 		// HPが0になったらゲームオーバー
-		if (this.currentHealth <= 0) {
+		if (this.playerStatus.health <= 0) {
 			this.gameOver();
 		}
 	}
 
 	// HPゲージを更新する処理
 	updateHealthDisplay() {
-		const healthPercentage = (this.currentHealth / this.maxHealth) * 100;
+		const healthPercentage = (this.playerStatus.health / this.playerStatus.maxHealth) * 100;
 
 		if (this.healthFillElement) {
 			this.healthFillElement.style.width = `${healthPercentage}%`;
@@ -1460,7 +1455,7 @@ if(this.devMode){
 		}
 
 		if (this.healthTextElement) {
-			this.healthTextElement.textContent = `HP: ${this.currentHealth}/${this.maxHealth}`;
+			this.healthTextElement.textContent = `HP: ${this.playerStatus.health}/${this.playerStatus.maxHealth}`;
 		}
 
 		// ステータス表示も更新
@@ -1468,7 +1463,7 @@ if(this.devMode){
 		const healthFillElement = document.querySelector('#health .status-fill');
 
 		if (healthValueElement) {
-			healthValueElement.textContent = Math.round(this.currentHealth);
+			healthValueElement.textContent = Math.round(this.playerStatus.health);
 		}
 
 		if (healthFillElement) {
@@ -1656,7 +1651,6 @@ if(this.devMode){
 		// BGMを再開
 		this.audioManager.playBGM();
 		
-		this.currentHealth = this.maxHealth;
 		this.playerStatus.reset(); // プレイヤーステータスを完全にリセット
 		this.isGameOver = false;
 		this.gameOverElement.style.display = 'none';
@@ -1852,7 +1846,7 @@ if(this.devMode){
 		this.update(gameDeltaTime);
 
 		// レンダリング
-		if (this.currentHealth <= this.maxHealth * 0.2) {
+		if (this.playerStatus.health <= this.playerStatus.maxHealth * 0.2) {
 			this.monochromePass.uniforms.intensity.value = 1.0;
 			this.composer.render();
 		} else {
@@ -3283,7 +3277,6 @@ if(this.devMode){
 		this.items = [];
 
 		// ゲーム状態をリセット
-		this.currentHealth = this.maxHealth;
 		this.playerStatus.reset();
 		this.isGameOver = false;
 		this.gameOverElement.style.display = 'none';
