@@ -19,6 +19,25 @@ class AudioManager {
 		this.sounds.gunShot = new Audio('se/maou_se_system45.mp3');
 		// リスタート時の音
 		this.sounds.restart = new Audio('se/maou_se_system13.mp3');
+		// 歩行音
+		this.sounds.walk = new Audio('se/walk.mp3');
+		this.sounds.walk.loop = true;
+		this.sounds.walk.volume = 0.5;
+		// 銃声
+		this.sounds.shoot = new Audio('se/shoot.mp3');
+		this.sounds.shoot.volume = 0.5;
+		// 敵死亡音
+		this.sounds.dead = new Audio('se/dead.mp3');
+		this.sounds.dead.volume = 0.5;
+		// アイテム取得音
+		this.sounds.item = new Audio('se/item.mp3');
+		this.sounds.item.volume = 0.5;
+		// 食べ物
+		this.sounds.eat = new Audio('se/eat.mp3');
+		this.sounds.eat.volume = 0.5;
+		// 飲み物
+		this.sounds.drink = new Audio('se/drink.mp3');
+		this.sounds.drink.volume = 0.5;
 	}
 
 	loadBGM() {
@@ -105,8 +124,8 @@ class AudioManager {
 	play(soundName) {
 		if (this.sounds[soundName]) {
 			// 音声を最初から再生
-			//this.sounds[soundName].currentTime = 0;
-			//this.sounds[soundName].play();
+			this.sounds[soundName].currentTime = 0;
+			this.sounds[soundName].play();
 		}
 	}
 
@@ -284,6 +303,24 @@ class AudioManager {
 	setBGMVolume(volume) {
 		if (this.bgm) {
 			this.bgm.volume = Math.max(0, Math.min(1, volume));
+		}
+	}
+
+	// 歩行音を再生
+	playWalk() {
+		if (this.sounds.walk) {
+			if (this.sounds.walk.paused) {
+				this.sounds.walk.currentTime = 0;
+				this.sounds.walk.play();
+			}
+		}
+	}
+
+	// 歩行音を停止
+	stopWalk() {
+		if (this.sounds.walk) {
+			this.sounds.walk.pause();
+			this.sounds.walk.currentTime = 0;
 		}
 	}
 }

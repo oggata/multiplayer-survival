@@ -356,6 +356,9 @@ if(this.devMode){
 		if (this.audioManager.isIOS) {
 			this.setupIOSAudioHandlers();
 		}
+
+		// 歩行状態の直前値を記録
+		this.prevIsMoving = false;
 	}
 
 	createMessageIndicatorContainer() {
@@ -1264,6 +1267,14 @@ if(this.devMode){
 		this.playerModel.move(moveDirection, isRunning ? moveSpeed2 * 2 : moveSpeed2, deltaTime);
 		this.playerModel.setRunning(isRunning);
 
+		// 歩行音制御
+		if (this.playerModel.isMoving && !this.prevIsMoving) {
+			this.audioManager.playWalk();
+		} else if (!this.playerModel.isMoving && this.prevIsMoving) {
+			this.audioManager.stopWalk();
+		}
+		this.prevIsMoving = this.playerModel.isMoving;
+
 		// 移動後の位置を取得
 		const newPosition = this.playerModel.getPosition();
 
@@ -2057,6 +2068,7 @@ if(this.devMode){
 	}
 
 	collectItem(item) {
+		this.audioManager.play('item');
 		//console.log(item)
 		if (!item || !item.type) {
 			console.error('無効なアイテムです:', item);
@@ -2077,9 +2089,14 @@ if(this.devMode){
 	}
 
 	useItem(itemType) {
-		//console.log(itemType);
 		const itemConfig = GameConfig.ITEMS[itemType];
 		if (!itemConfig) return;
+		// 食べ物・飲み物サウンド
+		if (itemConfig.category === 'food') {
+			this.audioManager.play('eat');
+		} else if (itemConfig.category === 'drink') {
+			this.audioManager.play('drink');
+		}
 		// 即時効果の適用
 		if (itemConfig.effects ?.immediate) {
 			const effects = itemConfig.effects.immediate;
@@ -2657,6 +2674,7 @@ if(this.devMode){
 
 	// 敵が倒された時の処理を更新
 	handleEnemyDeath(enemyId) {
+		this.audioManager.play('dead');
 		const enemy = this.enemies.get(enemyId);
 		if (!enemy || !enemy.model) return;
 
@@ -3077,6 +3095,7 @@ if(this.devMode){
 	    }
 	
 	collectItem(itemType) {
+		this.audioManager.play('item');
 		if (!itemType) {
 			console.error('無効なアイテムタイプです:', itemType);
 			return;

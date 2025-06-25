@@ -147,6 +147,7 @@ class WeponManager {
 				break;
 		}
 		// サーバーに発射情報を送信
+		this.game.audioManager.play('shoot');
 		this.game.socket.emit('shoot', {
 			position: shootPosition,
 			direction: direction,
