@@ -43,7 +43,7 @@
             display: block; /* インライン要素の余白を削除 */
         }
         #mobileControls {
-            display: none;
+            display: block;
             position: fixed;
             bottom: 0;
             left: 0;
@@ -168,9 +168,7 @@
             font-size: 16px;
         }
         @media (max-width: 768px) {
-            #mobileControls {
-                display: block;
-            }
+            /* #mobileControls { display: block; } を削除 */
             
             /* iPhoneでの表示を最適化 */
             body {

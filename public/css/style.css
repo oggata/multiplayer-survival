@@ -260,4 +260,25 @@
 #howToPlayModal button:hover {
     background-color: #444;
     border-color: #ffcc00;
+}
+
+#mobileControls {
+    display: block;
+    /* 既存のスタイルはそのまま */
+}
+
+@media (max-width: 768px) {
+    /* #mobileControls { display: block; } を削除 */
+    /* 既存のコード ... */
+}
+
+#joystickKnob {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 30px;
+    top: 30px;
+    left: 30px;
+    transition: transform 0.1s ease, background-color 0.2s ease;
 } 
