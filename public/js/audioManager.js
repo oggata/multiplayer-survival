@@ -28,7 +28,7 @@ class AudioManager {
 		this.sounds.shoot.volume = 0.5;
 		// 敵死亡音
 		this.sounds.dead = new Audio('se/dead.mp3');
-		this.sounds.dead.volume = 0.5;
+		this.sounds.dead.volume = 0.2;
 		// アイテム取得音
 		this.sounds.item = new Audio('se/item.mp3');
 		this.sounds.item.volume = 0.5;

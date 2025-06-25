@@ -14,6 +14,8 @@ const serverSeed = Math.random();
 // サーバー起動時のゲーム開始時間を記録
 const gameStartTime = Date.now();
 
+const keyItemStayTime = 30000;
+
 // プレイヤーの色リスト
 const playerColors = [
     0x3366ff, // 青
@@ -1067,6 +1069,9 @@ let keyItem = null;
 let lastKeyItemBiome = null;
 let totalKeyItemsCollected = 0;
 
+// キーアイテムの滞在開始時刻を記録するマップ
+const keyItemStayStartTimes = {};
+
 // キーアイテムを生成する関数
 function spawnKeyItem() {
     // 前回と異なるバイオームを選択
@@ -1076,6 +1081,7 @@ function spawnKeyItem() {
     } while (biome === lastKeyItemBiome);
 
     lastKeyItemBiome = biome;
+
 
     // バイオームに応じた位置範囲を設定
     let minX, maxX, minZ, maxZ;
@@ -1097,6 +1103,10 @@ function spawnKeyItem() {
             minZ = 500; maxZ = 1000;
             break;
     }
+
+
+    minX = -500; maxX = 1000;
+    minZ = -500; maxZ = 1000;
 
     // ランダムな位置を生成
     const x = Math.random() * (maxX - minX) + minX;
@@ -1123,28 +1133,71 @@ function handleKeyItemCollection(playerId) {
         Math.pow(player.position.z - keyItem.z, 2)
     );
 
-    // 収集判定（距離が2以内）
-    if (distance <= 2) {
-        // 収集数を増加
-        totalKeyItemsCollected++;
-        
-        // 収集通知を送信
-        io.emit('keyItemCollected', {
-            playerId,
-            playerName: player.name || 'Player ' + playerId.substring(0, 4),
-            totalCollected: totalKeyItemsCollected
-        });
+    // 半径10以内に入った場合
+    if (distance <= 10) {
+        // まだ記録がなければ現在時刻を記録
+        if (!keyItemStayStartTimes[playerId]) {
+            keyItemStayStartTimes[playerId] = Date.now();
+        }
+        // 10秒間滞在していれば収集可能
+        const stayTime = Date.now() - keyItemStayStartTimes[playerId];
+        if (stayTime >= keyItemStayTime) {
+            // 収集数を増加
+            totalKeyItemsCollected++;
+            
+            // 収集通知を送信
+            io.emit('keyItemCollected', {
+                playerId,
+                playerName: player.name || 'Player ' + playerId.substring(0, 4),
+                totalCollected: totalKeyItemsCollected,
+                position: { x: keyItem.x, y: 0, z: keyItem.z }
+            });
 
-        // キーアイテムを削除
-        keyItem = null;
+            safeSpawnPositions.push({ x: keyItem.x, y: 0, z: keyItem.z });
 
-        // 5秒後に新しいキーアイテムを生成
-        setTimeout(spawnKeyItem, 5000);
+            // キーアイテムを削除
+            keyItem = null;
+            // 記録も削除
+            delete keyItemStayStartTimes[playerId];
+
+            // 5秒後に新しいキーアイテムを生成
+            setTimeout(spawnKeyItem, 5000);
+        }
+    } else {
+        // 範囲外に出たら記録をリセット
+        if (keyItemStayStartTimes[playerId]) {
+            delete keyItemStayStartTimes[playerId];
+        }
     }
 }
 
 // サーバー起動時にキーアイテムを生成
 spawnKeyItem();
+
+// --- 追加: 残り時間を定期送信する関数 ---
+function emitKeyItemCollectTimeLeft() {
+    if (!keyItem) return;
+    Object.keys(players).forEach(playerId => {
+        const player = players[playerId];
+        if (!player) return;
+        const distance = Math.sqrt(
+            Math.pow(player.position.x - keyItem.x, 2) +
+            Math.pow(player.position.z - keyItem.z, 2)
+        );
+        let timeLeft = null;
+        if (distance <= 10 && keyItemStayStartTimes[playerId]) {
+            const stayTime = Date.now() - keyItemStayStartTimes[playerId];
+            timeLeft = Math.max(0, keyItemStayTime - stayTime);
+        } else if (distance <= 10 && !keyItemStayStartTimes[playerId]) {
+            timeLeft = keyItemStayTime;
+        }
+        // 残り時間がnullでなければ送信
+        if (timeLeft !== null) {
+            io.to(playerId).emit('keyItemCollectTimeLeft', { timeLeft });
+        }
+    });
+}
+setInterval(emitKeyItemCollectTimeLeft, 200); // 0.2秒ごとに送信
 
 io.on('connection', (socket) => {
     console.log('プレイヤーが接続しました:', socket.id);

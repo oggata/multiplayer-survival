@@ -4,6 +4,7 @@ class MissionManager {
         this.keyItem = null;
         this.keyItemIndicator = null;
         this.keyItemModel = null;
+        this.timeLeft = null;
         console.log('MissionManager initialized');
         this.setupSocketEvents();
         this.updateCount = 0;
@@ -18,6 +19,11 @@ class MissionManager {
         // キーアイテムの収集通知を受信
         this.game.socket.on('keyItemCollected', (data) => {
             this.handleKeyItemCollected(data);
+        });
+
+        // 残り時間を受信
+        this.game.socket.on('keyItemCollectTimeLeft', (data) => {
+            this.timeLeft = data.timeLeft;
         });
     }
 
@@ -121,12 +127,19 @@ class MissionManager {
             return;
         }
 
+        // 残り時間の表示を追加
+        let timeLeftText = '';
+        if (this.timeLeft !== null && distance <= 10) {
+            const sec = Math.ceil(this.timeLeft / 1000);
+            timeLeftText = `<span style='color:#0ff'>(残り${sec}秒)</span>`;
+        }
+
         // インジケーターを作成
         this.keyItemIndicator = document.createElement('div');
         this.keyItemIndicator.className = 'key-item-indicator';
         this.keyItemIndicator.innerHTML = `
             <i class="fas fa-vial"></i>
-            <span>: ${Math.floor(distance)}m</span>
+            <span>: ${Math.floor(distance)}m</span> ${timeLeftText}
         `;
         this.keyItemIndicator.style.position = 'fixed';
         this.keyItemIndicator.style.color = '#FFD700';
@@ -177,6 +190,37 @@ class MissionManager {
         if (this.keyItemModel) {
             this.game.scene.remove(this.keyItemModel);
             this.keyItemModel = null;
+        }
+
+        // 追加: 安全ゾーン円柱を配置
+        if (data.position) {
+            const safeZoneRadius = this.game.fieldMap.SAFE_SPOT_DISTANCE || 20;
+            const safeZoneHeight = 50;
+            const safeZoneSegments = 32;
+            const safeZoneGeometry = new THREE.CylinderGeometry(
+                safeZoneRadius,
+                safeZoneRadius,
+                safeZoneHeight,
+                safeZoneSegments
+            );
+            const safeZoneMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ff00,
+                transparent: true,
+                opacity: 0.2,
+                side: THREE.DoubleSide
+            });
+            const safeZoneMesh = new THREE.Mesh(safeZoneGeometry, safeZoneMaterial);
+            // 地形の高さを取得
+            let y = -5;
+            if (this.game.getHeightAt) {
+                y = this.game.getHeightAt(data.position.x, data.position.z);
+            }
+            safeZoneMesh.position.set(
+                data.position.x,
+                y,
+                data.position.z
+            );
+            this.game.scene.add(safeZoneMesh);
         }
     }
 
