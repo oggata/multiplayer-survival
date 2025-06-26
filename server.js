@@ -1068,9 +1068,73 @@ function updateTimeOfDay() {
 let keyItem = null;
 let lastKeyItemBiome = null;
 let totalKeyItemsCollected = 0;
+let keyItemEnemies = []; // キーアイテム周囲の敵を管理
 
 // キーアイテムの滞在開始時刻を記録するマップ
 const keyItemStayStartTimes = {};
+
+// キーアイテム周囲の敵を生成する関数
+function spawnKeyItemEnemies(keyItemPosition) {
+    const enemyCount = 8; // キーアイテム周囲に配置する敵の数
+    const spawnRadius = 15; // キーアイテムからの距離
+    
+    // 既存のキーアイテム敵を削除
+    keyItemEnemies.forEach(enemyId => {
+        if (enemies[enemyId]) {
+            delete enemies[enemyId];
+            io.emit('enemyDied', enemyId);
+            io.emit('enemiesKilled', [enemyId]);
+        }
+    });
+    keyItemEnemies = [];
+    
+    // 新しい敵を生成
+    for (let i = 0; i < enemyCount; i++) {
+        const angle = (Math.PI * 2 * i) / enemyCount; // 円形に配置
+        const distance = spawnRadius + Math.random() * 5; // 15-20の範囲でランダム
+        
+        const enemyX = keyItemPosition.x + Math.cos(angle) * distance;
+        const enemyZ = keyItemPosition.z + Math.sin(angle) * distance;
+        
+        // マップ境界チェック
+        if (Math.abs(enemyX) > MAP_SIZE / 2 || Math.abs(enemyZ) > MAP_SIZE / 2) {
+            continue;
+        }
+        
+        const enemyId = 'keyitem_enemy_' + Date.now() + '_' + i;
+        
+        // 敵の種類をランダムに選択（通常の敵より強め）
+        const enemyTypes = ['NORMAL', 'FAST', 'SHOOTER', 'GIANT'];
+        const selectedType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+        const enemyConfig = ENEMY_CONFIG[selectedType];
+        
+        enemies[enemyId] = {
+            id: enemyId,
+            position: { x: enemyX, y: 0, z: enemyZ },
+            rotation: { y: Math.random() * Math.PI * 2 },
+            health: enemyConfig.health * 1.5, // 通常より1.5倍の体力
+            type: selectedType,
+            enemyType: enemyConfig.model,
+            target: null,
+            state: 'wandering',
+            lastAttack: 0,
+            lastShootTime: 0,
+            isKeyItemGuard: true, // キーアイテム守衛フラグ
+            config: {
+                visionRange: enemyConfig.visionRange * 1.2, // 視界範囲も少し広く
+                speed: enemyConfig.speed,
+                shootInterval: enemyConfig.shootInterval,
+                bulletSpeed: enemyConfig.bulletSpeed,
+                bulletDamage: enemyConfig.bulletDamage
+            }
+        };
+        
+        keyItemEnemies.push(enemyId);
+        io.emit('enemySpawned', enemies[enemyId]);
+    }
+    
+    console.log(`キーアイテム周囲に${keyItemEnemies.length}体の敵を配置しました`);
+}
 
 // キーアイテムを生成する関数
 function spawnKeyItem() {
@@ -1115,6 +1179,9 @@ function spawnKeyItem() {
     // キーアイテムの位置を設定
     keyItem = { x, z, biome };
 
+    // キーアイテム周囲に敵を配置
+    spawnKeyItemEnemies(keyItem);
+
     // 全クライアントにキーアイテムの位置を通知
     io.emit('keyItemPosition', keyItem);
     console.log(`キーアイテムを生成: バイオーム${biome} (${x}, ${z})`);
@@ -1154,6 +1221,16 @@ function handleKeyItemCollection(playerId) {
             });
 
             safeSpawnPositions.push({ x: keyItem.x, y: 0, z: keyItem.z });
+
+            // キーアイテム周囲の敵を削除
+            keyItemEnemies.forEach(enemyId => {
+                if (enemies[enemyId]) {
+                    delete enemies[enemyId];
+                    io.emit('enemyDied', enemyId);
+                    io.emit('enemiesKilled', [enemyId]);
+                }
+            });
+            keyItemEnemies = [];
 
             // キーアイテムを削除
             keyItem = null;
@@ -1346,7 +1423,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 
 // autoPlayersの設定
-const AUTO_PLAYERS_COUNT = 5; // 自動プレイヤーの数
+const AUTO_PLAYERS_COUNT = 0; // 自動プレイヤーの数
 const AUTO_PLAYER_UPDATE_INTERVAL = 100; // 自動プレイヤーの更新間隔（ミリ秒）
 const AUTO_PLAYER_MOVE_RANGE = 400; // 自動プレイヤーの移動範囲を広げる
 

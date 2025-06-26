@@ -173,49 +173,24 @@ class PlayerStatus {
     }
 
     updateHealthFromStatus(deltaTime) {
-
-        //console.log("hunger" + this.hunger);
-        let damage = 0;
         
         // 空腹が20%を切った場合
         if (this.hunger < 20) {
-            damage += (20 - this.hunger) * 0.05 * deltaTime;
-        }
-        //console.log("hunger" + this.hunger);
-        // 喉の渇きが20%を切った場合
-        if (this.thirst < 20) {
-            damage += (20 - this.thirst) * 0.08 * deltaTime;
-        }
-        //console.log("thirst" + this.thirst);
-        // 出血が70%を超えた場合
-        if (this.bleeding > 80) {
-            damage += 1;
-        }
-
-        // 空腹が20%を切った場合
-        if (this.hunger < 20) {
-            this.health += (this.hunger-80) * 0.05 * deltaTime;
+            this.health += (this.hunger-80) * 0.005 * deltaTime;
             //console.log("hunger" + (this.hunger-80) * 0.05 * deltaTime);
         }
         
         // 喉の渇きが20%を切った場合
         if (this.thirst < 20) {
-            this.health += (this.thirst-80) * 0.05 * deltaTime;
+            this.health += (this.thirst-80) * 0.0005 * deltaTime;
             //console.log("thirs" + (this.thirst-80) * 0.05 * deltaTime);
         }
 
-
         if (this.bleeding > 80) {
-            this.health += (this.bleeding) * 0.05 * deltaTime;
+            this.health += (this.bleeding) * 0.005 * deltaTime;
             //console.log("bleeding" + (this.bleeding) * 0.05 * deltaTime);
         }
         
-        // ダメージを適用
-        if (damage > 0) {
-            this.health = this.health - damage;
-            this.updateStatusDisplay();
-        }
-
         if(this.health < 0) {
             this.isGameOver = true;
             this.game.gameOver();
