@@ -114,11 +114,9 @@ class FieldMap {
         this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
         this.isLoading = true; // ローディング状態を管理
 
-        // 安全なスポーン位置のリスト
-        this.safeSpawnPositions = GameConfig.MAP.SPAWN.SAFE_POSITIONS;
-
-        // 安全なスポーン位置からの最小距離
-        this.SAFE_SPOT_DISTANCE = GameConfig.MAP.SPAWN.SAFE_SPOT_DISTANCE;
+        // 安全なスポーン位置をサーバーから取得（初期値として空配列を設定）
+        this.safeSpawnPositions = [];
+        this.SAFE_SPOT_DISTANCE = 20; // デフォルト値
 
         // バイオームごとの色を定義
         this.biomeColors = {};
@@ -166,30 +164,51 @@ class FieldMap {
         // 岩の種類の定義
         this.rockTypes = GameConfig.MAP.OBJECT_TYPES.ROCKS;
         
-        // マップの初期化を即時実行
-        this.createMap();
-
-        // 安全なスポーン位置を視覚的に表現する円柱を生成
-        this.createSafeZoneVisuals();
-
         this.isInitialized = false;
     }
     
     async initialize() {
+        // サーバーから安全なスポーン位置を取得
+        await this.loadSafeSpawnPositions();
+        
+        // マップの初期化
+        this.createMap();
+        
         // 地形の生成
         await this.generateTerrain();
         
         // 建物の生成
         this.generateBuildings();
         
-        // 木の生成
-        this.generateTrees();
+        // 安全なスポーン位置を視覚的に表現する円柱を生成
+        this.createSafeZoneVisuals();
         
-        // 瓦礫の生成
-        this.generateDebris();
+        // 確実にローディング画面を隠す
+        if (this.isLoading) {
+            this.hideLoadingScreen();
+        }
         
         this.isInitialized = true;
         return this;
+    }
+
+    // サーバーから安全なスポーン位置を取得するメソッド
+    async loadSafeSpawnPositions() {
+        try {
+            const response = await fetch('/api/safe-spawn-positions');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            this.safeSpawnPositions = data.safeSpawnPositions;
+            this.SAFE_SPOT_DISTANCE = data.safeSpotDistance;
+            console.log('安全なスポーン位置をサーバーから取得しました:', this.safeSpawnPositions);
+        } catch (error) {
+            console.error('安全なスポーン位置の取得に失敗しました:', error);
+            // エラーが発生した場合はデフォルト値を使用
+            this.safeSpawnPositions = [{ x: 0, y: 0, z: -200 }];
+            this.SAFE_SPOT_DISTANCE = 20;
+        }
     }
 
     createMap() {
@@ -297,12 +316,19 @@ class FieldMap {
     }
 
     hideLoadingScreen() {
+        console.log('hideLoadingScreen called, isLoading:', this.isLoading);
         if (this.loadingScreen) {
+            console.log('Hiding loading screen...');
             this.loadingScreen.style.opacity = '0';
             this.loadingScreen.style.transition = 'opacity 0.5s ease-out';
             setTimeout(() => {
-                this.loadingScreen.remove();
+                if (this.loadingScreen && this.loadingScreen.parentNode) {
+                    this.loadingScreen.remove();
+                    console.log('Loading screen removed');
+                }
             }, 500);
+        } else {
+            console.log('Loading screen element not found');
         }
         this.isLoading = false;
     }
@@ -357,6 +383,7 @@ class FieldMap {
         
         let currentChunk = 0;
         const totalChunks = chunkCoords.length;
+        let loadingHidden = false; // ローディング画面が隠されたかどうかのフラグ
         
         const generateNextChunks = () => {
             const startTime = performance.now();
@@ -375,18 +402,22 @@ class FieldMap {
                 this.updateLoadingProgress(progress);
             }
 
+            // 最初のチャンク (プレイヤー周辺) が読み込まれたらローディング画面を隠す
+            if (currentChunk >= 9 && this.isLoading && !loadingHidden) { // 3x3 の周辺チャンクが読み込まれたら
+                this.hideLoadingScreen();
+                loadingHidden = true;
+            }
+
             if (currentChunk < totalChunks) {
                 // 次のフレームで続行
                 requestAnimationFrame(generateNextChunks);
             } else {
                 // 地形生成完了後、オブジェクトを生成
                 this.generateObjects();
-                this.hideLoadingScreen();
-            }
-            
-            // 最初のチャンク (プレイヤー周辺) が読み込まれたらローディング画面を隠す
-            if (currentChunk >= 9 && this.isLoading) { // 3x3 の周辺チャンクが読み込まれたら
-                this.hideLoadingScreen();
+                // ローディング画面がまだ表示されている場合は隠す
+                if (this.isLoading) {
+                    this.hideLoadingScreen();
+                }
             }
         };
 
@@ -730,18 +761,21 @@ class FieldMap {
         // メサが生成される確率を計算（キャニオン以外のバイオームで低確率）
         let mesaChance = 0.015;
 
-        if(biome.type === 'canyon'){
-            mesaChance = 1.0;
-        }else if(biome.type === 'forest'){
-            mesaChance = 0.1;
-        }else if(biome.type === 'ruins'){
-            mesaChance = 0.1;
-        }else if(biome.type === 'urban'){
-            mesaChance = 0.01;
-        }else if(biome.type === 'industrial'){
-            mesaChance = 0.0;   
-        }else{
-            mesaChance = 0.1;
+        // biomeがnullの場合はデフォルト値を使用
+        if (biome && biome.type) {
+            if(biome.type === 'canyon'){
+                mesaChance = 1.0;
+            }else if(biome.type === 'forest'){
+                mesaChance = 0.1;
+            }else if(biome.type === 'ruins'){
+                mesaChance = 0.1;
+            }else if(biome.type === 'urban'){
+                mesaChance = 0.01;
+            }else if(biome.type === 'industrial'){
+                mesaChance = 0.0;   
+            }else{
+                mesaChance = 0.1;
+            }
         }
 /*
         // メサの生成判定
@@ -1363,8 +1397,18 @@ class FieldMap {
         if (this.game && this.game.playerModel) {
             const playerPos = this.game.playerModel.getPosition();
             if (Math.abs(playerPos.x - x) < 1 && Math.abs(playerPos.z - z) < 1) {
-                //console.log('現在のバイオーム:', closestBiome.type, '位置:', {x: x, z: z});
+                //console.log('現在のバイオーム:', closestBiome?.type, '位置:', {x: x, z: z});
             }
+        }
+        
+        // バイオームが見つからない場合はデフォルトのバイオームを返す
+        if (!closestBiome) {
+            return {
+                type: 'urban',
+                x: 0,
+                z: 0,
+                size: 50
+            };
         }
         
         return closestBiome;
@@ -1522,7 +1566,7 @@ class FieldMap {
     }
 
     generateBuildings() {
-        const buildingCount = Math.floor(this.random() * (GameConfig.MAP.BUILDINGS.MAX_COUNT - GameConfig.MAP.BUILDINGS.MIN_COUNT + 1)) + GameConfig.MAP.BUILDINGS.MIN_COUNT;
+        const buildingCount = Math.floor(this.rng() * (GameConfig.MAP.BUILDINGS.MAX_COUNT - GameConfig.MAP.BUILDINGS.MIN_COUNT + 1)) + GameConfig.MAP.BUILDINGS.MIN_COUNT;
         
         for (let i = 0; i < buildingCount; i++) {
             let attempts = 0;
@@ -1530,12 +1574,12 @@ class FieldMap {
             
             while (!placed && attempts < 100) {
                 // シード値に基づいてランダムな位置を生成
-                const x = (this.random() - 0.5) * this.mapSize;
-                const z = (this.random() - 0.5) * this.mapSize;
+                const x = (this.rng() - 0.5) * this.mapSize;
+                const z = (this.rng() - 0.5) * this.mapSize;
                 
                 // 建物のサイズを決定
-                const width = Math.floor(this.random() * (GameConfig.MAP.BUILDINGS.MAX_WIDTH - GameConfig.MAP.BUILDINGS.MIN_WIDTH + 1)) + GameConfig.MAP.BUILDINGS.MIN_WIDTH;
-                const height = Math.floor(this.random() * (GameConfig.MAP.BUILDINGS.MAX_HEIGHT - GameConfig.MAP.BUILDINGS.MIN_HEIGHT + 1)) + GameConfig.MAP.BUILDINGS.MIN_HEIGHT;
+                const width = Math.floor(this.rng() * (GameConfig.MAP.BUILDINGS.MAX_WIDTH - GameConfig.MAP.BUILDINGS.MIN_WIDTH + 1)) + GameConfig.MAP.BUILDINGS.MIN_WIDTH;
+                const height = Math.floor(this.rng() * (GameConfig.MAP.BUILDINGS.MAX_HEIGHT - GameConfig.MAP.BUILDINGS.MIN_HEIGHT + 1)) + GameConfig.MAP.BUILDINGS.MIN_HEIGHT;
                 
                 // 建物の位置を計算
                 const position = new THREE.Vector3(x, 0, z);

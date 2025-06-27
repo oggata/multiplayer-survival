@@ -645,13 +645,12 @@ if(this.devMode){
 		// シード値を使用してフィールドマップを初期化
 		this.fieldMap = new FieldMap(this.scene, seed);
 		
-		/*
 		// フィールドマップの初期化が完了するまで待機
 		this.fieldMap.initialize().then(() => {
 			// フィールドマップの初期化が完了した後にアイテムを生成
-			this.spawnItems();
+			//this.spawnItems();
+			console.log("FieldMap初期化完了 - プレイヤー作成準備完了");
 		});
-		*/
 
 		this.updateLightDirection();
 
@@ -720,6 +719,7 @@ if(this.devMode){
 
 		// 初期位置は(0,0,0)に設定し、後でcurrentPlayersイベントで正しい位置に設定される
 		this.playerModel.setPosition(100, 0, 100);
+		console.log("プレイヤー初期スポーン座標:", { x: 100, y: 0, z: 100 });
 
 		// Get initial position from server
 		const serverPosition = this.playerModel.getPosition();
@@ -731,6 +731,7 @@ if(this.devMode){
 			// Find a safe spawn position
 			const safePosition2 = this.getNearbyPlayerPosition();
 			this.playerModel.setPosition(safePosition2.x, safePosition2.y, safePosition2.z);
+			console.log("プレイヤー安全スポーン座標:", safePosition2);
 
 			// Immediately notify server of the corrected position
 			this.socket.emit('playerMove', {
@@ -741,7 +742,44 @@ if(this.devMode){
 				isMoving: false,
 				isRunning: false
 			});
+		} else {
+			console.log("プレイヤーファイナルスポーン座標:", serverPosition);
 		}
+	}
+
+	createPlayerModelWithServerPosition(serverPlayerData) {
+		console.log("createPlayerModelWithServerPosition - サーバー位置:", serverPlayerData.position);
+		if (this.fieldMap) {
+			console.log("FieldMap中心座標: (0, 0, 0) mapSize:", this.fieldMap.mapSize);
+			console.log("FieldMap.safeSpawnPositions:", this.fieldMap.safeSpawnPositions);
+		}
+		// ...（既存処理）
+		if (this.playerModel) {
+			this.scene.remove(this.playerModel.character);
+			this.playerModel.dispose();
+		}
+
+		// Create new character using the Character class
+		this.playerModel = new Character(this.scene, "player", this);
+
+		// Set player color if available from hash
+		if (this.playerHash) {
+			const color = this.generateColorFromHash(this.playerHash);
+			this.playerModel.setColor(color);
+			console.log("color" + color);
+		}
+
+		// サーバーから送られてきた位置を直接設定
+		this.playerModel.setPosition(
+			serverPlayerData.position.x,
+			serverPlayerData.position.y,
+			serverPlayerData.position.z
+		);
+		this.playerModel.setRotation(serverPlayerData.rotation.y);
+		console.log("プレイヤーサーバー位置でスポーン完了:", serverPlayerData.position);
+
+		// カメラ位置も更新
+		this.updateCameraPosition();
 	}
 
 	setupControls() {
@@ -762,6 +800,7 @@ if(this.devMode){
 		// マウスコントロール
 		document.addEventListener('mousemove', (e) => {
 			if (this.isMobile) return;
+			if (!this.playerModel) return; // プレイヤーモデルが存在しない場合は処理をスキップ
 
 			const movementX = e.movementX || 0;
 			// CharacterクラスのsetRotationメソッドを使用
@@ -969,45 +1008,22 @@ if(this.devMode){
 
 			// シーンの初期化（初回のみ）
 			if (!this.fieldMap) {
+				console.log("FieldMap初期化開始...");
 				this.setupScene(this.seed);
-			}
-
-			// 自分の初期位置を設定
-			const myPlayerData = players.find(player => player.id === this.socket.id);
-			if (myPlayerData) {
-				if (!this.playerModel) {
-					this.createPlayerModel();
-				}
-				// サーバーから送られてきた位置を設定
-				this.playerModel.setPosition(
-					myPlayerData.position.x,
-					myPlayerData.position.y,
-					myPlayerData.position.z
-				);
-				this.playerModel.setRotation(myPlayerData.rotation.y);
-
-				// カメラ位置も更新
-				this.updateCameraPosition();
-			}
-
-			// 既存のプレイヤーをすべて削除（自分自身を除く）
-			this.players.forEach((player, playerId) => {
-				if (playerId !== this.socket.id) {
-					if (player.character) {
-						this.scene.remove(player.character);
-						player.dispose();
+				// setupSceneは非同期なので、初期化完了まで待機
+				const waitForInitialization = () => {
+					if (this.fieldMap && this.fieldMap.isInitialized) {
+						console.log("FieldMap初期化完了 - プレイヤー処理開始");
+						this.processCurrentPlayers(players);
+					} else {
+						setTimeout(waitForInitialization, 100);
 					}
-				}
-			});
-			this.players.clear();
-
-			// 新しいプレイヤーリストを追加（自分自身を除く）
-			players.forEach(player => {
-				if (player.id !== this.socket.id && !this.players.has(player.id)) {
-					this.addPlayer(player);
-				}
-			});
-			this.updatePlayerCount();
+				};
+				waitForInitialization();
+			} else {
+				// FieldMapが既に存在する場合は直接処理
+				this.processCurrentPlayers(players);
+			}
 		});
 
 		this.socket.on('newPlayer', (player) => {
@@ -1066,6 +1082,7 @@ if(this.devMode){
 				// 自分のリスタート
 				this.playerStatus.health = data.health;
 				this.updateHealthDisplay();
+				console.log("プレイヤーリスタート位置:", data.position);
 			} else {
 				// 他のプレイヤーのリスタート
 				const player = this.players.get(data.id);
@@ -1810,6 +1827,12 @@ if(this.devMode){
 
 		// プレイヤーの更新
 		this.updatePlayer(gameDeltaTime);
+		
+		// カメラの位置を更新（プレイヤーが存在する場合のみ）
+		if (this.playerModel) {
+			this.updateCameraPosition();
+		}
+		
 		// オブジェクトの表示/非表示を更新
 		this.updateObjectVisibility();
 
@@ -1964,7 +1987,6 @@ if(this.devMode){
 						nearestEnemy = {
 							enemy: enemy,
 							distance: distance,
-							position: enemyPosition
 						};
 					}
 				}
@@ -1972,6 +1994,12 @@ if(this.devMode){
 
 			// 最も近い敵が検出半径内にいれば自動射撃
 			if (nearestEnemy && nearestEnemy.distance < this.autoShootRadius) {
+				// 安全スポット内にいるかチェック
+				if (this.fieldMap && this.fieldMap.isSafeSpot(playerPosition.x, playerPosition.z)) {
+					// 安全スポット内の場合は射撃しない
+					return;
+				}
+				
 				// 自動射撃
 				//console.log("自動射撃");
 				if (this.playerModel) {
@@ -3910,6 +3938,76 @@ if(this.devMode){
 			canvas.addEventListener('touchstart', resumeAudioContext, { once: true });
 			canvas.addEventListener('touchend', resumeAudioContext, { once: true });
 		}
+	}
+
+	processCurrentPlayers(players) {
+		console.log("processCurrentPlayers開始 - プレイヤー数:", players.length);
+		console.log("自分のsocket.id:", this.socket.id);
+		console.log("全プレイヤーデータ:", players);
+		
+		// 自分の初期位置を設定
+		const myPlayerData = players.find(player => player.id === this.socket.id);
+		if (myPlayerData) {
+			console.log("自分のプレイヤーデータ発見:", myPlayerData.position);
+			this.createPlayerModelWithServerPosition(myPlayerData);
+		} else {
+			console.log("自分のプレイヤーデータが見つかりません");
+			console.log("利用可能なプレイヤーID:", players.map(p => p.id));
+		}
+
+		// 既存のプレイヤーをすべて削除（自分自身を除く）
+		this.players.forEach((player, playerId) => {
+			if (playerId !== this.socket.id) {
+				if (player.character) {
+					this.scene.remove(player.character);
+					player.dispose();
+				}
+			}
+		});
+		this.players.clear();
+
+		// 新しいプレイヤーリストを追加（自分自身を除く）
+		players.forEach(player => {
+			if (player.id !== this.socket.id && !this.players.has(player.id)) {
+				this.addPlayer(player);
+			}
+		});
+		this.updatePlayerCount();
+	}
+
+	createPlayerModelWithServerPosition(serverPlayerData) {
+		console.log("createPlayerModelWithServerPosition - サーバー位置:", serverPlayerData.position);
+		if (this.fieldMap) {
+			console.log("FieldMap中心座標: (0, 0, 0) mapSize:", this.fieldMap.mapSize);
+			console.log("FieldMap.safeSpawnPositions:", this.fieldMap.safeSpawnPositions);
+		}
+		// ...（既存処理）
+		if (this.playerModel) {
+			this.scene.remove(this.playerModel.character);
+			this.playerModel.dispose();
+		}
+
+		// Create new character using the Character class
+		this.playerModel = new Character(this.scene, "player", this);
+
+		// Set player color if available from hash
+		if (this.playerHash) {
+			const color = this.generateColorFromHash(this.playerHash);
+			this.playerModel.setColor(color);
+			console.log("color" + color);
+		}
+
+		// サーバーから送られてきた位置を直接設定
+		this.playerModel.setPosition(
+			serverPlayerData.position.x,
+			serverPlayerData.position.y,
+			serverPlayerData.position.z
+		);
+		this.playerModel.setRotation(serverPlayerData.rotation.y);
+		console.log("プレイヤーサーバー位置でスポーン完了:", serverPlayerData.position);
+
+		// カメラ位置も更新
+		this.updateCameraPosition();
 	}
 }
 

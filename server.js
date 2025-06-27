@@ -8,6 +8,14 @@ const { createNoise2D } = require('simplex-noise');
 
 app.use(express.static('public'));
 
+// 安全なスポーン位置を取得するAPIエンドポイント
+app.get('/api/safe-spawn-positions', (req, res) => {
+    res.json({
+        safeSpawnPositions: safeSpawnPositions,
+        safeSpotDistance: SAFE_SPOT_DISTANCE
+    });
+});
+
 // サーバー起動時にシード値を生成
 const serverSeed = Math.random();
 //console.log(`Server seed: ${serverSeed}`);
@@ -405,9 +413,45 @@ function spawnEnemy() {
 
 const randRange = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
 
-// 安全なスポーン位置のリスト
+// 安全なスポーン位置のリスト（座標間の距離が300以上）
 const safeSpawnPositions = [
-    { x: 0, y: 0, z: -200 }
+    // 中心エリア
+    { x: 0, y: 0, z: -200 },
+    { x: 400, y: 0, z: -200 },
+    { x: -400, y: 0, z: -200 },
+    { x: 0, y: 0, z: 200 },
+    { x: 400, y: 0, z: 200 },
+    { x: -400, y: 0, z: 200 }
+    
+    /*
+    // 北エリア
+    { x: 200, y: 0, z: -600 },
+    { x: -200, y: 0, z: -600 },
+    { x: 600, y: 0, z: -600 },
+    { x: -600, y: 0, z: -600 },
+    
+    // 南エリア
+    { x: 200, y: 0, z: 600 },
+    { x: -200, y: 0, z: 600 },
+    { x: 600, y: 0, z: 600 },
+    { x: -600, y: 0, z: 600 },
+    
+    // 東エリア
+    { x: 800, y: 0, z: 0 },
+    { x: 800, y: 0, z: 400 },
+    { x: 800, y: 0, z: -400 },
+    
+    // 西エリア
+    { x: -800, y: 0, z: 0 },
+    { x: -800, y: 0, z: 400 },
+    { x: -800, y: 0, z: -400 },
+    
+    // 対角線エリア
+    { x: 1000, y: 0, z: 1000 },
+    { x: -1000, y: 0, z: 1000 },
+    { x: 1000, y: 0, z: -1000 },
+    { x: -1000, y: 0, z: -1000 }
+     */
 ];
 
 // 安全なスポーン位置からの最小距離
@@ -938,109 +982,6 @@ function getSpawnPosition() {
         z: randomPlayer.position.z
     };
 }
-
-// ボスの生成を管理する変数
-//let bossesSpawned = false;
-//let bossSpawnTime = 0;
-/*
-// ボスの生成位置を取得する関数
-function getRandomBossSpawnPosition() {
-    const mapSize = MAP_SIZE;
-    const halfSize = mapSize / 2;
-    const minDistance = 100;
-
-    let position;
-    let attempts = 0;
-    const maxAttempts = 50;
-
-    do {
-        position = {
-            x: (Math.random() - 0.5) * (mapSize - minDistance * 2),
-            y: 0,
-            z: (Math.random() - 0.5) * (mapSize - minDistance * 2)
-        };
-
-        // マップの境界からminDistance以上離れていることを確認
-        if (Math.abs(position.x) > halfSize - minDistance || 
-            Math.abs(position.z) > halfSize - minDistance) {
-            attempts++;
-            continue;
-        }
-
-        // プレイヤーからの距離をチェック
-        let tooClose = false;
-        for (let playerId in players) {
-            const player = players[playerId];
-            const distance = Math.sqrt(
-                Math.pow(position.x - player.position.x, 2) +
-                Math.pow(position.z - player.position.z, 2)
-            );
-            if (distance < minDistance) {
-                tooClose = true;
-                break;
-            }
-        }
-
-        if (!tooClose) {
-            return position;
-        }
-
-        attempts++;
-    } while (attempts < maxAttempts);
-
-    // デフォルトの位置を返す
-    return { x: 0, y: 0, z: 0 };
-}*/
-
-/*
-// ボスを生成する関数
-function spawnBosses() {
-    if (bossesSpawned) return;
-
-    // 3体のボスを生成
-    for (let i = 0; i < 3; i++) {
-        const position = getRandomBossSpawnPosition();
-        const bossId = `boss_${Date.now()}_${i}`;
-        
-        const bossData = {
-            id: bossId,
-            type: 'boss',
-            position: position,
-            rotation: { x: 0, y: Math.random() * Math.PI * 2, z: 0 },
-            health: ENEMY_CONFIG.BOSS.health,
-            damage: ENEMY_CONFIG.BOSS.damage,
-            attackRange: ENEMY_CONFIG.BOSS.attackRange,
-            moveSpeed: ENEMY_CONFIG.BOSS.speed,
-            config: {
-                visionRange: ENEMY_CONFIG.BOSS.visionRange,
-                speed: ENEMY_CONFIG.BOSS.speed
-            },
-            state: 'wandering',
-            target: null,
-            lastAttack: 0
-        };
-console.log('ボスを生成しました:', bossData);
-        enemies[bossId] = bossData;
-        io.emit('enemySpawned', bossData);
-        io.emit('showBossEnemyPopup', bossId);
-    }
-
-    bossesSpawned = true;
-    bossSpawnTime = Date.now();
-}
-*/
-/*
-// ボスの状態をリセットする関数
-function resetBossState() {
-    bossesSpawned = false;
-    // 既存のボスを削除
-    Object.entries(enemies).forEach(([id, enemy]) => {
-        if (enemy.type === 'boss') {
-            delete enemies[id];
-            io.emit('enemyRemoved', id);
-        }
-    });
-}*/
 
 // 時間の更新処理
 function updateTimeOfDay() {

@@ -19,7 +19,7 @@ class Bullet {
 			transparent: true,
 			opacity: 0.6,
 			blending: THREE.AdditiveBlending,
-			temissiveIntensity:1.5,
+			emissiveIntensity:1.5,
 			depthWrite: false // 深度バッファへの書き込みを無効化
 		});
 		this.trailPoints = new THREE.Points(this.trailGeometry, this.trailMaterial);

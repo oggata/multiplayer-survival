@@ -17,6 +17,15 @@ class WeponManager {
         this.enemyBullets = new Map();  
     }
     shoot(playerModel) {
+		// 安全スポット内にいるかチェック
+		if (this.game.fieldMap) {
+			const playerPosition = playerModel.getPosition();
+			if (this.game.fieldMap.isSafeSpot(playerPosition.x, playerPosition.z)) {
+				// 安全スポット内の場合は射撃しない
+				return;
+			}
+		}
+
 		// 発射間隔チェック
 		const now = Date.now();
 		let shootInterval = 800; // デフォルトの間隔
