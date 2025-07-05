@@ -406,13 +406,15 @@
         .camera-btn { background: rgba(128, 128, 128, 0.8); }
         .jump-btn { background: rgba(255, 100, 100, 0.8); }
         .map-btn { background: rgba(100, 255, 100, 0.8); }
+        .ranking-btn { background: rgba(255, 215, 0, 0.8); }
+        .settings-btn { background: rgba(128, 128, 128, 0.8); }
 
         @media (max-width: 768px) {
             .control-buttons {
                 bottom: 10px;
                 right: 10px;
                 gap: 8px;
-                grid-template-columns: 45px 45px 45px;
+                grid-template-columns: 45px 45px 45px 45px 45px;
                 grid-template-rows: 45px 45px;
             }
 
@@ -455,6 +457,213 @@
                 min-width: 0;
                 padding: 10px;
             }
+        }
+
+        /* ランキングモーダルスタイル */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-content {
+            background-color: rgba(0, 0, 0, 0.9);
+            margin: 5% auto;
+            padding: 0;
+            border: 2px solid #4CAF50;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #4CAF50;
+            font-size: 18px;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 40px;
+            color: #f44336;
+            font-size: 18px;
+        }
+
+        #rankingTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        #rankingTable th,
+        #rankingTable td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        #rankingTable th {
+            background-color: rgba(76, 175, 80, 0.3);
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        #rankingTable tr:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .rank-1 {
+            background-color: rgba(255, 215, 0, 0.2);
+            color: #FFD700;
+        }
+
+        .rank-2 {
+            background-color: rgba(192, 192, 192, 0.2);
+            color: #C0C0C0;
+        }
+
+        .rank-3 {
+            background-color: rgba(205, 127, 50, 0.2);
+            color: #CD7F32;
+        }
+
+        .current-player {
+            background-color: rgba(76, 175, 80, 0.3) !important;
+            font-weight: bold;
+        }
+
+        /* セッティングモーダルスタイル */
+        .settings-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-section h3 {
+            margin: 0 0 15px 0;
+            color: #4CAF50;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .setting-item label {
+            min-width: 80px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .setting-item input,
+        .setting-item select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #4CAF50;
+            border-radius: 4px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 14px;
+        }
+
+        .setting-item input:focus,
+        .setting-item select:focus {
+            outline: none;
+            border-color: #45a049;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+        }
+
+        .save-btn {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.3s;
+        }
+
+        .save-btn:hover {
+            background-color: #45a049;
+        }
+
+        .settings-actions {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .save-settings-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .save-settings-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .save-settings-btn:active {
+            transform: translateY(0);
         }
 
     </style>
@@ -515,11 +724,13 @@
         </div>
 
         <div class="control-buttons">
-            <button id="messageButton" class="control-button message-btn" title="メッセージ"><i class="fas fa-comment"></i></button>
+
             <button id="warpButton" class="control-button warp-btn" title="ワープ"><i class="fas fa-random"></i></button>
             <button id="backpackButton" class="control-button backpack-btn" title="バックパック"><i class="fas fa-briefcase"></i></button>
             <button id="cameraButton" class="control-button camera-btn" title="カメラ"><i class="fas fa-camera"></i></button>
-            <button id="jumpButton" class="control-button jump-btn" title="ジャンプ"><i class="fas fa-arrow-up"></i></button>
+
+            <button id="rankingButton" class="control-button ranking-btn" title="ランキング"><i class="fas fa-trophy"></i></button>
+            <button id="settingsButton" class="control-button settings-btn" title="設定"><i class="fas fa-cog"></i></button>
             <button id="mapButton" class="control-button map-btn" title="マップ"><i class="fas fa-qrcode"></i></button>
         </div>
     </div>
@@ -568,9 +779,101 @@
         </table>
         <div id="emptyBackpack">Backpack is empty</div>
     </div>
+
+    <!-- ランキングモーダル -->
+    <div id="rankingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-trophy"></i> ランキング</h2>
+                <button id="closeRankingModal" class="close-button">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="rankingLoading" class="loading">
+                    <i class="fas fa-spinner fa-spin"></i> ランキングを読み込み中...
+                </div>
+                <div id="rankingError" class="error-message" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i> ランキングの読み込みに失敗しました
+                </div>
+                <div id="rankingContent" style="display: none;">
+                    <table id="rankingTable">
+                        <thead>
+                            <tr>
+                                <th>順位</th>
+                                <th>プレイヤー名</th>
+                                <th>スコア</th>
+                                <th>生存時間</th>
+                                <th>倒した敵数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankingTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- セッティングモーダル -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> 設定</h2>
+                <button id="closeSettingsModal" class="close-button">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3><i class="fas fa-user"></i> プレイヤー名</h3>
+                    <div class="setting-item">
+                        <label for="playerNameInput">名前:</label>
+                        <input type="text" id="playerNameInput" maxlength="20" placeholder="プレイヤー名を入力">
+                        <button id="savePlayerNameBtn" class="save-btn">保存</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-music"></i> 音声設定</h3>
+                    <div class="setting-item">
+                        <label for="bgmToggle">BGM:</label>
+                        <select id="bgmToggle">
+                            <option value="on">ON</option>
+                            <option value="off">OFF</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-tv"></i> グラフィック設定</h3>
+                    <div class="setting-item">
+                        <label for="graphicsQuality">品質:</label>
+                        <select id="graphicsQuality">
+                            <option value="low">低</option>
+                            <option value="medium">中</option>
+                            <option value="high">高</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3><i class="fas fa-globe"></i> 言語設定</h3>
+                    <div class="setting-item">
+                        <label for="languageSelect">言語:</label>
+                        <select id="languageSelect">
+                            <option value="ja">日本語</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button id="saveSettingsBtn" class="save-settings-btn">設定を保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
         
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/neon.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
@@ -588,6 +891,7 @@
         }
     </script>
     <script src="js/config.js"></script>
+    <script src="js/items.js"></script>
     <script src="js/audioManager.js"></script>
     <script src="js/character.js"></script>
     <script src="js/quadrupedCharacter.js"></script>

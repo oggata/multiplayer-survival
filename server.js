@@ -1,3 +1,6 @@
+// 環境変数を読み込み
+require('dotenv').config();
+
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
@@ -5,8 +8,24 @@ const io = require('socket.io')(http);
 const path = require('path');
 const crypto = require('crypto');
 const { createNoise2D } = require('simplex-noise');
+const { neon } = require('@neondatabase/serverless');
 
 app.use(express.static('public'));
+app.use(express.json());
+
+// Neonデータベース接続（環境変数が設定されている場合のみ）
+let sql = null;
+if (process.env.DATABASE_URL) {
+    try {
+        sql = neon(process.env.DATABASE_URL);
+        console.log('Neonデータベースに接続しました');
+    } catch (error) {
+        console.error('Neonデータベース接続エラー:', error);
+        console.log('データベース機能は無効化されます');
+    }
+} else {
+    console.log('DATABASE_URLが設定されていません。データベース機能は無効化されます');
+}
 
 // 安全なスポーン位置を取得するAPIエンドポイント
 app.get('/api/safe-spawn-positions', (req, res) => {
@@ -1242,15 +1261,16 @@ io.on('connection', (socket) => {
     // スポーン位置を取得
     const spawnPosition = getSpawnPosition();
     
-    players[socket.id] = {
-        id: socket.id,
-        position: spawnPosition,
-        rotation: { y: 0 },
-        health: 100,
-        color: playerColor,
-        hash: playerHash,
-        spawnTime: Date.now() // スポーン時間を記録
-    };
+    	players[socket.id] = {
+		id: socket.id,
+		position: spawnPosition,
+		rotation: { y: 0 },
+		health: 100,
+		color: playerColor,
+		hash: playerHash,
+		name: null, // プレイヤー名を初期化
+		spawnTime: Date.now() // スポーン時間を記録
+	};
     
     // シード値とゲーム開始時間をクライアントに送信
     socket.emit('gameConfig', {
@@ -1500,6 +1520,211 @@ for (let i = 0; i < AUTO_PLAYERS_COUNT; i++) {
     autoPlayers[autoPlayer.id] = autoPlayer;
     players[autoPlayer.id] = autoPlayer;
 }
+
+// ゲーム結果をNeonデータベースに挿入するAPIエンドポイント
+app.post('/api/game-results', async (req, res) => {
+    // データベース接続チェック
+    if (!sql) {
+        return res.status(503).json({
+            success: false,
+            message: 'データベースが利用できません。DATABASE_URLを設定してください。'
+        });
+    }
+
+    try {
+        const {
+            userId,
+            userName,
+            survivalTime,
+            survivalTimeFormatted,
+            killedEnemies,
+            score,
+            insertTime,
+            updateTime
+        } = req.body;
+
+        // データベースに挿入
+        const result = await sql`
+            INSERT INTO game_results (
+                user_id, 
+                user_name, 
+                survival_time, 
+                survival_time_formatted, 
+                killed_enemies, 
+                score, 
+                insert_time, 
+                update_time
+            ) 
+            VALUES (
+                ${userId}, 
+                ${userName}, 
+                ${survivalTime}, 
+                ${survivalTimeFormatted}, 
+                ${killedEnemies}, 
+                ${score}, 
+                ${insertTime}, 
+                ${updateTime}
+            ) 
+            RETURNING id
+        `;
+
+        console.log('ゲーム結果をデータベースに挿入しました:', result[0]);
+
+        res.json({
+            success: true,
+            message: 'ゲーム結果が正常に保存されました',
+            id: result[0].id
+        });
+
+    } catch (error) {
+        console.error('データベース挿入エラー:', error);
+        res.status(500).json({
+            success: false,
+            message: 'データベースへの保存に失敗しました',
+            error: error.message
+        });
+    }
+});
+
+// ゲーム結果の取得API（オプション）
+app.get('/api/game-results', async (req, res) => {
+    // データベース接続チェック
+    if (!sql) {
+        return res.status(503).json({
+            success: false,
+            message: 'データベースが利用できません。DATABASE_URLを設定してください。'
+        });
+    }
+
+    try {
+        const { limit = 10, offset = 0 } = req.query;
+
+        const results = await sql`
+            SELECT 
+                id,
+                user_id,
+                user_name,
+                survival_time,
+                survival_time_formatted,
+                killed_enemies,
+                score,
+                insert_time,
+                update_time
+            FROM game_results 
+            ORDER BY score DESC, survival_time DESC
+            LIMIT ${parseInt(limit)} 
+            OFFSET ${parseInt(offset)}
+        `;
+
+        res.json({
+            success: true,
+            data: results
+        });
+
+    } catch (error) {
+        console.error('データベース取得エラー:', error);
+        res.status(500).json({
+            success: false,
+            message: 'データベースからの取得に失敗しました',
+            error: error.message
+        });
+    }
+});
+
+// ユーザー別の最高スコア取得API（オプション）
+app.get('/api/game-results/user/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        const result = await sql`
+            SELECT 
+                id,
+                user_id,
+                user_name,
+                survival_time,
+                survival_time_formatted,
+                killed_enemies,
+                score,
+                insert_time,
+                update_time
+            FROM game_results 
+            WHERE user_id = ${userId}
+            ORDER BY score DESC, survival_time DESC
+            LIMIT 1
+        `;
+
+        if (result.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'ユーザーのゲーム結果が見つかりません'
+            });
+        }
+
+        res.json({
+            success: true,
+            data: result[0]
+        });
+
+    } catch (error) {
+        console.error('ユーザー別データ取得エラー:', error);
+        res.status(500).json({
+            success: false,
+            message: 'データベースからの取得に失敗しました',
+            error: error.message
+        });
+    }
+});
+
+// プレイヤー名変更API
+app.post('/api/update-player-name', (req, res) => {
+    try {
+        // リクエストボディのログ出力
+        console.log('プレイヤー名変更リクエスト:', req.body);
+        
+        const { playerId, newName } = req.body;
+        
+        if (!playerId || !newName) {
+            console.log('プレイヤー名変更: パラメータ不足', { playerId, newName });
+            return res.status(400).json({
+                success: false,
+                message: 'プレイヤーIDと新しい名前が必要です'
+            });
+        }
+
+        // プレイヤーが存在するかチェック
+        if (players[playerId]) {
+            // プレイヤー名を更新
+            players[playerId].name = newName;
+            
+            // 全クライアントに名前変更を通知
+            io.emit('playerNameChanged', {
+                playerId: playerId,
+                newName: newName
+            });
+            
+            console.log(`プレイヤー ${playerId} の名前を "${newName}" に変更しました`);
+            
+            res.json({
+                success: true,
+                message: 'プレイヤー名が正常に更新されました'
+            });
+        } else {
+            console.log('プレイヤー名変更: プレイヤーが見つかりません', playerId);
+            res.status(404).json({
+                success: false,
+                message: 'プレイヤーが見つかりません'
+            });
+        }
+        
+    } catch (error) {
+        console.error('プレイヤー名変更エラー:', error);
+        res.status(500).json({
+            success: false,
+            message: 'プレイヤー名の更新に失敗しました',
+            error: error.message
+        });
+    }
+});
 
 http.listen(PORT, () => {
     console.log(`サーバーが起動しました: http://localhost:${PORT}`);

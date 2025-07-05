@@ -7,6 +7,7 @@ class Game {
 		this.bosses = [];
 		this.bossesSpawned = false;
 		this.devMode = false; // 初期値をfalseに変更
+		this.killedEnemies = 0; // 倒した敵数を追跡
 
 
 				// URLパラメータをチェックしてdevModeを設定
@@ -50,6 +51,8 @@ class Game {
 
 
 		this.setupJumpButton();
+		this.setupRankingButton();
+		this.setupSettingsButton();
 		this.setupMapButton();
 
 
@@ -181,6 +184,9 @@ class Game {
 
 		this.setupControls();
 		this.setupSocketEvents();
+		
+		// 初期設定を適用
+		this.applySettings();
 
 		// 電波塔の管理を追加（シーン初期化後に配置）
 		//this.radioTowerManager = new RadioTowerManager(this.scene);
@@ -263,7 +269,11 @@ class Game {
 		this.updateEffectsDisplay();
 
 		// ゲーム開始時にランダムなアイテムを3つバックパックに入れる
-		const itemTypes = Object.entries(GameConfig.ITEMS)
+		const lang = localStorage.getItem('language') || 'ja';
+		const items = ItemsConfig.getItemsConfig(lang) || {};
+		console.log('lang:', lang);
+		console.log('items:', items);
+		const itemTypes = Object.entries(items)
 			.filter(([_, item]) => item.dropChance !== undefined)
 			.map(([type]) => type);
 
@@ -359,6 +369,11 @@ if(this.devMode){
 
 		// 歩行状態の直前値を記録
 		this.prevIsMoving = false;
+
+		// Neon APIを初期化
+		if (typeof window.neonAPI !== 'undefined') {
+			window.neonAPI.init();
+		}
 	}
 
 	createMessageIndicatorContainer() {
@@ -384,6 +399,7 @@ if(this.devMode){
 	}
 
 	initMessagePopup() {
+		/*
 		const messageButton = document.getElementById('messageButton');
 		messageButton.addEventListener('click', () => {
 			// サーバーにメッセージを送信
@@ -393,6 +409,7 @@ if(this.devMode){
 			// 自分の画面にも表示
 			this.showMessagePopup();
 		});
+		*/
 	}
 
 	showMessagePopup() {
@@ -1180,6 +1197,15 @@ if(this.devMode){
 				this.missionManager.handleKeyItemCollected(data);
 			}
 		});
+
+		// プレイヤー名変更の処理
+		this.socket.on('playerNameChanged', (data) => {
+			const player = this.players.get(data.playerId);
+			if (player) {
+				player.name = data.newName;
+				console.log(`プレイヤー ${data.playerId} の名前が "${data.newName}" に変更されました`);
+			}
+		});
 	}
 
 	addPlayer(playerData) {
@@ -1510,13 +1536,18 @@ if(this.devMode){
 		const survivalTime = Date.now() - this.playerSpawnTime;
 		const gameDayLength = GameConfig.TIME.DAY_LENGTH;
 
-
 		this.playerSpawnTime = Date.now();
 
 		// 生存時間をゲーム内の日数、時間、分に変換
 		const survivalDays = Math.floor(survivalTime / (gameDayLength * 1000));
 		const survivalHours = Math.floor((survivalTime % (gameDayLength * 1000)) / (gameDayLength * 1000 / 24));
 		const survivalMinutes = Math.floor((survivalTime % (gameDayLength * 1000 / 24)) / (gameDayLength * 1000 / 24 / 60));
+
+		// 倒した敵数を取得（仮の値、後で実装）
+		const killedEnemies = this.killedEnemies || 0;
+
+		// Neon APIにゲーム結果を送信
+		this.sendGameResultToNeon(survivalTime, killedEnemies);
 
 		// ゲームオーバー画面を表示
 		const gameOverElement = document.getElementById('gameOver');
@@ -1671,6 +1702,29 @@ if(this.devMode){
 		return new THREE.Vector3(0, 5, 0); // Slightly elevated for safety
 	}
 
+	// Neon APIにゲーム結果を送信するメソッド
+	async sendGameResultToNeon(survivalTime, killedEnemies) {
+		try {
+			// neonAPIが利用可能かチェック
+			if (typeof window.neonAPI === 'undefined') {
+				console.warn('Neon APIが利用できません');
+				return;
+			}
+
+			// ゲーム結果データを準備
+			const gameData = window.neonAPI.prepareGameResult(survivalTime, killedEnemies);
+
+			// Neon APIに送信
+			await window.neonAPI.sendGameResult(gameData);
+			
+			console.log('ゲーム結果をNeon APIに送信しました');
+
+		} catch (error) {
+			console.error('Neon API送信エラー:', error);
+			// エラーが発生してもゲームは続行
+		}
+	}
+
 	// ゲームをリスタートする処理
 	restartGame() {
 		// 音を再生
@@ -1683,6 +1737,7 @@ if(this.devMode){
 		this.isGameOver = false;
 		this.gameOverElement.style.display = 'none';
 		this.playerSpawnTime = Date.now();
+		this.killedEnemies = 0; // 倒した敵数をリセット
 		// ランダムなリスポーンポイントを探す
 		const safePosition = this.findSafeRespawnPosition();
 		this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
@@ -2211,9 +2266,9 @@ if(this.devMode){
 		this.backpackItemsBody.innerHTML = '';
 
 		this.inventory.forEach(item => {
-			const itemConfig = GameConfig.ITEMS[item.type];
+			const lang = localStorage.getItem('language') || 'ja';
+			const itemConfig = ItemsConfig.getItemConfig(item.type, lang);
 			if (!itemConfig) return;
-
 			const itemElement = document.createElement('div');
 			itemElement.className = 'backpack-item';
 			itemElement.style.cssText = `
@@ -2222,9 +2277,6 @@ if(this.devMode){
                 justify-content: space-between;
                 padding: 5px 10px;
                 margin: 2px 0;
-                background: rgba(0, 0, 0, 0.5);
-                border-radius: 4px;
-                font-size: 14px;
             `;
 
 			const useButton = document.createElement('button');
@@ -2706,6 +2758,9 @@ if(this.devMode){
 		const enemy = this.enemies.get(enemyId);
 		if (!enemy || !enemy.model) return;
 
+		// 倒した敵数をカウントアップ
+		this.killedEnemies++;
+
 		const position = enemy.model.getPosition();
 		if (!position) return;
 		
@@ -2737,11 +2792,13 @@ if(this.devMode){
 	}
 
 	getItemName(type) {
-		return GameConfig.ITEMS[type] ?.name || type;
+		const lang = localStorage.getItem('language') || 'ja';
+		return ItemsConfig.getItemName(type, lang) || type;
 	}
 
 	getItemDescription(type) {
-		return GameConfig.ITEMS[type] ?.description || '';
+		const lang = localStorage.getItem('language') || 'ja';
+		return ItemsConfig.getItemDescription(type, lang) || '';
 	}
 
 	updateInventoryDisplay() {
@@ -3636,6 +3693,421 @@ if(this.devMode){
 				mapModal.style.display = 'none';
 			}
 		});
+	}
+
+	setupRankingButton() {
+		const rankingButton = document.getElementById('rankingButton');
+		const rankingModal = document.getElementById('rankingModal');
+		const closeRankingModal = document.getElementById('closeRankingModal');
+
+		if (!rankingButton || !rankingModal || !closeRankingModal) return;
+
+		rankingButton.addEventListener('click', () => {
+			this.showRankingModal();
+		});
+
+		closeRankingModal.addEventListener('click', () => {
+			rankingModal.style.display = 'none';
+		});
+
+		// モーダル外をクリックしても閉じる
+		rankingModal.addEventListener('click', (e) => {
+			if (e.target === rankingModal) {
+				rankingModal.style.display = 'none';
+			}
+		});
+	}
+
+	async showRankingModal() {
+		const rankingModal = document.getElementById('rankingModal');
+		const rankingLoading = document.getElementById('rankingLoading');
+		const rankingError = document.getElementById('rankingError');
+		const rankingContent = document.getElementById('rankingContent');
+		const rankingTableBody = document.getElementById('rankingTableBody');
+
+		// モーダルを表示
+		rankingModal.style.display = 'block';
+		
+		// ローディング状態を表示
+		rankingLoading.style.display = 'block';
+		rankingError.style.display = 'none';
+		rankingContent.style.display = 'none';
+
+		try {
+			// ランキングデータを取得
+			const rankingData = await window.neonAPI.getRanking();
+			
+			if (rankingData && rankingData.length > 0) {
+				// ランキングテーブルを更新
+				this.updateRankingTable(rankingData);
+				
+				// コンテンツを表示
+				rankingLoading.style.display = 'none';
+				rankingContent.style.display = 'block';
+			} else {
+				// データがない場合
+				rankingLoading.style.display = 'none';
+				rankingError.style.display = 'block';
+				rankingError.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ランキングデータがありません';
+			}
+		} catch (error) {
+			console.error('ランキング取得エラー:', error);
+			rankingLoading.style.display = 'none';
+			rankingError.style.display = 'block';
+			rankingError.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ランキングの読み込みに失敗しました';
+		}
+	}
+
+	updateRankingTable(rankingData) {
+		const rankingTableBody = document.getElementById('rankingTableBody');
+		
+		// テーブルをクリア
+		rankingTableBody.innerHTML = '';
+		
+		// 現在のプレイヤーIDを取得
+		const currentPlayerId = this.socket ? this.socket.id : null;
+		
+		rankingData.forEach((player, index) => {
+			const row = document.createElement('tr');
+			
+			// 順位に応じたクラスを追加
+			if (index === 0) row.classList.add('rank-1');
+			else if (index === 1) row.classList.add('rank-2');
+			else if (index === 2) row.classList.add('rank-3');
+			
+			// 現在のプレイヤーの場合はハイライト
+			if (player.user_id === currentPlayerId) {
+				row.classList.add('current-player');
+			}
+			
+			// 生存時間をフォーマット
+			const survivalTime = this.formatSurvivalTime(player.survival_time);
+			
+			row.innerHTML = `
+				<td>${index + 1}</td>
+				<td>${player.user_name || 'Unknown Player'}</td>
+				<td>${player.score.toLocaleString()}</td>
+				<td>${survivalTime}</td>
+				<td>${player.killed_enemies}</td>
+			`;
+			
+			rankingTableBody.appendChild(row);
+		});
+	}
+
+	formatSurvivalTime(survivalTimeMs) {
+		const seconds = Math.floor(survivalTimeMs / 1000);
+		const minutes = Math.floor(seconds / 60);
+		const hours = Math.floor(minutes / 60);
+		const days = Math.floor(hours / 24);
+
+		if (days > 0) {
+			return `${days}日 ${hours % 24}時間 ${minutes % 60}分`;
+		} else if (hours > 0) {
+			return `${hours}時間 ${minutes % 60}分`;
+		} else if (minutes > 0) {
+			return `${minutes}分 ${seconds % 60}秒`;
+		} else {
+			return `${seconds}秒`;
+		}
+	}
+
+	setupSettingsButton() {
+		const settingsButton = document.getElementById('settingsButton');
+		const settingsModal = document.getElementById('settingsModal');
+		const closeSettingsModal = document.getElementById('closeSettingsModal');
+		const playerNameInput = document.getElementById('playerNameInput');
+		const savePlayerNameBtn = document.getElementById('savePlayerNameBtn');
+		const bgmToggle = document.getElementById('bgmToggle');
+		const graphicsQuality = document.getElementById('graphicsQuality');
+		const languageSelect = document.getElementById('languageSelect');
+		const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+
+		if (!settingsButton || !settingsModal || !closeSettingsModal) return;
+
+		// セッティングボタンクリック時の処理
+		settingsButton.addEventListener('click', () => {
+			this.showSettingsModal();
+		});
+
+		// モーダルを閉じる
+		closeSettingsModal.addEventListener('click', () => {
+			settingsModal.style.display = 'none';
+		});
+
+		// モーダル外をクリックしても閉じる
+		settingsModal.addEventListener('click', (e) => {
+			if (e.target === settingsModal) {
+				settingsModal.style.display = 'none';
+			}
+		});
+
+		// プレイヤー名保存ボタン
+		if (savePlayerNameBtn) {
+			savePlayerNameBtn.addEventListener('click', () => {
+				this.savePlayerName();
+			});
+		}
+
+		// 設定保存ボタン
+		if (saveSettingsBtn) {
+			saveSettingsBtn.addEventListener('click', () => {
+				this.saveSettings();
+			});
+		}
+
+		// Enterキーでプレイヤー名を保存
+		if (playerNameInput) {
+			playerNameInput.addEventListener('keypress', (e) => {
+				if (e.key === 'Enter') {
+					this.savePlayerName();
+				}
+			});
+		}
+	}
+
+	showSettingsModal() {
+		const settingsModal = document.getElementById('settingsModal');
+		const playerNameInput = document.getElementById('playerNameInput');
+		const bgmToggle = document.getElementById('bgmToggle');
+		const graphicsQuality = document.getElementById('graphicsQuality');
+		const languageSelect = document.getElementById('languageSelect');
+
+		// モーダルを表示
+		settingsModal.style.display = 'block';
+
+		// 現在の設定を読み込み
+		this.loadSettings();
+
+		// 現在のプレイヤー名を表示
+		if (playerNameInput && this.socket) {
+			const currentPlayer = this.players.get(this.socket.id);
+			if (currentPlayer && currentPlayer.name) {
+				playerNameInput.value = currentPlayer.name;
+			} else {
+				playerNameInput.value = window.neonAPI.userName;
+			}
+		}
+	}
+
+	async savePlayerName() {
+		const playerNameInput = document.getElementById('playerNameInput');
+		if (!playerNameInput || !this.socket) {
+			console.error('プレイヤー名保存: 必要な要素が見つかりません');
+			return;
+		}
+
+		const newName = playerNameInput.value.trim();
+		if (!newName) {
+			alert('プレイヤー名を入力してください');
+			return;
+		}
+
+		if (newName.length > 20) {
+			alert('プレイヤー名は20文字以内で入力してください');
+			return;
+		}
+
+		console.log('プレイヤー名保存開始:', { socketId: this.socket.id, newName: newName });
+
+		try {
+			// サーバーに名前変更を送信
+			const result = await window.neonAPI.updatePlayerName(this.socket.id, newName);
+			
+			if (result && result.success) {
+				// ローカルのユーザー情報も更新
+				window.neonAPI.setUserInfo(null, newName);
+				window.neonAPI.saveUserInfo();
+				
+				// 成功メッセージ
+				this.showMessage('プレイヤー名が更新されました');
+				console.log('プレイヤー名保存成功');
+			} else {
+				console.error('プレイヤー名保存失敗:', result);
+				alert('プレイヤー名の更新に失敗しました');
+			}
+		} catch (error) {
+			console.error('プレイヤー名保存エラー:', error);
+			console.error('エラー詳細:', error.message);
+			alert('プレイヤー名の更新に失敗しました: ' + error.message);
+		}
+	}
+
+	saveSettings() {
+		const bgmToggle = document.getElementById('bgmToggle');
+		const graphicsQuality = document.getElementById('graphicsQuality');
+		const languageSelect = document.getElementById('languageSelect');
+
+		// BGM設定を保存
+		if (bgmToggle) {
+			localStorage.setItem('bgm_enabled', bgmToggle.value);
+		}
+
+		// グラフィック設定を保存
+		if (graphicsQuality) {
+			localStorage.setItem('graphics_quality', graphicsQuality.value);
+		}
+
+		// 言語設定を保存
+		if (languageSelect) {
+			localStorage.setItem('language', languageSelect.value);
+		}
+
+		// 設定を適用
+		this.applySettings();
+
+		// 成功メッセージ
+		this.showMessage('設定が保存されました');
+
+		// モーダルを閉じる
+		const settingsModal = document.getElementById('settingsModal');
+		if (settingsModal) {
+			settingsModal.style.display = 'none';
+		}
+	}
+
+	loadSettings() {
+		const bgmToggle = document.getElementById('bgmToggle');
+		const graphicsQuality = document.getElementById('graphicsQuality');
+		const languageSelect = document.getElementById('languageSelect');
+
+		// BGM設定を読み込み
+		if (bgmToggle) {
+			const savedBGM = localStorage.getItem('bgm_enabled');
+			bgmToggle.value = savedBGM || 'on';
+		}
+
+		// グラフィック設定を読み込み
+		if (graphicsQuality) {
+			const savedGraphics = localStorage.getItem('graphics_quality');
+			graphicsQuality.value = savedGraphics || 'low';
+		}
+
+		// 言語設定を読み込み
+		if (languageSelect) {
+			const savedLanguage = localStorage.getItem('language');
+			languageSelect.value = savedLanguage || 'ja';
+		}
+	}
+
+	applySettings() {
+		// BGM設定を適用
+		const bgmEnabled = localStorage.getItem('bgm_enabled') || 'on';
+		if (this.audioManager) {
+			if (bgmEnabled === 'off') {
+				this.audioManager.stopBGM();
+			} else {
+				this.audioManager.playBGM();
+			}
+		}
+
+		// グラフィック設定を適用
+		const graphicsQuality = localStorage.getItem('graphics_quality') || 'low';
+		this.applyGraphicsSettings(graphicsQuality);
+
+		// 言語設定を適用
+		const language = localStorage.getItem('language') || 'ja';
+		this.applyLanguageSettings(language);
+	}
+
+	applyGraphicsSettings(quality) {
+		switch (quality) {
+			case 'low':
+				// 低品質設定
+				this.renderer.setPixelRatio(1);
+				this.renderer.shadowMap.enabled = false;
+				break;
+			case 'medium':
+				// 中品質設定
+				this.renderer.setPixelRatio(1.5);
+				this.renderer.shadowMap.enabled = true;
+				break;
+			case 'high':
+				// 高品質設定
+				this.renderer.setPixelRatio(2);
+				this.renderer.shadowMap.enabled = true;
+				break;
+		}
+	}
+
+	showMessage(message) {
+		// 簡単なメッセージ表示（既存のメッセージシステムがあればそれを使用）
+		console.log(message);
+		// 必要に応じてUIにメッセージを表示
+	}
+
+	applyLanguageSettings(language) {
+		// 言語設定を適用
+		console.log('言語設定を適用:', language);
+		
+		// 現在の言語をグローバル変数に保存
+		window.currentLanguage = language;
+		
+		// 必要に応じてUI要素の言語を変更
+		this.updateUILanguage(language);
+	}
+
+	updateUILanguage(language) {
+		// UI要素の言語を更新
+		const texts = this.getLanguageTexts(language);
+		
+		// 設定ボタンのツールチップを更新
+		const settingsButton = document.getElementById('settingsButton');
+		if (settingsButton) {
+			settingsButton.title = texts.settings;
+		}
+
+		// ランキングボタンのツールチップを更新
+		const rankingButton = document.getElementById('rankingButton');
+		if (rankingButton) {
+			rankingButton.title = texts.ranking;
+		}
+
+		// その他のUI要素も必要に応じて更新
+		console.log('UI言語を更新:', language);
+	}
+
+	getLanguageTexts(language) {
+		const texts = {
+			ja: {
+				settings: '設定',
+				ranking: 'ランキング',
+				playerName: 'プレイヤー名',
+				bgm: 'BGM',
+				graphics: 'グラフィック',
+				language: '言語',
+				quality: '品質',
+				low: '低',
+				medium: '中',
+				high: '高',
+				on: 'ON',
+				off: 'OFF',
+				japanese: '日本語',
+				english: 'English',
+				save: '保存',
+				saveSettings: '設定を保存'
+			},
+			en: {
+				settings: 'Settings',
+				ranking: 'Ranking',
+				playerName: 'Player Name',
+				bgm: 'BGM',
+				graphics: 'Graphics',
+				language: 'Language',
+				quality: 'Quality',
+				low: 'Low',
+				medium: 'Medium',
+				high: 'High',
+				on: 'ON',
+				off: 'OFF',
+				japanese: '日本語',
+				english: 'English',
+				save: 'Save',
+				saveSettings: 'Save Settings'
+			}
+		};
+		
+		return texts[language] || texts.ja;
 	}
 
 	updateAllCharactersHeight() {

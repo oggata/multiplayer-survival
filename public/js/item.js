@@ -2,7 +2,8 @@ class Item {
     constructor(scene, itemType, position) {
         this.scene = scene;
         this.type = itemType;
-        this.itemConfig = GameConfig.ITEMS[itemType];
+        const lang = localStorage.getItem('language') || 'ja';
+        this.itemConfig = ItemsConfig.getItemConfig(itemType, lang);
         if (!this.itemConfig) {
             console.error('無効なアイテムタイプです:', itemType);
             return;
