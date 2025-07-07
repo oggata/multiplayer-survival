@@ -65,7 +65,7 @@ const players = {};
 const enemies = {};
 
 // 敵の生成間隔（ミリ秒）
-const ENEMY_SPAWN_INTERVAL = 500; // 5秒ごとに敵を生成
+const ENEMY_SPAWN_INTERVAL = 2000; // 2秒ごとに敵を生成
 
 // プレイヤーの視界範囲（単位）
 const PLAYER_VISION_RANGE = 100;
@@ -81,10 +81,10 @@ const PLAYER_PREDICTION_RANGE = 50; // 予測範囲を短縮
 
 // 時間帯ごとの敵の最大数
 const MAX_ENEMIES = {
-    MORNING:  30,   // 朝（6:00-12:00）0
-    DAY: 50,      // 昼（12:00-18:00）0
-    EVENING: 100,  // 夕方（18:00-24:00） 30
-    NIGHT: 300     // 夜（0:00-6:00）70
+    MORNING:  20,   // 朝（6:00-12:00）
+    DAY: 30,      // 昼（12:00-18:00）
+    EVENING: 100,  // 夕方（18:00-24:00）
+    NIGHT: 250     // 夜（0:00-6:00）
 };
 
 const SPAWN_DISTANCE_TO_PLAYER = 1000;
@@ -117,7 +117,7 @@ const ENEMY_CONFIG = {
     FAST: {
         model: 'quadruped',
         visionRange: 40,
-        speed: 0.5,
+        speed: 0.3, // 移動速度を0.5から0.3に減少
         health: 40,
         weight: 0.25
     },
@@ -189,7 +189,7 @@ const BIOME_CONFIG = {
             color: 0x1B3D1B,
             enemyWeights: {
                 NORMAL: 0,
-                FAST: 1,
+                FAST: 0.3,
                 SHOOTER: 0,
                 GIANT: 0.05,
                 CRAB: 0.1,
@@ -488,7 +488,7 @@ function isSafeSpot(x, z) {
 
 // 安全なスポーン位置を見つける関数
 function findSafeEnemyPosition() {
-    const safeDistance = 5;
+    const safeDistance = 10; // 敵同士の最小距離を5から10に増加
     const spawnSafeDistance = 20;
     const maxAttempts = 20;
 
@@ -729,7 +729,7 @@ function updateEnemies() {
                 const distance = Math.sqrt(dx * dx + dz * dz);
                 
                 // 衝突判定の距離
-                const collisionDistance = 1.6; // 敵のサイズに応じて調整
+                const collisionDistance = 2.5; // 敵のサイズに応じて調整（密集防止のため増加）
                 
                 if (distance < collisionDistance) {
                     hasCollision = true;
@@ -840,7 +840,7 @@ function updateEnemies() {
                 const distance = Math.sqrt(dx * dx + dz * dz);
                 
                 // 衝突判定の距離
-                const collisionDistance = 1.6; // 敵のサイズに応じて調整
+                const collisionDistance = 2.5; // 敵のサイズに応じて調整（密集防止のため増加）
                 
                 if (distance < collisionDistance) {
                     hasCollision = true;
@@ -900,7 +900,7 @@ function updateEnemies() {
 // 敵の密集状態を解消する関数
 function resolveCrowding(enemyList) {
     // 互いに近すぎる敵のペアを見つける
-    const crowdingThreshold = 1.6; // 近すぎる距離の閾値
+    const crowdingThreshold = 3.0; // 近すぎる距離の閾値（密集防止のため増加）
     
     for (let i = 0; i < enemyList.length; i++) {
         const enemy1 = enemyList[i];

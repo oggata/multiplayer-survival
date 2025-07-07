@@ -44,14 +44,14 @@ const GameConfig = {
 			QUADRUPED: {
 				name: 'quadruped',
 				color: 0x6a7a5d, // 暗い緑色
-				moveSpeed: 2.4, // 20%増加
+				moveSpeed: 2.2, // 20%増加
 				damage: 3, // 50%増加
 				shootBullets: false
 			},
 			HEXAPOD: {
 				name: 'hexapod',
 				color: 0x331122, // 暗い赤紫色
-				moveSpeed: 2.8, // 40%増加
+				moveSpeed: 2.2, // 40%増加
 				damage: 2.4, // 20%増加
 				shootBullets: false
 			},
