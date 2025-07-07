@@ -256,12 +256,12 @@ class Game {
             top: 30px;
             right: 20px;
             background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
+            padding: 8px;
             border-radius: 5px;
             color: white;
-            font-size: 14px;
+            font-size: 11px;
             z-index: 1000;
-            min-width: 300px;
+            min-width: 250px;
         `;
 		document.body.appendChild(this.effectsContainer);
 
@@ -1920,10 +1920,6 @@ if(this.devMode){
 		// プレイヤーモデルのアニメーション更新
 		if (this.playerModel) {
 			this.playerModel.updateLimbAnimation(gameDeltaTime);
-			this.playerModel.updateLimbAnimation(gameDeltaTime);
-			this.playerModel.updateLimbAnimation(gameDeltaTime);
-			this.playerModel.updateLimbAnimation(gameDeltaTime);
-			this.playerModel.updateLimbAnimation(gameDeltaTime);
 		}
 
 		// 他のプレイヤーのアニメーション更新
@@ -2172,32 +2168,43 @@ if(this.devMode){
 	}
 
 	useItem(itemType) {
-		const itemConfig = GameConfig.ITEMS[itemType];
-		if (!itemConfig) return;
+		const lang = localStorage.getItem('language') || 'ja';
+		const itemConfig = ItemsConfig.getItemConfig(itemType, lang);
+		if (!itemConfig) {
+			console.warn('アイテム設定が見つかりません:', itemType);
+			return;
+		}
+		
+		console.log('アイテム使用:', itemType, itemConfig);
+		
 		// 食べ物・飲み物サウンド
 		if (itemConfig.category === 'food') {
 			this.audioManager.play('eat');
 		} else if (itemConfig.category === 'drink') {
 			this.audioManager.play('drink');
 		}
+		
 		// 即時効果の適用
-		if (itemConfig.effects ?.immediate) {
-			const effects = itemConfig.effects.immediate;
-			if (effects.health) {
-				this.playerStatus.addHealth(effects.health);
-			}
-			if (effects.hunger) {
-				this.playerStatus.addHunger(effects.hunger);
-			}
-			if (effects.thirst) {
-				this.playerStatus.addThirst(effects.thirst);
+		if (itemConfig.effects && itemConfig.effects.instant) {
+			const effects = itemConfig.effects.instant;
+			console.log('即時効果適用:', effects);
+			
+			if (effects.type === 'health') {
+				this.playerStatus.addHealth(effects.value);
+			} else if (effects.type === 'hunger') {
+				this.playerStatus.addHunger(effects.value);
+			} else if (effects.type === 'thirst') {
+				this.playerStatus.addThirst(effects.value);
+			} else if (effects.type === 'virus') {
+				// ウイルス効果（負の値で減少）
+				this.playerStatus.bleeding = Math.max(0, this.playerStatus.bleeding + effects.value);
 			}
 		}
 
 		// 持続効果の適用
-		if (itemConfig.effects ?.duration) {
+		if (itemConfig.effects && itemConfig.effects.duration) {
 			const durationEffect = itemConfig.effects.duration;
-			//console.log(durationEffect);
+			console.log('持続効果適用:', durationEffect);
 			this.playerStatus.addDurationEffect(durationEffect);
 		}
 
@@ -2241,7 +2248,9 @@ if(this.devMode){
 	}
 
 	getItemColor(type) {
-		return GameConfig.ITEMS[type] ?.color || 0xffffff;
+		const lang = localStorage.getItem('language') || 'ja';
+		const itemConfig = ItemsConfig.getItemConfig(type, lang);
+		return itemConfig ? itemConfig.color : 0xffffff;
 	}
 
 	toggleBackpack() {
@@ -3320,17 +3329,38 @@ if(this.devMode){
 
 		for (const [effectId, effect] of Object.entries(effects)) {
 			const remainingTime = Math.ceil(effect.remainingTime);
-			const effectConfig = GameConfig.ITEMS[effect.type];
-			if (effectConfig) {
-				// 効果の詳細を取得
-				const effectDetails = [];
+			const lang = localStorage.getItem('language') || 'ja';
+			
+			// 武器効果の場合は特別な処理
+			if (effect.type === 'wepon') {
 				html += `
-                    <div style="margin: 5px 0;">
-                        <div style="color: #4CAF50; font-weight: bold;">[${effectConfig.name}]</div>
-                        <div style="color: #4CAF50; font-weight: bold;">${effectConfig.description}</div>
-                        <div style="color: #FFD700; margin-left: 5px;">${remainingTime}sec</div>
-                    </div>
+                    <span style="margin: 0 8px 0 0; font-size: 10px; display: inline-block;">
+                        <span style="color: #4CAF50; font-weight: bold; font-size: 10px;">[${effect.name}]</span>
+                        <span style="color: #4CAF50; font-size: 9px;">武器効果</span>
+                        <span style="color: #FFD700; margin-left: 3px; font-size: 9px;">${remainingTime}s</span>
+                    </span>
                 `;
+			} else {
+				// その他の効果はItemsConfigから取得
+				const effectConfig = ItemsConfig.getItemConfig(effect.type, lang);
+				if (effectConfig) {
+					html += `
+                        <span style="margin: 0 8px 0 0; font-size: 10px; display: inline-block;">
+                            <span style="color: #4CAF50; font-weight: bold; font-size: 10px;">[${effectConfig.name}]</span>
+                            <span style="color: #4CAF50; font-size: 9px;">${effectConfig.description}</span>
+                            <span style="color: #FFD700; margin-left: 3px; font-size: 9px;">${remainingTime}s</span>
+                        </span>
+                    `;
+				} else {
+					// 効果設定が見つからない場合のフォールバック
+					html += `
+                        <span style="margin: 0 8px 0 0; font-size: 10px; display: inline-block;">
+                            <span style="color: #4CAF50; font-weight: bold; font-size: 10px;">[${effect.type}]</span>
+                            <span style="color: #4CAF50; font-size: 9px;">効果</span>
+                            <span style="color: #FFD700; margin-left: 3px; font-size: 9px;">${remainingTime}s</span>
+                        </span>
+                    `;
+				}
 			}
 		}
 

@@ -241,16 +241,7 @@ class PlayerStatus {
 
     
     applyEffect(effect, deltaTime) {
-
-        /* 
-            HPを回復し続ける
-            Foodを回復し続ける
-            Thirstを回復し続ける
-            出血を減少し続ける
-            防御力が上昇する
-            体温が下がらない
-            移動速度を上昇させる        
-        */
+        console.log('効果適用:', effect.type, effect);
 
         switch (effect.type) {
             case 'bandage':
@@ -266,29 +257,29 @@ class PlayerStatus {
                 this.moveSpeedMultiplier = effect.value;
                 break;
             case 'wepon':
-                // 武器を強化
-                //console.log(effect.attack);
-                //effect.attack.type
+                // 武器を強化（何もしない、武器マネージャーで処理）
+                break;
             case 'chocolateBar':
                 // 空腹を回復し続ける
-                this.hunger += effect.value;
+                this.addHunger(effect.value * deltaTime);
                 break;
             case 'energyDrink':
                 // HPを回復し続ける
                 this.heal(effect.value * deltaTime);
                 break;
-
             case 'jacket':
+            case 'boonieHat':
+            case 'tacticalVest':
+            case 'balaclava':
                 // 体温を上げる
                 this.clothingBonus = effect.value;
                 break;
-
-            case 'boonieHat':
-                // 体温を上げる
-                this.clothingBonus = effect.value;
+            case 'temperature':
+                // 体温調整
+                this.adjustTemperature(effect.value * deltaTime);
                 break;
             default:
-                //console.warn(`未知の効果タイプ: ${effect.type}`);
+                console.warn(`未知の効果タイプ: ${effect.type}`);
         }
     }
 
@@ -341,14 +332,16 @@ class PlayerStatus {
         const effectId = Date.now().toString();
         const startTime = Date.now();
         
-
-        console.log(effect);
+        console.log('持続効果追加:', effect);
+        
         // 効果をMapに追加
         this.effects.set(effectId, {
             ...effect,
             startTime,
             endTime: startTime + (effect.duration * 1000) // 秒をミリ秒に変換
         });
+        
+        console.log('現在の効果:', this.effects);
     }
 
     // 天気と時間を設定するメソッド

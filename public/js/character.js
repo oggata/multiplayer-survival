@@ -12,7 +12,8 @@ class Character {
 		this.animationTime=0;
 		this.isMoving=false;
 		this.isRunning=false;
-		this.animationSpeed=9.0;
+		// キャラクタータイプに応じて初期アニメーション速度を設定
+		this.animationSpeed = 8.0; // プレイヤーモデルを半分に調整
 		this.walkAmplitude = 0.4;
 		this.armSwingAmplitude = 1.8;
 
@@ -506,7 +507,18 @@ class Character {
 
 	setRunning(isRunning) {
 		this.isRunning=isRunning;
-		this.animationSpeed=isRunning ? 2.0: 1.0;
+		// 走り状態に応じてアニメーション速度を調整（元の速度を維持）
+		if (this.type === "player") {
+			// プレイヤーモデル（自分）は高速
+			this.animationSpeed = isRunning ? 16.0 : 8.0; // 半分に調整
+		} else {
+			// 他のプレイヤーは通常速度
+			this.animationSpeed = isRunning ? 16.0 : 8.0;
+		}
+	}
+
+	setAnimationSpeed(speed) {
+		this.animationSpeed = speed;
 	}
 
 	startAttack() {
