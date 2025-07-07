@@ -187,7 +187,7 @@ class FieldObject {
     }
     
     
- createCar2(x, z, rotation) {
+     createCar2(x, z, rotation) {
         const carGroup = new THREE.Group();
         carGroup.position.set(x, 0, z);
 
@@ -215,11 +215,36 @@ class FieldObject {
             // モデルをグループに追加
             carGroup.add(model);
             
-            // 影の設定
+            // マテリアルの調整と影の設定
             model.traverse((child) => {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
+                    
+                    // マテリアルが存在する場合、明度を調整
+                    if (child.material) {
+                        // 既存のマテリアルをコピーして調整
+                        const originalMaterial = child.material;
+                        const adjustedMaterial = originalMaterial.clone();
+                        
+                        // 色を明るくする
+                        if (adjustedMaterial.color) {
+                            const color = adjustedMaterial.color.clone();
+                            color.multiplyScalar(1.5); // 明度を1.5倍に
+                            adjustedMaterial.color = color;
+                        }
+                        
+                        // emissiveを追加して明るさを向上
+                        adjustedMaterial.emissive = new THREE.Color(0x222222);
+                        adjustedMaterial.emissiveIntensity = 0.1;
+                        
+                        // roughnessを下げて反射を増加
+                        if (adjustedMaterial.roughness !== undefined) {
+                            adjustedMaterial.roughness = Math.max(0.1, adjustedMaterial.roughness * 0.8);
+                        }
+                        
+                        child.material = adjustedMaterial;
+                    }
                 }
             });
         });
@@ -261,11 +286,36 @@ class FieldObject {
             // モデルをグループに追加
             treeGroup.add(model);
             
-            // 影の設定
+            // マテリアルの調整と影の設定
             model.traverse((child) => {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
+                    
+                    // マテリアルが存在する場合、明度を調整
+                    if (child.material) {
+                        // 既存のマテリアルをコピーして調整
+                        const originalMaterial = child.material;
+                        const adjustedMaterial = originalMaterial.clone();
+                        
+                        // 色を明るくする
+                        if (adjustedMaterial.color) {
+                            const color = adjustedMaterial.color.clone();
+                            color.multiplyScalar(1.3); // 明度を1.3倍に
+                            adjustedMaterial.color = color;
+                        }
+                        
+                        // emissiveを追加して明るさを向上
+                        adjustedMaterial.emissive = new THREE.Color(0x111111);
+                        adjustedMaterial.emissiveIntensity = 0.05;
+                        
+                        // roughnessを下げて反射を増加
+                        if (adjustedMaterial.roughness !== undefined) {
+                            adjustedMaterial.roughness = Math.max(0.2, adjustedMaterial.roughness * 0.9);
+                        }
+                        
+                        child.material = adjustedMaterial;
+                    }
                 }
             });
         });
