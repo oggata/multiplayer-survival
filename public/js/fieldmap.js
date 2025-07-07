@@ -1,5 +1,5 @@
 class FieldMap {
-    constructor(scene, seed) {
+    constructor(scene, game, seed) {
         // smoothstep関数の定義
         this.smoothstep = function(x) {
             return x * x * (3 - 2 * x);
@@ -96,6 +96,7 @@ class FieldMap {
         }
 
         this.scene = scene;
+        this.game = game;
         this.seed = seed || Math.random();
         console.log("seed: " + this.seed);
 
@@ -107,8 +108,18 @@ class FieldMap {
         this.objects = [];
         this.terrainChunks = []; // 地形チャンクを管理する配列
         this.chunkSize = GameConfig.MAP.CHUNK_SIZE; // チャンクのサイズ
-        this.visibleDistance = GameConfig.MAP.VISLBLE_DISTANCE; // 視界距離
-        this.objectVisibleDistance = GameConfig.MAP.OBJECT_VISIBLE_DISTANCE; // オブジェクトの視界距離
+        //this.visibleDistance = GameConfig.MAP.VISLBLE_DISTANCE; // 視界距離
+        //this.objectVisibleDistance = GameConfig.MAP.OBJECT_VISIBLE_DISTANCE; // 
+        // 
+ 
+        this.visibleDistance = this.game.visibleDistance1;
+        this.objectVisibleDistance = this.game.objectVisibleDistance1;
+
+        console.log("visibleDistance: " + this.visibleDistance);
+        console.log("objectVisibleDistance: " + this.objectVisibleDistance);
+
+
+        // オブジェクトの視界距離
         this.lodDistances = GameConfig.MAP.LOD.DISTANCES; // LODの距離閾値
         this.lodSegments = GameConfig.MAP.LOD.SEGMENTS; // 各LODレベルのセグメント数
         this.objectChunks = new Map(); // チャンクごとのオブジェクトを管理
@@ -1709,9 +1720,11 @@ class FieldMap {
             
             // シーンに追加
             this.scene.add(safeZoneMesh);
+
             
             // 配列に保存（後で管理するため）
             this.safeZoneMeshes.push(safeZoneMesh);
+            
         });
 
         console.log(`安全範囲の視覚化を生成しました: ${this.safeZoneMeshes.length}個の円柱`);

@@ -65,7 +65,7 @@ const players = {};
 const enemies = {};
 
 // 敵の生成間隔（ミリ秒）
-const ENEMY_SPAWN_INTERVAL = 2000; // 2秒ごとに敵を生成
+const ENEMY_SPAWN_INTERVAL = 1000; // 2秒ごとに敵を生成
 
 // プレイヤーの視界範囲（単位）
 const PLAYER_VISION_RANGE = 100;

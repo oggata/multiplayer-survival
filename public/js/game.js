@@ -20,6 +20,11 @@ class Game {
 		// Stats.jsの初期化（devModeがtrueの時のみ）
 		this.stats = null;
 
+
+
+		this.visibleDistance1 = GameConfig.MAP.VISLBLE_DISTANCE;
+		this.objectVisibleDistance1 = GameConfig.MAP.OBJECT_VISIBLE_DISTANCE;
+
 		this.scene = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera(
 			GameConfig.VISION.FOV,
@@ -660,7 +665,7 @@ if(this.devMode){
 		}
 
 		// シード値を使用してフィールドマップを初期化
-		this.fieldMap = new FieldMap(this.scene, seed);
+		this.fieldMap = new FieldMap(this.scene, this,seed);
 		
 		// フィールドマップの初期化が完了するまで待機
 		this.fieldMap.initialize().then(() => {
@@ -2901,6 +2906,10 @@ if(this.devMode){
 
 		const playerPosition = this.playerModel.getPosition();
 		const maxDistance = GameConfig.MAP.VISLBLE_DISTANCE; // 変更：VISION.MAX_DISTANCEからMAP.VISLBLE_DISTANCEに
+		
+
+		
+		
 		const fadeStart = maxDistance * 0.8; // 変更：フェード開始距離をmaxDistanceの80%に設定
 		const disposeDistance = maxDistance * 1.5; // 完全に削除する距離
 
@@ -3130,6 +3139,30 @@ if(this.devMode){
 					}
 					if (this.visibleObjects) {
 						this.visibleObjects.add(object);
+					}
+				}
+			});
+		}
+
+		// 安全ゾーン円柱の表示/非表示を更新
+		if (this.fieldMap && this.fieldMap.safeZoneMeshes) {
+			this.fieldMap.safeZoneMeshes.forEach(safeZoneMesh => {
+				if (!safeZoneMesh || !safeZoneMesh.position) return;
+				const distance = playerPosition.distanceTo(safeZoneMesh.position);
+				if (distance > maxDistance) {
+					safeZoneMesh.visible = false;
+				} else if (distance > fadeStart) {
+					safeZoneMesh.visible = true;
+					// 透明度を調整
+					if (safeZoneMesh.material) {
+						safeZoneMesh.material.opacity = 1 - ((distance - fadeStart) / (maxDistance - fadeStart));
+						safeZoneMesh.material.transparent = true;
+					}
+				} else {
+					safeZoneMesh.visible = true;
+					if (safeZoneMesh.material) {
+						safeZoneMesh.material.opacity = 0.2;
+						safeZoneMesh.material.transparent = true;
 					}
 				}
 			});
@@ -4044,18 +4077,34 @@ if(this.devMode){
 		switch (quality) {
 			case 'low':
 				// 低品質設定
-				this.renderer.setPixelRatio(1);
-				this.renderer.shadowMap.enabled = false;
+				//this.renderer.setPixelRatio(1);
+				//this.renderer.shadowMap.enabled = false;
+
+
+				this.visibleDistance1 = GameConfig.MAP.VISLBLE_DISTANCE;
+				this.objectVisibleDistance1 = GameConfig.MAP.OBJECT_VISIBLE_DISTANCE;
+
+
 				break;
 			case 'medium':
 				// 中品質設定
-				this.renderer.setPixelRatio(1.5);
-				this.renderer.shadowMap.enabled = true;
+				//this.renderer.setPixelRatio(1.5);
+				//this.renderer.shadowMap.enabled = true;
+
+				this.visibleDistance1 = 100;
+				this.objectVisibleDistance1 = 120;
+
+
 				break;
 			case 'high':
 				// 高品質設定
-				this.renderer.setPixelRatio(2);
-				this.renderer.shadowMap.enabled = true;
+				//this.renderer.setPixelRatio(2);
+				//this.renderer.shadowMap.enabled = true;
+
+				this.visibleDistance1 = 150;
+				this.objectVisibleDistance1 = 200;
+
+
 				break;
 		}
 	}
