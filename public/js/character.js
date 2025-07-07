@@ -473,7 +473,25 @@ class Character {
 		const currentSpeed = speed;
 		this.velocity.copy(direction).multiplyScalar(currentSpeed * deltaTime);
 		this.velocity.applyEuler(this.rotation);
-		this.position.add(this.velocity);
+		
+		// 移動前の位置を保存
+		const originalPosition = this.position.clone();
+		
+		// 新しい位置を計算
+		const newPosition = this.position.clone().add(this.velocity);
+		
+		// 建物とのコリジョンチェック
+		if (this.game && this.game.fieldMap) {
+			const collisionRadius = 1.0; // キャラクターの衝突半径
+			if (this.game.fieldMap.checkBuildingCollisionForCharacter(newPosition, collisionRadius)) {
+				// 衝突した場合、移動をキャンセル
+				this.isMoving = false;
+				return;
+			}
+		}
+		
+		// 衝突がない場合、位置を更新
+		this.position.copy(newPosition);
 		this.character.position.copy(this.position);
 		this.isMoving = direction.length() > 0;
 

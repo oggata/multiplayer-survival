@@ -68,7 +68,12 @@ class FieldObject {
         }
         
         // ビルをシーンに追加
-        building.userData = { type: 'building', buildingType: buildingType.name };
+        building.userData = { 
+            type: 'building', 
+            buildingType: buildingType.name,
+            buildingWidth: buildingWidth,
+            buildingDepth: buildingDepth
+        };
         building.castShadow = true;
         building.receiveShadow = true;
         this.fieldmap.scene.add(building);

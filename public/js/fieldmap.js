@@ -1612,6 +1612,37 @@ class FieldMap {
         return false;
     }
 
+    // プレイヤーやゾンビが建物と衝突するかチェックするメソッド
+    checkBuildingCollisionForCharacter(position, radius = 1.0) {
+        for (const object of this.objects) {
+            if (object.userData && object.userData.type === 'building') {
+                // 建物のサイズを取得（userDataから取得するか、デフォルト値を使用）
+                const buildingWidth = object.userData.buildingWidth || 20;
+                const buildingDepth = object.userData.buildingDepth || 20;
+                
+                // 建物の境界を計算
+                const buildingLeft = object.position.x - buildingWidth / 2;
+                const buildingRight = object.position.x + buildingWidth / 2;
+                const buildingTop = object.position.z - buildingDepth / 2;
+                const buildingBottom = object.position.z + buildingDepth / 2;
+                
+                // キャラクターの境界を計算
+                const charLeft = position.x - radius;
+                const charRight = position.x + radius;
+                const charTop = position.z - radius;
+                const charBottom = position.z + radius;
+                
+                // 矩形同士の衝突判定
+                if (charRight > buildingLeft && charLeft < buildingRight &&
+                    charBottom > buildingTop && charTop < buildingBottom) {
+                    return true; // 衝突
+                }
+            }
+        }
+        
+        return false; // 衝突なし
+    }
+
     // 決定論的な乱数生成関数をクラスメソッドとして定義
     getDeterministicRandom(x, z, type) {
         // シード値の生成を複雑化
