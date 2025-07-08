@@ -78,8 +78,5 @@ npm start
 - **データベース**: Neon (PostgreSQL)
 - **音声**: Web Audio API
 
-## ライセンス
-MIT License
-
 ## 音声素材
 https://soundeffect-lab.info/sound/various/
