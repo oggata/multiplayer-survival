@@ -1025,16 +1025,16 @@ function updateTimeOfDay() {
 }
 
 // キーアイテム関連のグローバル変数
-let keyItem = null;
+let keyItems = []; // 複数のキーアイテムを管理
 let lastKeyItemBiome = null;
 let totalKeyItemsCollected = 0;
 let keyItemEnemies = []; // キーアイテム周囲の敵を管理
 
-// キーアイテムの滞在開始時刻を記録するマップ
+// キーアイテムの滞在開始時刻を記録するマップ（キーアイテムIDごと）
 const keyItemStayStartTimes = {};
 
 // キーアイテム周囲の敵を生成する関数
-function spawnKeyItemEnemies(keyItemPosition) {
+function spawnKeyItemEnemies(keyItemPosition, keyItemId) {
     const enemyCount = 8; // キーアイテム周囲に配置する敵の数
     const spawnRadius = 15; // キーアイテムからの距離
     
@@ -1061,7 +1061,7 @@ function spawnKeyItemEnemies(keyItemPosition) {
             continue;
         }
         
-        const enemyId = 'keyitem_enemy_' + Date.now() + '_' + i;
+        const enemyId = 'keyitem_enemy_' + keyItemId + '_' + Date.now() + '_' + i;
         
         // 敵の種類をランダムに選択（通常の敵より強め）
         const enemyTypes = ['NORMAL', 'FAST', 'SHOOTER', 'GIANT'];
@@ -1080,6 +1080,7 @@ function spawnKeyItemEnemies(keyItemPosition) {
             lastAttack: 0,
             lastShootTime: 0,
             isKeyItemGuard: true, // キーアイテム守衛フラグ
+            keyItemId: keyItemId, // どのキーアイテムの守衛かを記録
             config: {
                 visionRange: enemyConfig.visionRange * 1.2, // 視界範囲も少し広く
                 speed: enemyConfig.speed,
@@ -1093,11 +1094,16 @@ function spawnKeyItemEnemies(keyItemPosition) {
         io.emit('enemySpawned', enemies[enemyId]);
     }
     
-    console.log(`キーアイテム周囲に${keyItemEnemies.length}体の敵を配置しました`);
+    console.log(`キーアイテム${keyItemId}周囲に${keyItemEnemies.length}体の敵を配置しました`);
 }
 
 // キーアイテムを生成する関数
 function spawnKeyItem() {
+    // キーアイテムが3つ未満の場合のみ生成
+    if (keyItems.length >= 3) {
+        return;
+    }
+
     // 前回と異なるバイオームを選択
     let biome;
     do {
@@ -1105,7 +1111,6 @@ function spawnKeyItem() {
     } while (biome === lastKeyItemBiome);
 
     lastKeyItemBiome = biome;
-
 
     // バイオームに応じた位置範囲を設定
     let minX, maxX, minZ, maxZ;
@@ -1128,7 +1133,6 @@ function spawnKeyItem() {
             break;
     }
 
-
     minX = -500; maxX = 1000;
     minZ = -500; maxZ = 1000;
 
@@ -1136,101 +1140,143 @@ function spawnKeyItem() {
     const x = Math.random() * (maxX - minX) + minX;
     const z = Math.random() * (maxZ - minZ) + minZ;
 
+    // キーアイテムのIDを生成
+    const keyItemId = 'keyitem_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
     // キーアイテムの位置を設定
-    keyItem = { x, z, biome };
+    const keyItem = { id: keyItemId, x, z, biome };
+
+    // キーアイテムを配列に追加
+    keyItems.push(keyItem);
 
     // キーアイテム周囲に敵を配置
-    spawnKeyItemEnemies(keyItem);
+    spawnKeyItemEnemies(keyItem, keyItemId);
 
     // 全クライアントにキーアイテムの位置を通知
     io.emit('keyItemPosition', keyItem);
-    console.log(`キーアイテムを生成: バイオーム${biome} (${x}, ${z})`);
+    console.log(`キーアイテムを生成: ID=${keyItemId}, バイオーム${biome} (${x}, ${z})`);
+}
+
+// 3つのキーアイテムを初期生成する関数
+function spawnInitialKeyItems() {
+    for (let i = 0; i < 3; i++) {
+        spawnKeyItem();
+    }
 }
 
 // キーアイテムの収集を処理する関数
 function handleKeyItemCollection(playerId) {
-    if (!keyItem) return;
+    if (keyItems.length === 0) return;
 
     const player = players[playerId];
     if (!player) return;
 
-    // プレイヤーとキーアイテムの距離を計算
-    const distance = Math.sqrt(
-        Math.pow(player.position.x - keyItem.x, 2) +
-        Math.pow(player.position.z - keyItem.z, 2)
-    );
-
-    // 半径10以内に入った場合
-    if (distance <= 10) {
-        // まだ記録がなければ現在時刻を記録
-        if (!keyItemStayStartTimes[playerId]) {
-            keyItemStayStartTimes[playerId] = Date.now();
-        }
-        // 10秒間滞在していれば収集可能
-        const stayTime = Date.now() - keyItemStayStartTimes[playerId];
-        if (stayTime >= keyItemStayTime) {
-            // 収集数を増加
-            totalKeyItemsCollected++;
-            
-            // 収集通知を送信
-            io.emit('keyItemCollected', {
-                playerId,
-                playerName: player.name || 'Player ' + playerId.substring(0, 4),
-                totalCollected: totalKeyItemsCollected,
-                position: { x: keyItem.x, y: 0, z: keyItem.z }
-            });
-
-            safeSpawnPositions.push({ x: keyItem.x, y: 0, z: keyItem.z });
-
-            // キーアイテム周囲の敵を削除
-            keyItemEnemies.forEach(enemyId => {
-                if (enemies[enemyId]) {
-                    delete enemies[enemyId];
-                    io.emit('enemyDied', enemyId);
-                    io.emit('enemiesKilled', [enemyId]);
-                }
-            });
-            keyItemEnemies = [];
-
-            // キーアイテムを削除
-            keyItem = null;
-            // 記録も削除
-            delete keyItemStayStartTimes[playerId];
-
-            // 5秒後に新しいキーアイテムを生成
-            setTimeout(spawnKeyItem, 5000);
-        }
-    } else {
-        // 範囲外に出たら記録をリセット
-        if (keyItemStayStartTimes[playerId]) {
-            delete keyItemStayStartTimes[playerId];
-        }
-    }
-}
-
-// サーバー起動時にキーアイテムを生成
-spawnKeyItem();
-
-// --- 追加: 残り時間を定期送信する関数 ---
-function emitKeyItemCollectTimeLeft() {
-    if (!keyItem) return;
-    Object.keys(players).forEach(playerId => {
-        const player = players[playerId];
-        if (!player) return;
+    // 各キーアイテムとの距離をチェック
+    for (let i = keyItems.length - 1; i >= 0; i--) {
+        const keyItem = keyItems[i];
+        
+        // プレイヤーとキーアイテムの距離を計算
         const distance = Math.sqrt(
             Math.pow(player.position.x - keyItem.x, 2) +
             Math.pow(player.position.z - keyItem.z, 2)
         );
-        let timeLeft = null;
-        if (distance <= 10 && keyItemStayStartTimes[playerId]) {
-            const stayTime = Date.now() - keyItemStayStartTimes[playerId];
-            timeLeft = Math.max(0, keyItemStayTime - stayTime);
-        } else if (distance <= 10 && !keyItemStayStartTimes[playerId]) {
-            timeLeft = keyItemStayTime;
+
+        // 半径10以内に入った場合
+        if (distance <= 10) {
+            const timeKey = `${playerId}_${keyItem.id}`;
+            
+            // まだ記録がなければ現在時刻を記録
+            if (!keyItemStayStartTimes[timeKey]) {
+                keyItemStayStartTimes[timeKey] = Date.now();
+            }
+            
+            // 10秒間滞在していれば収集可能
+            const stayTime = Date.now() - keyItemStayStartTimes[timeKey];
+            if (stayTime >= keyItemStayTime) {
+                // 収集数を増加
+                totalKeyItemsCollected++;
+                
+                // 収集通知を送信
+                io.emit('keyItemCollected', {
+                    playerId,
+                    playerName: player.name || 'Player ' + playerId.substring(0, 4),
+                    totalCollected: totalKeyItemsCollected,
+                    position: { x: keyItem.x, y: 0, z: keyItem.z },
+                    keyItemId: keyItem.id
+                });
+
+                safeSpawnPositions.push({ x: keyItem.x, y: 0, z: keyItem.z });
+
+                // このキーアイテム周囲の敵を削除
+                keyItemEnemies.forEach(enemyId => {
+                    if (enemies[enemyId] && enemies[enemyId].keyItemId === keyItem.id) {
+                        delete enemies[enemyId];
+                        io.emit('enemyDied', enemyId);
+                        io.emit('enemiesKilled', [enemyId]);
+                    }
+                });
+
+                // キーアイテムを配列から削除
+                keyItems.splice(i, 1);
+                
+                // 記録も削除
+                delete keyItemStayStartTimes[timeKey];
+
+                // 5秒後に新しいキーアイテムを生成
+                setTimeout(spawnKeyItem, 5000);
+                
+                break; // 一度に1つのキーアイテムのみ収集
+            }
+        } else {
+            // 範囲外に出たら記録をリセット
+            const timeKey = `${playerId}_${keyItem.id}`;
+            if (keyItemStayStartTimes[timeKey]) {
+                delete keyItemStayStartTimes[timeKey];
+            }
         }
+    }
+}
+
+// サーバー起動時に3つのキーアイテムを生成
+spawnInitialKeyItems();
+
+// --- 追加: 残り時間を定期送信する関数 ---
+function emitKeyItemCollectTimeLeft() {
+    if (keyItems.length === 0) return;
+    
+    Object.keys(players).forEach(playerId => {
+        const player = players[playerId];
+        if (!player) return;
+        
+        // 最も近いキーアイテムの残り時間を計算
+        let closestTimeLeft = null;
+        let closestDistance = Infinity;
+        
+        keyItems.forEach(keyItem => {
+            const distance = Math.sqrt(
+                Math.pow(player.position.x - keyItem.x, 2) +
+                Math.pow(player.position.z - keyItem.z, 2)
+            );
+            
+            if (distance <= 10 && distance < closestDistance) {
+                const timeKey = `${playerId}_${keyItem.id}`;
+                let timeLeft = null;
+                
+                if (keyItemStayStartTimes[timeKey]) {
+                    const stayTime = Date.now() - keyItemStayStartTimes[timeKey];
+                    timeLeft = Math.max(0, keyItemStayTime - stayTime);
+                } else {
+                    timeLeft = keyItemStayTime;
+                }
+                
+                closestTimeLeft = timeLeft;
+                closestDistance = distance;
+            }
+        });
+        
         // 残り時間がnullでなければ送信
-        if (timeLeft !== null) {
-            io.to(playerId).emit('keyItemCollectTimeLeft', { timeLeft });
+        if (closestTimeLeft !== null) {
+            io.to(playerId).emit('keyItemCollectTimeLeft', { timeLeft: closestTimeLeft });
         }
     });
 }
@@ -1373,9 +1419,9 @@ io.on('connection', (socket) => {
     });
 */
     // 新規プレイヤーに現在のキーアイテムの位置を通知
-    if (keyItem) {
+    keyItems.forEach(keyItem => {
         socket.emit('keyItemPosition', keyItem);
-    }
+    });
 
     // 新規プレイヤーに現在の収集数を通知
     socket.emit('totalKeyItemsCollected', totalKeyItemsCollected);

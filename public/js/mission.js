@@ -1,10 +1,11 @@
 class MissionManager {
     constructor(game) {
         this.game = game;
-        this.keyItem = null;
-        this.keyItemIndicator = null;
-        this.keyItemModel = null;
+        this.keyItems = new Map(); // 複数のキーアイテムを管理
+        this.keyItemIndicators = new Map(); // 各キーアイテムのインジケーター
+        this.keyItemModels = new Map(); // 各キーアイテムの3Dモデル
         this.timeLeft = null;
+        this.hackingEffect = null; // ハッキングエフェクト用
         console.log('MissionManager initialized');
         this.setupSocketEvents();
         this.updateCount = 0;
@@ -29,19 +30,20 @@ class MissionManager {
 
     updateKeyItemPosition(position) {
         console.log('キーアイテムの位置を更新:', position);
-        this.keyItem = position;
-        this.updateKeyItemModel();
-        this.updateKeyItemIndicator();
+        this.keyItems.set(position.id, position);
+        this.updateKeyItemModel(position.id);
+        this.updateKeyItemIndicator(position.id);
     }
 
-    updateKeyItemModel() {
-        // 既存のモデルを削除
-        if (this.keyItemModel) {
-            this.game.scene.remove(this.keyItemModel);
-            this.keyItemModel = null;
-        }
+    updateKeyItemModel(keyItemId) {
+        const keyItem = this.keyItems.get(keyItemId);
+        if (!keyItem) return;
 
-        if (!this.keyItem) return;
+        // 既存のモデルを削除
+        if (this.keyItemModels.has(keyItemId)) {
+            this.game.scene.remove(this.keyItemModels.get(keyItemId));
+            this.keyItemModels.delete(keyItemId);
+        }
 
         // キーアイテムの3Dモデルを作成
         const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -52,34 +54,71 @@ class MissionManager {
             transparent: true,
             opacity: 0.8
         });
-        this.keyItemModel = new THREE.Mesh(geometry, material);
+        const keyItemModel = new THREE.Mesh(geometry, material);
         
         // 位置を設定
-        this.keyItemModel.position.set(this.keyItem.x, 0.5, this.keyItem.z);
+        keyItemModel.position.set(keyItem.x, 0.5, keyItem.z);
         
         // シーンに追加
-        this.game.scene.add(this.keyItemModel);
+        this.game.scene.add(keyItemModel);
 
         // アニメーション用の変数
-        this.keyItemModel.userData = {
+        keyItemModel.userData = {
             rotationSpeed: 0.02,
             floatSpeed: 0.001,
             floatHeight: 0.2,
             initialY: 0.5,
             time: 0
         };
+
+        // モデルを保存
+        this.keyItemModels.set(keyItemId, keyItemModel);
     }
 
-    updateKeyItemIndicator() {
-        if (!this.keyItem || !this.game.playerModel) {
+    updateKeyItemIndicator(keyItemId) {
+        const keyItem = this.keyItems.get(keyItemId);
+        if (!keyItem || !this.game.playerModel) {
             console.log('キーアイテムまたはプレイヤーが存在しません');
             return;
         }
 
         // 既存のインジケーターを削除
-        if (this.keyItemIndicator) {
-            this.keyItemIndicator.remove();
-            this.keyItemIndicator = null;
+        if (this.keyItemIndicators.has(keyItemId)) {
+            this.keyItemIndicators.get(keyItemId).remove();
+            this.keyItemIndicators.delete(keyItemId);
+        }
+
+        // インジケーターを作成
+        const keyItemIndicator = document.createElement('div');
+        keyItemIndicator.className = 'key-item-indicator';
+        keyItemIndicator.innerHTML = `
+            <i class="fas fa-vial"></i>
+            <span>: 0m</span>
+        `;
+        keyItemIndicator.style.position = 'fixed';
+        keyItemIndicator.style.color = '#FFD700';
+        keyItemIndicator.style.fontSize = '10px';
+        keyItemIndicator.style.pointerEvents = 'none';
+        keyItemIndicator.style.zIndex = '1500';
+        keyItemIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        keyItemIndicator.style.padding = '3px 8px';
+        keyItemIndicator.style.borderRadius = '4px';
+        keyItemIndicator.style.whiteSpace = 'nowrap';
+        keyItemIndicator.style.display = 'none'; // 初期状態では非表示
+
+        document.body.appendChild(keyItemIndicator);
+        
+        // インジケーターを保存
+        this.keyItemIndicators.set(keyItemId, keyItemIndicator);
+    }
+
+    // インジケーターの位置と内容を更新するメソッド
+    updateKeyItemIndicatorPosition(keyItemId) {
+        const keyItem = this.keyItems.get(keyItemId);
+        const keyItemIndicator = this.keyItemIndicators.get(keyItemId);
+        
+        if (!keyItem || !keyItemIndicator || !this.game.playerModel) {
+            return;
         }
 
         // プレイヤーの位置と向きを取得
@@ -88,28 +127,29 @@ class MissionManager {
         
         // キーアイテムへの距離を計算
         const distance = Math.sqrt(
-            Math.pow(this.keyItem.x - playerPosition.x, 2) +
-            Math.pow(this.keyItem.z - playerPosition.z, 2)
+            Math.pow(keyItem.x - playerPosition.x, 2) +
+            Math.pow(keyItem.z - playerPosition.z, 2)
         );
 
         // キーアイテムの位置をスクリーン座標に変換
-        const keyItemPosition = new THREE.Vector3(this.keyItem.x, 0, this.keyItem.z);
+        const keyItemPosition = new THREE.Vector3(keyItem.x, 0, keyItem.z);
         const screenPosition = this.game.getScreenPosition(keyItemPosition);
 
         // 画面内か画面外かを判定
         const isOnScreen = screenPosition.x >= 0 && screenPosition.x <= window.innerWidth &&
                           screenPosition.y >= 0 && screenPosition.y <= window.innerHeight;
 
-        // 画面外の場合はインジケーターを表示しない
+        // 画面外の場合はインジケーターを非表示
         if (!isOnScreen) {
+            keyItemIndicator.style.display = 'none';
             return;
         }
 
         // プレイヤーからキーアイテムへの方向ベクトルを計算
         const directionToKeyItem = new THREE.Vector3(
-            this.keyItem.x - playerPosition.x,
+            keyItem.x - playerPosition.x,
             0,
-            this.keyItem.z - playerPosition.z
+            keyItem.z - playerPosition.z
         ).normalize();
 
         // プレイヤーの向きベクトルを計算
@@ -124,38 +164,195 @@ class MissionManager {
 
         // 内積が-0.5以下の場合（約120度以上）のみインジケーターを表示
         if (dotProduct > -0.5) {
+            keyItemIndicator.style.display = 'none';
             return;
         }
 
+        // インジケーターを表示
+        keyItemIndicator.style.display = 'block';
+
         // 残り時間の表示を追加
         let timeLeftText = '';
-        if (this.timeLeft !== null && distance <= 10) {
+        if (this.timeLeft !== null && distance <= 20) {
             const sec = Math.ceil(this.timeLeft / 1000);
             timeLeftText = `<span style='color:#0ff'>(残り${sec}秒)</span>`;
+            
+            // ハッキングエフェクトを開始（まだ開始されていない場合）
+            if (!this.hackingEffect) {
+                this.createHackingEffect();
+            }
+        } else {
+            // 範囲外に出た場合はエフェクトを削除
+            if (this.hackingEffect) {
+                this.removeHackingEffect();
+            }
         }
 
-        // インジケーターを作成
-        this.keyItemIndicator = document.createElement('div');
-        this.keyItemIndicator.className = 'key-item-indicator';
-        this.keyItemIndicator.innerHTML = `
+        // インジケーターの内容を更新
+        keyItemIndicator.innerHTML = `
             <i class="fas fa-vial"></i>
             <span>: ${Math.floor(distance)}m</span> ${timeLeftText}
         `;
-        this.keyItemIndicator.style.position = 'fixed';
-        this.keyItemIndicator.style.color = '#FFD700';
-        this.keyItemIndicator.style.fontSize = '10px';
-        this.keyItemIndicator.style.pointerEvents = 'none';
-        this.keyItemIndicator.style.zIndex = '1500';
-        this.keyItemIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-        this.keyItemIndicator.style.padding = '3px 8px';
-        this.keyItemIndicator.style.borderRadius = '4px';
-        this.keyItemIndicator.style.whiteSpace = 'nowrap';
 
-        // キーアイテムの位置より少し上に表示
-        this.keyItemIndicator.style.left = `${screenPosition.x}px`;
-        this.keyItemIndicator.style.top = `${screenPosition.y - 150}px`;
+        // インジケーターの位置を更新
+        keyItemIndicator.style.left = `${screenPosition.x}px`;
+        keyItemIndicator.style.top = `${screenPosition.y - 150}px`;
+    }
 
-        document.body.appendChild(this.keyItemIndicator);
+    // ハッキングエフェクトを作成
+    createHackingEffect() {
+        // 既存のエフェクトを削除
+        if (this.hackingEffect) {
+            this.hackingEffect.remove();
+        }
+
+        // ハッキングエフェクトのコンテナを作成
+        this.hackingEffect = document.createElement('div');
+        this.hackingEffect.id = 'hacking-effect';
+        this.hackingEffect.style.position = 'fixed';
+        this.hackingEffect.style.top = '0';
+        this.hackingEffect.style.left = '0';
+        this.hackingEffect.style.width = '100vw';
+        this.hackingEffect.style.height = '100vh';
+        this.hackingEffect.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+        this.hackingEffect.style.color = '#00ff00';
+        this.hackingEffect.style.fontFamily = 'monospace';
+        this.hackingEffect.style.fontSize = '12px';
+        this.hackingEffect.style.lineHeight = '1.2';
+        this.hackingEffect.style.overflow = 'hidden';
+        this.hackingEffect.style.zIndex = '3000';
+        this.hackingEffect.style.pointerEvents = 'none';
+        this.hackingEffect.style.userSelect = 'none';
+
+        // コードの流れを作成
+        this.createCodeStream();
+
+        document.body.appendChild(this.hackingEffect);
+    }
+
+    // コードの流れを作成
+    createCodeStream() {
+        const codeLines = [
+            'ACCESSING MAINFRAME...',
+            'BYPASSING SECURITY PROTOCOLS...',
+            'DECRYPTING ENCRYPTION LAYERS...',
+            'INITIALIZING QUANTUM DECODER...',
+            'SCANNING FOR VULNERABILITIES...',
+            'EXECUTING SQL INJECTION...',
+            'CROSS-SITE SCRIPTING ATTEMPT...',
+            'BUFFER OVERFLOW DETECTED...',
+            'STACK SMASHING IN PROGRESS...',
+            'HEAP SPRAYING TECHNIQUE...',
+            'RETURN-ORIENTED PROGRAMMING...',
+            'SHELLCODE EXECUTION...',
+            'PRIVILEGE ESCALATION...',
+            'ROOT ACCESS OBTAINED...',
+            'DOWNLOADING CRITICAL DATA...',
+            'ERASING DIGITAL FOOTPRINTS...',
+            'COVERING TRACKS...',
+            'MISSION ACCOMPLISHED...',
+            '// HACKING SEQUENCE COMPLETE',
+            '/* SECURITY BREACH SUCCESSFUL */',
+            'function hackMainframe() {',
+            '    const target = "keyItem";',
+            '    const exploit = new Exploit();',
+            '    exploit.execute();',
+            '    return "SUCCESS";',
+            '}',
+            'class Exploit {',
+            '    constructor() {',
+            '        this.payload = "MALWARE";',
+            '        this.vector = "ZERO_DAY";',
+            '    }',
+            '    execute() {',
+            '        this.injectCode();',
+            '        this.bypassFirewall();',
+            '        this.extractData();',
+            '    }',
+            '}',
+            'const malware = new Malware();',
+            'malware.infect();',
+            'malware.spread();',
+            'malware.exfiltrate();',
+            '// BACKDOOR INSTALLED',
+            '// KEYLOGGER ACTIVE',
+            '// DATA EXFILTRATION COMPLETE',
+            'console.log("HACKING SUCCESSFUL");',
+            'alert("SYSTEM COMPROMISED");',
+            'document.cookie = "admin=true";',
+            'localStorage.setItem("access", "granted");',
+            'sessionStorage.setItem("privileges", "root");',
+            'fetch("/api/admin", {method: "POST"});',
+            'XMLHttpRequest.open("GET", "/secret");',
+            'WebSocket.send("EXPLOIT");',
+            'eval("malicious_code");',
+            'setTimeout(() => hack(), 1000);',
+            'setInterval(() => steal(), 500);',
+            'requestAnimationFrame(() => attack());',
+            'Promise.resolve().then(() => compromise());',
+            'async function cyberAttack() {',
+            '    await breach();',
+            '    await infiltrate();',
+            '    await extract();',
+            '}',
+            '// CYBER ATTACK IN PROGRESS',
+            '// TARGET: KEY ITEM',
+            '// STATUS: COMPROMISED',
+            '// RESULT: SUCCESS'
+        ];
+
+        let currentLine = 0;
+        const streamInterval = setInterval(() => {
+            if (!this.hackingEffect || !this.hackingEffect.parentNode) {
+                clearInterval(streamInterval);
+                return;
+            }
+
+            // 新しいコード行を追加
+            const codeLine = document.createElement('div');
+            codeLine.style.padding = '2px 10px';
+            codeLine.style.borderLeft = '2px solid #00ff00';
+            codeLine.style.marginLeft = '10px';
+            codeLine.style.opacity = '0';
+            codeLine.style.transition = 'opacity 0.3s ease-in';
+            codeLine.textContent = codeLines[currentLine % codeLines.length];
+
+            this.hackingEffect.appendChild(codeLine);
+
+            // フェードイン
+            setTimeout(() => {
+                codeLine.style.opacity = '1';
+            }, 10);
+
+            // 古い行を削除（画面が埋まらないように）
+            if (this.hackingEffect.children.length > 30) {
+                this.hackingEffect.removeChild(this.hackingEffect.firstChild);
+            }
+
+            currentLine++;
+
+            // エフェクトの終了条件
+            if (currentLine >= 50) {
+                clearInterval(streamInterval);
+                setTimeout(() => {
+                    this.removeHackingEffect();
+                }, 2000);
+            }
+        }, 100);
+    }
+
+    // ハッキングエフェクトを削除
+    removeHackingEffect() {
+        if (this.hackingEffect) {
+            this.hackingEffect.style.transition = 'opacity 0.5s ease-out';
+            this.hackingEffect.style.opacity = '0';
+            setTimeout(() => {
+                if (this.hackingEffect && this.hackingEffect.parentNode) {
+                    this.hackingEffect.remove();
+                }
+                this.hackingEffect = null;
+            }, 500);
+        }
     }
 
     handleKeyItemCollected(data) {
@@ -181,15 +378,24 @@ class MissionManager {
             notification.remove();
         }, 3000);
 
-        // キーアイテムの状態をリセット
-        this.keyItem = null;
-        if (this.keyItemIndicator) {
-            this.keyItemIndicator.remove();
-            this.keyItemIndicator = null;
-        }
-        if (this.keyItemModel) {
-            this.game.scene.remove(this.keyItemModel);
-            this.keyItemModel = null;
+        // ハッキングエフェクトを削除
+        this.removeHackingEffect();
+
+        // 収集されたキーアイテムを削除
+        if (data.keyItemId) {
+            this.keyItems.delete(data.keyItemId);
+            
+            // インジケーターを削除
+            if (this.keyItemIndicators.has(data.keyItemId)) {
+                this.keyItemIndicators.get(data.keyItemId).remove();
+                this.keyItemIndicators.delete(data.keyItemId);
+            }
+            
+            // 3Dモデルを削除
+            if (this.keyItemModels.has(data.keyItemId)) {
+                this.game.scene.remove(this.keyItemModels.get(data.keyItemId));
+                this.keyItemModels.delete(data.keyItemId);
+            }
         }
 
         // 追加: 安全ゾーン円柱を配置
@@ -228,21 +434,31 @@ class MissionManager {
         this.updateCount++;
         if(this.updateCount > 60){
             this.updateCount = 0;
-            this.updateKeyItemIndicator();
+            // 全てのキーアイテムのインジケーターを更新
+            this.keyItems.forEach((keyItem, keyItemId) => {
+                this.updateKeyItemIndicator(keyItemId);
+            });
         }
-        if (this.keyItem && this.game.playerModel) {
-            this.updateKeyItemIndicator();
-            
-            // キーアイテムのアニメーション
-            if (this.keyItemModel) {
+        
+        // 全てのキーアイテムのアニメーションを更新
+        this.keyItems.forEach((keyItem, keyItemId) => {
+            const keyItemModel = this.keyItemModels.get(keyItemId);
+            if (keyItemModel) {
                 // 回転
-                this.keyItemModel.rotation.y += this.keyItemModel.userData.rotationSpeed;
+                keyItemModel.rotation.y += keyItemModel.userData.rotationSpeed;
                 
                 // 上下の浮遊
-                this.keyItemModel.userData.time += this.keyItemModel.userData.floatSpeed;
-                this.keyItemModel.position.y = this.keyItemModel.userData.initialY + 
-                    Math.sin(this.keyItemModel.userData.time) * this.keyItemModel.userData.floatHeight;
+                keyItemModel.userData.time += keyItemModel.userData.floatSpeed;
+                keyItemModel.position.y = keyItemModel.userData.initialY + 
+                    Math.sin(keyItemModel.userData.time) * keyItemModel.userData.floatHeight;
             }
+        });
+        
+        // 毎フレームインジケーターの位置を更新（距離と方向の表示を正確にするため）
+        if (this.game.playerModel) {
+            this.keyItems.forEach((keyItem, keyItemId) => {
+                this.updateKeyItemIndicatorPosition(keyItemId);
+            });
         }
     }
 } 

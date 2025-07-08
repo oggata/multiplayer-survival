@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Play - bivouac</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #ffaa44;
+        }
+        
+        .section {
+            background: rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+            padding: 25px;
+            border-radius: 10px;
+            border-left: 4px solid #ffaa44;
+        }
+        
+        .section h2 {
+            color: #ffaa44;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .section h3 {
+            color: #4CAF50;
+            margin: 20px 0 10px 0;
+            font-size: 1.2em;
+        }
+        
+        .control-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        
+        .control-item i {
+            margin-right: 15px;
+            font-size: 1.2em;
+            color: #4CAF50;
+            width: 30px;
+            text-align: center;
+        }
+        
+        .key {
+            background: #333;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            margin: 0 5px;
+            border: 1px solid #555;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .status-item i {
+            font-size: 1.5em;
+            margin-right: 15px;
+            width: 30px;
+            text-align: center;
+        }
+        
+        .status-info h4 {
+            color: #ffaa44;
+            margin-bottom: 5px;
+        }
+        
+        .back-button {
+            display: inline-block;
+            background: #ffaa44;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.3s;
+            margin-top: 20px;
+        }
+        
+        .back-button:hover {
+            background: #e6953a;
+        }
+        
+        .objective {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .warning {
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid #ff4444;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-gamepad"></i> How to Play</h1>
+            <p>Survival Game "bivouac" - Game Guide</p>
+        </div>
+
+        <div class="section">
+            <h2><i class="fas fa-bullseye"></i> Game Objective</h2>
+            <div class="objective">
+                <h3>Main Goal</h3>
+                <p>This is a multiplayer survival game where players collect vaccines from the field and eliminate zombies to survive.</p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Cooperate with other players to collect vaccines</li>
+                    <li>Vaccine count is shared among all players</li>
+                    <li>Game is cleared when a certain number of vaccines are collected</li>
+                    <li>Manage health, hunger, and thirst while surviving</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><i class="fas fa-syringe"></i> About Vaccines</h2>
+            <div class="objective">
+                <h3>Vaccine Mechanism</h3>
+                <p>Vaccines are scattered throughout the world, locked inside keyboxes.</p>
+                <ul style="margin-left: 20px; margin-top: 10px;">
+                    <li>Vaccine locations are displayed in the player's view, so find the vaccines and eliminate the zombies</li>
+                    <li>To unlock a vaccine keybox, you need to decrypt the code near the keybox for a certain period of time</li>
+                    <li>After a certain time passes, the keybox will be unlocked and you can obtain the vaccine</li>
+                    <li>The number of vaccines obtained is shared across the world and affects the world's difficulty level</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><i class="fas fa-keyboard"></i> Controls</h2>
+            
+            <h3>PC Version</h3>
+            <div class="control-item">
+                <i class="fas fa-arrows-alt"></i>
+                <span><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> - Move</span>
+            </div>
+            <div class="control-item">
+                <i class="fas fa-mouse"></i>
+                <span>Mouse - Look around & Shoot</span>
+            </div>
+            <div class="control-item">
+                <i class="fas fa-hand-pointer"></i>
+                <span><span class="key">E</span> - Use/Pick up items</span>
+            </div>
+            <div class="control-item">
+                <i class="fas fa-briefcase"></i>
+                <span><span class="key">B</span> - Open/Close backpack</span>
+            </div>
+            <div class="control-item">
+                <i class="fas fa-random"></i>
+                <span><span class="key">R</span> - Warp</span>
+            </div>
+            <div class="control-item">
+                <i class="fas fa-space-shuttle"></i>
+                <span><span class="key">Space</span> - Jump</span>
+            </div>
+
+            <h3>Mobile Version</h3>
+            <div class="control-item">
+                <i class="fas fa-mobile-alt"></i>
+                <span>Left Joystick - Move</span>
+            </div>
+            <div class="control-item">
+                <i class="fas fa-hand-pointer"></i>
+                <span>Tap Screen - Shoot</span>
+            </div>
+            <div class="control-item">
+                <i class="fas fa-briefcase"></i>
+                <span>Backpack Button - Item management</span>
+            </div>
+            <div class="control-item">
+                <i class="fas fa-random"></i>
+                <span>Warp Button - Teleport</span>
+            </div>
+            <div class="control-item">
+                <i class="fas fa-camera"></i>
+                <span>Camera Button - Change view</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><i class="fas fa-heartbeat"></i> Status Management</h2>
+            
+            <div class="status-item">
+                <i class="fas fa-heartbeat" style="color: #ff4444;"></i>
+                <div class="status-info">
+                    <h4>Health</h4>
+                    <p>Indicates overall physical condition. Decreases during combat and environmental damage. Game over when it reaches 0.</p>
+                </div>
+            </div>
+            
+            <div class="status-item">
+                <i class="fas fa-hamburger" style="color: #ffaa44;"></i>
+                <div class="status-info">
+                    <h4>Hunger</h4>
+                    <p>Decreases over time. Can be restored by eating food.</p>
+                </div>
+            </div>
+            
+            <div class="status-item">
+                <i class="fas fa-tint" style="color: #44aaff;"></i>
+                <div class="status-info">
+                    <h4>Thirst</h4>
+                    <p>Decreases over time. Can be restored by drinking water.</p>
+                </div>
+            </div>
+            
+            <div class="status-item">
+                <i class="fas fa-temperature-high" style="color: #ffff44;"></i>
+                <div class="status-info">
+                    <h4>Temperature</h4>
+                    <p>Decreases during rain or snow. Can be maintained by wearing clothes.</p>
+                </div>
+            </div>
+            
+            <div class="status-item">
+                <i class="fas fa-viruses" style="color: #ff44ff;"></i>
+                <div class="status-info">
+                    <h4>Virus Infection</h4>
+                    <p>Increases when fighting zombies. Can be cured with medical kits.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><i class="fas fa-exclamation-triangle"></i> Important Notes</h2>
+            <div class="warning">
+                <h3>Key Points</h3>
+                <ul style="margin-left: 20px;">
+                    <li>Cooperation with other players is essential</li>
+                    <li>Always monitor your status and manage it appropriately</li>
+                    <li>Items are limited, so use them efficiently</li>
+                    <li>Zombies are powerful, avoid reckless combat</li>
+                    <li>Vaccine collection is the top priority</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <a href="index.html" class="back-button">
+                <i class="fas fa-arrow-left"></i> Back to Game
+            </a>
+        </div>
+    </div>
+</body>
+</html> 
