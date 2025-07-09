@@ -215,7 +215,10 @@ class EnhancedEnemy {
         const colors = new Float32Array(particleCount * 3);
         
         const enemyPosition = this.model.getPosition();
-        const gravity = -9.8;
+        const gravity = -9.8; // m/s^2
+
+        // 赤色で固定
+        const color = new THREE.Color(0xff0000);
     
         for (let i = 0; i < particleCount; i++) {
             // ランダムな方向にパーティクルを配置
@@ -225,13 +228,12 @@ class EnhancedEnemy {
             positions[i * 3 + 1] = enemyPosition.y + Math.random() * 2;
             positions[i * 3 + 2] = enemyPosition.z + Math.sin(angle) * radius;
     
-            // ランダムな速度を設定
+            // ランダムな初速度を設定
             velocities[i * 3] = (Math.random() - 0.5) * 5;
             velocities[i * 3 + 1] = Math.random() * 5;
             velocities[i * 3 + 2] = (Math.random() - 0.5) * 5;
     
-            // 敵の色に基づいてパーティクルの色を設定
-            const color = new THREE.Color(this.color);
+            // 赤色で固定
             colors[i * 3] = color.r;
             colors[i * 3 + 1] = color.g;
             colors[i * 3 + 2] = color.b;
@@ -253,26 +255,23 @@ class EnhancedEnemy {
     
         // パーティクルのアニメーション
         const startTime = Date.now();
+        const initialVelocities = velocities.slice(); // 初期速度を保存
+        const initialPositions = positions.slice(); // 初期位置を保存
         const animate = () => {
-            const elapsed = (Date.now() - startTime) / 1000;
+            const elapsed = (Date.now() - startTime) / 1000; // 経過秒数
             const positions = particleSystem.geometry.attributes.position.array;
             const velocities = particleSystem.geometry.attributes.velocity.array;
     
             for (let i = 0; i < particleCount; i++) {
-                // 重力を適用して速度を更新
-                velocities[i * 3 + 1] += gravity * 0.016;
-    
-                // 位置を更新
-                positions[i * 3] += velocities[i * 3] * 0.016;
-                positions[i * 3 + 1] += velocities[i * 3 + 1] * 0.016;
-                positions[i * 3 + 2] += velocities[i * 3 + 2] * 0.016;
-    
+                // 重力加速度で落下（v = v0 + a*t, y = y0 + v0*t + 0.5*a*t^2）
+                // x, zは等速直線運動
+                positions[i * 3] = initialPositions[i * 3] + initialVelocities[i * 3] * elapsed;
+                positions[i * 3 + 1] = initialPositions[i * 3 + 1] + initialVelocities[i * 3 + 1] * elapsed + 0.5 * gravity * elapsed * elapsed;
+                positions[i * 3 + 2] = initialPositions[i * 3 + 2] + initialVelocities[i * 3 + 2] * elapsed;
+
                 // 地面に到達したら停止
                 if (positions[i * 3 + 1] < 0) {
                     positions[i * 3 + 1] = 0;
-                    velocities[i * 3] = 0;
-                    velocities[i * 3 + 1] = 0;
-                    velocities[i * 3 + 2] = 0;
                 }
             }
     

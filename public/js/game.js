@@ -739,34 +739,22 @@ if(this.devMode){
 			console.log("color" + color);
 		}
 
-		// 初期位置は(0,0,0)に設定し、後でcurrentPlayersイベントで正しい位置に設定される
-		this.playerModel.setPosition(100, 0, 100);
-		console.log("プレイヤー初期スポーン座標:", { x: 100, y: 0, z: 100 });
+		// --- 修正ここから ---
+		// 初期スポーン位置は必ずsafeZoneMeshesの中から選ぶ
+		const safePosition = this.findSafeRespawnPosition();
+		this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
+		console.log("プレイヤー初期スポーン座標 (safeZone):", safePosition);
+		// --- 修正ここまで ---
 
-		// Get initial position from server
-		const serverPosition = this.playerModel.getPosition();
-
-		// Check if this position is safe (not colliding with buildings)
-		if (this.fieldMap && this.fieldMap.checkCollision(new THREE.Vector3(
-				serverPosition.x, serverPosition.y, serverPosition.z), 2)) {
-
-			// Find a safe spawn position
-			const safePosition2 = this.getNearbyPlayerPosition();
-			this.playerModel.setPosition(safePosition2.x, safePosition2.y, safePosition2.z);
-			console.log("プレイヤー安全スポーン座標:", safePosition2);
-
-			// Immediately notify server of the corrected position
-			this.socket.emit('playerMove', {
-				position: this.playerModel.getPosition(),
-				rotation: {
-					y: this.playerModel.getRotation().y
-				},
-				isMoving: false,
-				isRunning: false
-			});
-		} else {
-			console.log("プレイヤーファイナルスポーン座標:", serverPosition);
-		}
+		// サーバーに初期位置を通知
+		this.socket.emit('playerMove', {
+			position: this.playerModel.getPosition(),
+			rotation: {
+				y: this.playerModel.getRotation().y
+			},
+			isMoving: false,
+			isRunning: false
+		});
 	}
 
 	createPlayerModelWithServerPosition(serverPlayerData) {
@@ -1385,16 +1373,26 @@ if(this.devMode){
 			// 新しい位置を設定（地面の高さを含む）
 			this.playerModel.setPosition(newPosition.x, newPosition.y, newPosition.z);
 
+			// --- ここから安全地帯判定と減少倍率 ---
+			let safeZoneMultiplier = 1.0;
+			if (this.fieldMap && this.fieldMap.isSafeSpot) {
+				const pos = this.playerModel.getPosition();
+				if (this.fieldMap.isSafeSpot(pos.x, pos.z)) {
+					safeZoneMultiplier = 3.0; // 安全地帯内なら3倍速で減少
+				}
+			}
+			// --- ここまで ---
+
 			// 移動した場合、空腹と喉の渇きを減少させる
 			if (isMoving) {
 				// 走っている場合はより早く減少
 				const decreaseRate = isRunning ? GameConfig.STATUS.MOVEMENT.RUNNING_MULTIPLIER : 1.0;
 				// 移動時の減少率を適用
-				this.playerStatus.decreaseHunger(GameConfig.STATUS.MOVEMENT.HUNGER * decreaseRate * deltaTime);
-				this.playerStatus.decreaseThirst(GameConfig.STATUS.MOVEMENT.THIRST * decreaseRate * deltaTime);
+				this.playerStatus.decreaseHunger(GameConfig.STATUS.MOVEMENT.HUNGER * decreaseRate * deltaTime * safeZoneMultiplier);
+				this.playerStatus.decreaseThirst(GameConfig.STATUS.MOVEMENT.THIRST * decreaseRate * deltaTime * safeZoneMultiplier);
 			}else{
-				this.playerStatus.decreaseHunger(GameConfig.STATUS.IDLE.HUNGER * deltaTime);
-				this.playerStatus.decreaseThirst(GameConfig.STATUS.IDLE.THIRST * deltaTime);
+				this.playerStatus.decreaseHunger(GameConfig.STATUS.IDLE.HUNGER * deltaTime * safeZoneMultiplier);
+				this.playerStatus.decreaseThirst(GameConfig.STATUS.IDLE.THIRST * deltaTime * safeZoneMultiplier);
 			}
 		}
 
@@ -1483,6 +1481,13 @@ if(this.devMode){
 		// 出血を増加させる
 		this.playerStatus.increaseBleeding(damage);
 
+		// --- 血エフェクトを追加 ---
+		if (this.playerModel && this.playerModel.getPosition) {
+			const position = this.playerModel.getPosition();
+			this.createBloodEffect(position);
+		}
+		// --- ここまで ---
+
 		if (this.playerStatus.health < 0) {
 			this.playerStatus.health = 0;
 		}
@@ -1494,6 +1499,74 @@ if(this.devMode){
 		if (this.playerStatus.health <= 0) {
 			this.gameOver();
 		}
+	}
+
+	// プレイヤーの血エフェクト
+	createBloodEffect(position) {
+		const particleCount = 10;
+		const particles = new THREE.BufferGeometry();
+		const positions = new Float32Array(particleCount * 3);
+		const velocities = new Float32Array(particleCount * 3);
+		const colors = new Float32Array(particleCount * 3);
+		const gravity = -9.8;
+		const color = new THREE.Color(0xff0000); // 赤色
+
+		for (let i = 0; i < particleCount; i++) {
+			const angle = Math.random() * Math.PI * 2;
+			const radius = Math.random() * 0.7;
+			positions[i * 3] = position.x + Math.cos(angle) * radius;
+			positions[i * 3 + 1] = position.y + 1.2 + Math.random() * 0.5; // 少し上から
+			positions[i * 3 + 2] = position.z + Math.sin(angle) * radius;
+
+			velocities[i * 3] = (Math.random() - 0.5) * 2.5;
+			velocities[i * 3 + 1] = Math.random() * 4;
+			velocities[i * 3 + 2] = (Math.random() - 0.5) * 2.5;
+
+			colors[i * 3] = color.r;
+			colors[i * 3 + 1] = color.g;
+			colors[i * 3 + 2] = color.b;
+		}
+
+		particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+		particles.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+		particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+		const particleMaterial = new THREE.PointsMaterial({
+			size: 0.25,
+			vertexColors: true,
+			transparent: true,
+			opacity: 1
+		});
+
+		const particleSystem = new THREE.Points(particles, particleMaterial);
+		this.scene.add(particleSystem);
+
+		const startTime = Date.now();
+		const initialVelocities = velocities.slice();
+		const initialPositions = positions.slice();
+		const animate = () => {
+			const elapsed = (Date.now() - startTime) / 1000;
+			const positions = particleSystem.geometry.attributes.position.array;
+
+			for (let i = 0; i < particleCount; i++) {
+				positions[i * 3] = initialPositions[i * 3] + initialVelocities[i * 3] * elapsed;
+				positions[i * 3 + 1] = initialPositions[i * 3 + 1] + initialVelocities[i * 3 + 1] * elapsed + 0.5 * gravity * elapsed * elapsed;
+				positions[i * 3 + 2] = initialPositions[i * 3 + 2] + initialVelocities[i * 3 + 2] * elapsed;
+				if (positions[i * 3 + 1] < 0) {
+					positions[i * 3 + 1] = 0;
+				}
+			}
+			particleSystem.geometry.attributes.position.needsUpdate = true;
+			particleMaterial.opacity = Math.max(1 - elapsed, 0);
+			if (elapsed < 1.2) {
+				requestAnimationFrame(animate);
+			} else {
+				this.scene.remove(particleSystem);
+				particleSystem.geometry.dispose();
+				particleSystem.material.dispose();
+			}
+		};
+		animate();
 	}
 
 	// HPゲージを更新する処理
@@ -1753,59 +1826,23 @@ if(this.devMode){
 	}
 	// 安全なリスポーンポイントを探す新しいメソッドを追加
 	findSafeRespawnPosition() {
-		const maxAttempts = 20; // 最大試行回数
-		const safeDistance = 10; // 敵から最低限離れるべき距離
-
-		// 現在のプレイヤー位置
-		const currentPosition = this.playerModel.getPosition().clone();
-
-		for (let attempt = 0; attempt < maxAttempts; attempt++) {
-			// ランダムな方向と距離を生成
+		// safeZoneMeshesが存在し、1つ以上ある場合
+		if (this.fieldMap && this.fieldMap.safeZoneMeshes && this.fieldMap.safeZoneMeshes.length > 0) {
+			// ランダムで1つ選ぶ
+			const safeZone = this.fieldMap.safeZoneMeshes[Math.floor(Math.random() * this.fieldMap.safeZoneMeshes.length)];
+			// 円柱の中心座標
+			const center = safeZone.position;
+			// 半径内のランダムな位置を取得（円内ランダム）
+			const radius = safeZone.geometry.parameters.radiusTop || 10; // デフォルト10
 			const angle = Math.random() * Math.PI * 2;
-			const distance = 10 + Math.random() * 20; // 10-30ユニットの距離
-
-			// 新しい候補位置を計算
-			const newPosition = new THREE.Vector3(
-				currentPosition.x + Math.cos(angle) * distance,
-				currentPosition.y,
-				currentPosition.z + Math.sin(angle) * distance
-			);
-
-			// マップの境界内に収める
-			newPosition.x = Math.max(-450, Math.min(450, newPosition.x));
-			newPosition.z = Math.max(-450, Math.min(450, newPosition.z));
-
+			const r = Math.random() * (radius * 0.8); // 端すぎないように0.8倍
+			const x = center.x + Math.cos(angle) * r;
+			const z = center.z + Math.sin(angle) * r;
 			// 地形の高さを取得
-			const terrainHeight = this.getHeightAt(newPosition.x, newPosition.z);
-			if (terrainHeight !== null) {
-				newPosition.y = terrainHeight + 0.5;
-			}
-
-			// 建物との衝突チェック
-			if (this.fieldMap.checkCollision(newPosition, 2)) {
-				continue; // 衝突する場合は次の候補へ
-			}
-
-			// 敵との距離をチェック
-			let isSafe = true;
-			this.enemies.forEach(enemy => {
-				if (enemy.isDead) return;
-
-				const enemyPosition = enemy.model.getPosition();
-				const distance = newPosition.distanceTo(enemyPosition);
-
-				if (distance < safeDistance) {
-					isSafe = false;
-				}
-			});
-
-			// 安全な位置が見つかった場合
-			if (isSafe) {
-				return newPosition;
-			}
+			const y = this.getHeightAt(x, z) + 0.5;
+			return new THREE.Vector3(x, y, z);
 		}
-
-		// 安全な位置が見つからなかった場合、マップ上の別のランダムな位置を使用
+		// フォールバック（従来の処理）
 		return this.getSafeMapPosition();
 	}
 
@@ -4110,9 +4147,31 @@ if(this.devMode){
 	}
 
 	showMessage(message) {
-		// 簡単なメッセージ表示（既存のメッセージシステムがあればそれを使用）
+		// 画面上に一時的なメッセージを表示
+		let msgDiv = document.getElementById('game-message-popup');
+		if (!msgDiv) {
+			msgDiv = document.createElement('div');
+			msgDiv.id = 'game-message-popup';
+			msgDiv.style.position = 'fixed';
+			msgDiv.style.top = '20%';
+			msgDiv.style.left = '50%';
+			msgDiv.style.transform = 'translate(-50%, -50%)';
+			msgDiv.style.background = 'rgba(0,0,0,0.8)';
+			msgDiv.style.color = '#fff';
+			msgDiv.style.padding = '16px 32px';
+			msgDiv.style.borderRadius = '10px';
+			msgDiv.style.fontSize = '18px';
+			msgDiv.style.zIndex = '3000';
+			document.body.appendChild(msgDiv);
+		}
+		msgDiv.textContent = message;
+		msgDiv.style.display = 'block';
+		// 2秒後に自動で消す
+		clearTimeout(window._gameMsgTimeout);
+		window._gameMsgTimeout = setTimeout(() => {
+			msgDiv.style.display = 'none';
+		}, 2000);
 		console.log(message);
-		// 必要に応じてUIにメッセージを表示
 	}
 
 	applyLanguageSettings(language) {
