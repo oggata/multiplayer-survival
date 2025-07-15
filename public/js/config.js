@@ -14,101 +14,6 @@ const GameConfig = {
 		healthDecreaseRate: 0.001
 	},
 
-	// 敵設定
-	ENEMY: {
-		TYPES: {
-			NORMAL: {
-				name: 'normal',
-				color: 0x00ff00, // 緑色
-				moveSpeed: 2,
-				damage: 2,
-				shootBullets: false
-			},
-			FAST: {
-				name: 'fast',
-				color: 0xff0000, // 赤色
-				moveSpeed: 3, // 2倍の速度
-				damage: 1, // 半分のダメージ
-				shootBullets: false
-			},
-			SHOOTER: {
-				name: 'shooter',
-				color: 0x800080, // 紫色
-				moveSpeed: 2,
-				damage: 1,
-				shootBullets: true,
-				shootInterval: 3000, // 3秒ごとに弾を発射
-				bulletSpeed: 15,
-				bulletDamage: 15
-			},
-			QUADRUPED: {
-				name: 'quadruped',
-				color: 0x6a7a5d, // 暗い緑色
-				moveSpeed: 2.2, // 20%増加
-				damage: 3, // 50%増加
-				shootBullets: false
-			},
-			HEXAPOD: {
-				name: 'hexapod',
-				color: 0x331122, // 暗い赤紫色
-				moveSpeed: 2.2, // 40%増加
-				damage: 2.4, // 20%増加
-				shootBullets: false
-			},
-			GIANT: {
-				name: 'giant',
-				color: 0x8B4513, // 茶色
-				moveSpeed: 1.6, // 20%減少
-				damage: 4, // 2倍
-				shootBullets: false
-			},
-			CRAB: {
-				name: 'crab',
-				color: 0xFF4500, // オレンジレッド
-				moveSpeed: 2.2, // 10%増加
-				damage: 2.6, // 30%増加
-				shootBullets: false
-			},
-			FLYING: {
-				name: 'flying',
-				color: 0x4B0082, // インディゴ
-				moveSpeed: 3.2, // 60%増加
-				damage: 2.2, // 10%増加
-				shootBullets: false
-			},
-			SLIME: {
-				name: 'slime',
-				color: 0x00ff00, // 春緑
-				moveSpeed: 1.8, // 10%減少
-				damage: 2.8, // 40%増加
-				shootBullets: false
-			},
-			BOSS: {
-				name: 'boss',
-				color: 0xFF0000, // 赤
-				moveSpeed: 1.4, // 30%減少
-				damage: 6, // 3倍
-				shootBullets: true,
-				shootInterval: 2000, // 2秒ごとに弾を発射
-				bulletSpeed: 20,
-				bulletDamage: 20
-			}
-		}
-	},
-
-	// アイテム設定
-	ITEM: {
-		MAX_COUNT: 5,
-		COLLECTION_RADIUS: 1.0,
-		SPAWN: {
-			BUILDING_RADIUS: 15, // 建物からのスポーン半径
-			BUILDING_CHANCE: 0.8, // 建物近くでのスポーン確率
-			EMPTY_CHANCE: 0.2, // 空き地でのスポーン確率
-			MIN_DISTANCE: 400, // 建物からの最小距離
-			MAX_DISTANCE: 500 // 建物からの最大距離
-		}
-	},
-
 	// ライティング設定
 	LIGHTING: {
 		AMBIENT_INTENSITY: 0.03,
@@ -125,13 +30,26 @@ const GameConfig = {
 
 	// 霧設定
 	FOG: {
-		DENSITY: 0.007
+		DENSITY: 0.03
 	},
 
 	// カメラ設定
 	CAMERA: {
 		OFFSET_Y: 4.5,
 		OFFSET_Z: 15
+	},
+
+	// アイテム設定
+	ITEM: {
+		MAX_COUNT: 5,
+		COLLECTION_RADIUS: 1.0,
+		SPAWN: {
+			BUILDING_RADIUS: 15, // 建物からのスポーン半径
+			BUILDING_CHANCE: 0.8, // 建物近くでのスポーン確率
+			EMPTY_CHANCE: 0.2, // 空き地でのスポーン確率
+			MIN_DISTANCE: 400, // 建物からの最小距離
+			MAX_DISTANCE: 500 // 建物からの最大距離
+		}
 	},
 
 	// マップ設定
@@ -598,6 +516,88 @@ const GameConfig = {
 		FOG_DAWN_DUSK: 0xffccaa
 	},
 
+	// 敵設定
+	ENEMY: {
+		TYPES: {
+			NORMAL: {
+				name: 'normal',
+				color: 0x00ff00, // 緑色
+				moveSpeed: 2,
+				damage: 2,
+				shootBullets: false
+			},
+			FAST: {
+				name: 'fast',
+				color: 0xff0000, // 赤色
+				moveSpeed: 3, // 2倍の速度
+				damage: 1, // 半分のダメージ
+				shootBullets: false
+			},
+			SHOOTER: {
+				name: 'shooter',
+				color: 0x800080, // 紫色
+				moveSpeed: 2,
+				damage: 1,
+				shootBullets: true,
+				shootInterval: 3000, // 3秒ごとに弾を発射
+				bulletSpeed: 15,
+				bulletDamage: 15
+			},
+			QUADRUPED: {
+				name: 'quadruped',
+				color: 0x6a7a5d, // 暗い緑色
+				moveSpeed: 2.2, // 20%増加
+				damage: 3, // 50%増加
+				shootBullets: false
+			},
+			HEXAPOD: {
+				name: 'hexapod',
+				color: 0x331122, // 暗い赤紫色
+				moveSpeed: 2.2, // 40%増加
+				damage: 2.4, // 20%増加
+				shootBullets: false
+			},
+			GIANT: {
+				name: 'giant',
+				color: 0x8B4513, // 茶色
+				moveSpeed: 1.6, // 20%減少
+				damage: 4, // 2倍
+				shootBullets: false
+			},
+			CRAB: {
+				name: 'crab',
+				color: 0xFF4500, // オレンジレッド
+				moveSpeed: 2.2, // 10%増加
+				damage: 2.6, // 30%増加
+				shootBullets: false
+			},
+			FLYING: {
+				name: 'flying',
+				color: 0x4B0082, // インディゴ
+				moveSpeed: 3.2, // 60%増加
+				damage: 2.2, // 10%増加
+				shootBullets: false
+			},
+			SLIME: {
+				name: 'slime',
+				color: 0x00ff00, // 春緑
+				moveSpeed: 1.8, // 10%減少
+				damage: 2.8, // 40%増加
+				shootBullets: false
+			},
+			BOSS: {
+				name: 'boss',
+				color: 0xFF0000, // 赤
+				moveSpeed: 1.4, // 30%減少
+				damage: 6, // 3倍
+				shootBullets: true,
+				shootInterval: 2000, // 2秒ごとに弾を発射
+				bulletSpeed: 20,
+				bulletDamage: 20
+			}
+		}
+	},
+	
 	// 武器設定
 	WEAPON: {
 		BULLET001: {

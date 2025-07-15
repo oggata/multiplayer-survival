@@ -3880,8 +3880,8 @@ if(this.devMode){
 				row.classList.add('current-player');
 			}
 			
-			// 生存時間をフォーマット
-			const survivalTime = this.formatSurvivalTime(player.survival_time);
+			// 生存時間をゲーム内時間でフォーマット
+			const survivalTime = this.formatGameTimeSurvivalTime(player.survival_time);
 			
 			row.innerHTML = `
 				<td>${index + 1}</td>
@@ -3909,6 +3909,26 @@ if(this.devMode){
 			return `${minutes}分 ${seconds % 60}秒`;
 		} else {
 			return `${seconds}秒`;
+		}
+	}
+
+	// ゲーム内時間で生存時間をフォーマット
+	formatGameTimeSurvivalTime(survivalTimeMs) {
+		const gameDayLength = GameConfig.TIME.DAY_LENGTH;
+		
+		// 生存時間をゲーム内の日数、時間、分に変換
+		const survivalDays = Math.floor(survivalTimeMs / (gameDayLength * 1000));
+		const survivalHours = Math.floor((survivalTimeMs % (gameDayLength * 1000)) / (gameDayLength * 1000 / 24));
+		const survivalMinutes = Math.floor((survivalTimeMs % (gameDayLength * 1000 / 24)) / (gameDayLength * 1000 / 24 / 60));
+
+		if (survivalDays > 0) {
+			return `${survivalDays}日 ${survivalHours}時間 ${survivalMinutes}分`;
+		} else if (survivalHours > 0) {
+			return `${survivalHours}時間 ${survivalMinutes}分`;
+		} else if (survivalMinutes > 0) {
+			return `${survivalMinutes}分`;
+		} else {
+			return `0分`;
 		}
 	}
 
