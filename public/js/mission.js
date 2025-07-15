@@ -6,6 +6,7 @@ class MissionManager {
         this.keyItemModels = new Map(); // 各キーアイテムの3Dモデル
         this.timeLeft = null;
         this.hackingEffect = null; // ハッキングエフェクト用
+        this.lastTimeLeftReceived = 0; // 追加: 最後にtimeLeftを受信した時刻
         console.log('MissionManager initialized');
         this.setupSocketEvents();
         this.updateCount = 0;
@@ -25,6 +26,7 @@ class MissionManager {
         // 残り時間を受信
         this.game.socket.on('keyItemCollectTimeLeft', (data) => {
             this.timeLeft = data.timeLeft;
+            this.lastTimeLeftReceived = Date.now(); // 追加
         });
     }
 
@@ -162,30 +164,19 @@ class MissionManager {
         // 2つのベクトルの内積を計算（-1から1の値）
         const dotProduct = directionToKeyItem.dot(playerDirection);
 
+        // 残り時間の表示（ハッキングエフェクトの判定は別メソッドで行う）
+        let timeLeftText = '';
+        if (this.timeLeft !== null && distance <= 30) {
+            const sec = Math.ceil(this.timeLeft / 1000);
+            timeLeftText = `<span style='color:#0ff'>(${sec}sec)</span>`;
+        }
+
         // 内積が-0.5以下の場合（約120度以上）のみインジケーターを表示
         if (dotProduct > -0.5) {
             keyItemIndicator.style.display = 'none';
-            return;
-        }
-
-        // インジケーターを表示
-        keyItemIndicator.style.display = 'block';
-
-        // 残り時間の表示を追加
-        let timeLeftText = '';
-        if (this.timeLeft !== null && distance <= 20) {
-            const sec = Math.ceil(this.timeLeft / 1000);
-            timeLeftText = `<span style='color:#0ff'>(残り${sec}秒)</span>`;
-            
-            // ハッキングエフェクトを開始（まだ開始されていない場合）
-            if (!this.hackingEffect) {
-                this.createHackingEffect();
-            }
         } else {
-            // 範囲外に出た場合はエフェクトを削除
-            if (this.hackingEffect) {
-                this.removeHackingEffect();
-            }
+            // インジケーターを表示
+            keyItemIndicator.style.display = 'block';
         }
 
         // インジケーターの内容を更新
@@ -197,6 +188,42 @@ class MissionManager {
         // インジケーターの位置を更新
         keyItemIndicator.style.left = `${screenPosition.x}px`;
         keyItemIndicator.style.top = `${screenPosition.y - 150}px`;
+    }
+
+    // ハッキングエフェクトの状態を更新するメソッド（新規追加）
+    updateHackingEffect() {
+        if (!this.game.playerModel || this.keyItems.size === 0) {
+            return;
+        }
+
+        // プレイヤーの位置を取得
+        const playerPosition = this.game.playerModel.getPosition();
+        
+        // 最も近いキーアイテムへの距離を計算
+        let minDistance = Infinity;
+        this.keyItems.forEach((keyItem) => {
+            const distance = Math.sqrt(
+                Math.pow(keyItem.x - playerPosition.x, 2) +
+                Math.pow(keyItem.z - playerPosition.z, 2)
+            );
+            if (distance < minDistance) {
+                minDistance = distance;
+            }
+        });
+
+        // ハッキングエフェクトの制御（距離と時間に基づく）
+        const now = Date.now();
+        const timeLeftValid = (this.timeLeft !== null && (now - this.lastTimeLeftReceived) < 2000);
+        
+        if (timeLeftValid && minDistance <= 30) {
+            if (!this.hackingEffect) {
+                this.createHackingEffect();
+            }
+        } else {
+            if (this.hackingEffect) {
+                this.removeHackingEffect();
+            }
+        }
     }
 
     // ハッキングエフェクトを作成
@@ -308,6 +335,13 @@ class MissionManager {
                 return;
             }
 
+            // 最新の残り秒数を取得
+            let timeLeftText = '';
+            if (this.timeLeft !== null) {
+                const sec = (this.timeLeft / 1000).toFixed(1);
+                timeLeftText = `${sec}sec `;
+            }
+
             // 新しいコード行を追加
             const codeLine = document.createElement('div');
             codeLine.style.padding = '2px 10px';
@@ -315,7 +349,22 @@ class MissionManager {
             codeLine.style.marginLeft = '10px';
             codeLine.style.opacity = '0';
             codeLine.style.transition = 'opacity 0.3s ease-in';
-            codeLine.textContent = codeLines[currentLine % codeLines.length];
+            codeLine.style.display = 'flex';
+            codeLine.style.alignItems = 'center';
+            
+            // 残り秒数とコードを分けて表示
+            const timeElement = document.createElement('span');
+            timeElement.style.color = '#00ffff';
+            timeElement.style.fontWeight = 'bold';
+            timeElement.style.marginRight = '10px';
+            timeElement.style.minWidth = '60px';
+            timeElement.textContent = timeLeftText;
+            
+            const codeElement = document.createElement('span');
+            codeElement.textContent = codeLines[currentLine % codeLines.length];
+            
+            codeLine.appendChild(timeElement);
+            codeLine.appendChild(codeElement);
 
             this.hackingEffect.appendChild(codeLine);
 
@@ -331,13 +380,13 @@ class MissionManager {
 
             currentLine++;
 
-            // エフェクトの終了条件
-            if (currentLine >= 50) {
-                clearInterval(streamInterval);
-                setTimeout(() => {
-                    this.removeHackingEffect();
-                }, 2000);
-            }
+            // エフェクトの終了条件を削除して、ずっと流れ続けるようにする
+            // if (currentLine >= 50) {
+            //     clearInterval(streamInterval);
+            //     setTimeout(() => {
+            //         this.removeHackingEffect();
+            //     }, 2000);
+            // }
         }, 100);
     }
 
@@ -460,5 +509,8 @@ class MissionManager {
                 this.updateKeyItemIndicatorPosition(keyItemId);
             });
         }
+
+        // ハッキングエフェクトの状態を更新（プレイヤーの向きに関係なく）
+        this.updateHackingEffect();
     }
 } 

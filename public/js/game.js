@@ -3867,7 +3867,7 @@ if(this.devMode){
 		// 現在のプレイヤーIDを取得
 		const currentPlayerId = this.socket ? this.socket.id : null;
 		
-		rankingData.forEach((player, index) => {
+		rankingData.slice(0, 20).forEach((player, index) => {
 			const row = document.createElement('tr');
 			
 			// 順位に応じたクラスを追加

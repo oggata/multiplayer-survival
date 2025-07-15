@@ -30,7 +30,7 @@ const GameConfig = {
 
 	// 霧設定
 	FOG: {
-		DENSITY: 0.03
+		DENSITY: 0.009
 	},
 
 	// カメラ設定
@@ -754,29 +754,5 @@ const GameConfig = {
 			HUNGER: 0.4, // 停止時の空腹減少率
 			THIRST: 0.4 // 停止時の喉の渇き減少率
 		}
-	},
-
-	ITEM_EFFECTS: {
-		//0
-		healthKit: {
-			name: 'Health Kit',
-			description: 'Restores 75 HP',
-			color: 0xff0000,
-			dropChance: 0.05,
-		}
-
-	},
-
-	// ITEMS設定は items.js に移動しました
-	// 言語設定に応じて動的に取得されます
-	BOSS: {
-		SPAWN_COUNT: 3,
-		MIN_DISTANCE: 100,
-		MAX_DISTANCE: 500,
-		HEALTH: 1000,
-		DAMAGE: 50,
-		ATTACK_RANGE: 10,
-		MOVE_SPEED: 5,
-		SPAWN_INTERVAL: 300000, // 5分
-	},
+	}
 };

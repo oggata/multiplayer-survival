@@ -152,7 +152,7 @@ class NeonAPI {
     // ランキングを取得
     async getRanking() {
         try {
-            const response = await fetch('/api/game-results?limit=10');
+            const response = await fetch('/api/game-results?limit=20');
             const result = await response.json();
             
             if (result.success) {
