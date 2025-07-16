@@ -193,11 +193,6 @@ class Game {
 		// 初期設定を適用
 		this.applySettings();
 
-		// 電波塔の管理を追加（シーン初期化後に配置）
-		//this.radioTowerManager = new RadioTowerManager(this.scene);
-
-
-
 		// プレイヤーのハッシュ
 		this.playerHash = null;
 
@@ -229,30 +224,7 @@ class Game {
 		this.createMessageIndicatorContainer();
 
 		this.testCount = 0;
-/*
-		// WebSocketのメッセージハンドラを追加
-		this.socket.onmessage = (event) => {
-			const data = JSON.parse(event.data);
-			console.log("data" + data);
-			switch (data.type) {
-				case 'enemySpawn':
-					this.spawnEnemy(data.enemy);
-					break;
-				case 'enemyUpdate':
-					this.updateEnemy(data.enemyId, data.position);
-					break;
-				case 'enemyBulletSpawn':
-					this.spawnEnemyBullet(data.bullet);
-					break;
-				case 'enemyBulletRemove':
-					this.removeEnemyBullet(data.bulletId);
-					break;
-				case 'itemSpawn':
-					this.spawnItem(data.item.type, data.item.position.x, data.item.position.z);
-					break;
-			}
-		};
-*/
+
 		// アイテム効果表示用の要素
 		this.effectsContainer = document.createElement('div');
 		this.effectsContainer.id = 'effectsContainer';
@@ -507,95 +479,6 @@ if(this.devMode){
 			}
 		}, 3000);
 	}
-
-	showBossEnemyPopup(bossId) {
-		const boss = this.enemies.get(bossId);
-		if (!boss) return;
-		
-		const bossPosition = boss.getPosition();
-		this.showBossEnemyPopupForPlayer(bossId, bossPosition);
-	}
-
-	showBossEnemyPopupForPlayer(enemyId, position) {
-		// 画面内かどうかをチェック
-		const screenPosition = this.getScreenPosition(position);
-		const isOnScreen = screenPosition.x >= 0 && screenPosition.x <= window.innerWidth &&
-			screenPosition.y >= 0 && screenPosition.y <= window.innerHeight;
-
-		if (isOnScreen) {
-			// 画面内の場合は通常のポップアップを表示
-			if (!this.messagePopups) {
-				this.messagePopups = new Map();
-			}
-
-			if (this.messagePopups.has(enemyId)) {
-				this.messagePopups.get(enemyId).remove();
-				this.messagePopups.delete(enemyId);
-			}
-
-			const popup = document.createElement('div');
-			popup.className = 'message-popup';
-			popup.textContent = 'boss';
-			document.body.appendChild(popup);
-
-			this.messagePopups.set(enemyId, popup);
-
-			popup.style.left = `${screenPosition.x}px`;
-			popup.style.top = `${screenPosition.y}px`;
-
-
-		} else {
-			// 画面外の場合は方向インジケーターを表示
-			//this.showBossEnemyIndicator(enemyId, screenPosition);
-		}
-	}
-
-	showBossEnemyIndicator(enemyId, screenPosition) {
-		// 既存のインジケーターを削除
-		if (this.messageIndicators.has(enemyId)) {
-			this.messageIndicators.get(enemyId).remove();
-			this.messageIndicators.delete(enemyId);
-		}
-
-		// 新しいインジケーターを作成
-		const indicator = document.createElement('div');
-		indicator.className = 'message-indicator';
-		indicator.innerHTML = '<i class="fas fa-exclamation-circle"></i> boss';
-		indicator.style.position = 'fixed';
-		indicator.style.color = 'yellow';
-		indicator.style.fontSize = '20px';
-		indicator.style.pointerEvents = 'none';
-		indicator.style.zIndex = '1000';
-
-		// 画面の端に配置
-		const edgeMargin = 20;
-		let left = screenPosition.x;
-		let top = screenPosition.y;
-
-		// 画面外の位置を調整
-		if (left < 0) left = edgeMargin;
-		if (left > window.innerWidth) left = window.innerWidth - edgeMargin;
-		if (top < 0) top = edgeMargin;
-		if (top > window.innerHeight) top = window.innerHeight - edgeMargin;
-
-		indicator.style.left = `${left}px`;
-		indicator.style.top = `${top}px`;
-
-		// インジケーターを追加
-		document.getElementById('messageIndicators').appendChild(indicator);
-		this.messageIndicators.set(playerId, indicator);
-
-		/*
-		// 3秒後に削除
-		setTimeout(() => {
-			if (this.messageIndicators.has(enemyId)) {
-				this.messageIndicators.get(enemyId).remove();
-				this.messageIndicators.delete(enemyId);
-			}
-		}, 3000);
-		*/
-	}
-
 	
 	updateMessageIndicators() {
 		if (!this.messageIndicators || this.messageIndicators.size === 0) return;
@@ -2118,52 +2001,6 @@ if(this.devMode){
 		this.playerStatus.updateUI();
 	}
 
-	/*
-	spawnItems() {
-		// フィールドマップが初期化されていない場合は処理をスキップ
-		if (!this.fieldMap || !this.fieldMap.isInitialized) {
-			console.warn('フィールドマップが初期化されていません');
-			return;
-		}
-
-		// 建物の位置を取得
-		const buildings = this.fieldMap.objects.filter(obj => obj.userData && obj.userData.type === 'building');
-
-		// アイテムを生成
-		for (let i = 0; i < this.maxItems; i++) {
-			const itemTypes = Object.entries(GameConfig.ITEMS)
-				.filter(([_, item]) => item.dropChance !== undefined)
-				.map(([type]) => type);
-
-			if (itemTypes.length === 0) continue;
-
-			const selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
-			if (!selectedType || !GameConfig.ITEMS[selectedType]) continue;
-
-			let x, z;
-			const spawnRandom = Math.random();
-			if (spawnRandom < GameConfig.ITEM.SPAWN.BUILDING_CHANCE && buildings.length > 0) {
-				// 建物の近くにスポーン
-				const randomBuilding = buildings[Math.floor(Math.random() * buildings.length)];
-				const angle = Math.random() * Math.PI * 2;
-				const distance = GameConfig.ITEM.SPAWN.MIN_DISTANCE +
-					Math.random() * (GameConfig.ITEM.SPAWN.MAX_DISTANCE - GameConfig.ITEM.SPAWN.MIN_DISTANCE);
-
-				x = randomBuilding.position.x + Math.cos(angle) * distance;
-				z = randomBuilding.position.z + Math.sin(angle) * distance;
-			} else {
-				// 空き地にスポーン
-				x = (Math.random() - 0.5) * this.fieldMap.mapSize;
-				z = (Math.random() - 0.5) * this.fieldMap.mapSize;
-			}
-
-			// アイテムを生成
-			const position = new THREE.Vector3(x, 0.5, z);
-			this.spawnItem(selectedType, position);
-		}
-	}
-	*/
-
 	checkItemCollisions() {
 		//console.log("aa");
 		if (!this.playerModel || !this.playerModel.getPosition) return;
@@ -2424,21 +2261,6 @@ if(this.devMode){
 		// 夜の時間帯を判定（0.7から0.3の間を夜とする）
 		const isNight = timeOfDay > 0.7 || timeOfDay < 0.3;
 
-		/*
-		// 夜になった時にサーバーに通知
-		if (isNight && !this.bossesSpawned) {
-			this.socket.emit('requestBossSpawn');
-			this.bossesSpawned = true;
-		} else if (!isNight) {
-			this.bossesSpawned = false;
-		}
-
-		// ボスの位置表示を更新
-		if (isNight) {
-			this.updateBossIndicators();
-		}
-			*/
-
 		// 既存の時間更新処理
 		this.updateSunPosition();
 		this.updateSkyColor();
@@ -2446,170 +2268,7 @@ if(this.devMode){
 		this.updateTimeDisplay();
 	}
 
-	/*
-	updateBossIndicators() {
-		if (!this.playerModel) return;
 
-		const playerPosition = this.playerModel.getPosition();
-		let nearestBoss = null;
-		let minDistance = Infinity;
-
-		// 最も近いボスを探す（サーバーから受け取った位置情報を使用）
-		this.enemies.forEach((enemy, id) => {
-			if (enemy.type === 'boss') {
-				// サーバーから受け取った位置情報を使用
-				const bossPosition = new THREE.Vector3(
-					enemy.position.x,
-					enemy.position.y,
-					enemy.position.z
-				);
-				const distance = playerPosition.distanceTo(bossPosition);
-				if (distance < minDistance) {
-					minDistance = distance;
-					nearestBoss = {
-						position: bossPosition,
-						distance: distance
-					};
-				}
-			}
-		});
-
-		// 最も近いボスの方向と距離を表示
-		if (nearestBoss) {
-			const distance = Math.floor(nearestBoss.distance);
-			const direction = new THREE.Vector3()
-				.subVectors(nearestBoss.position, playerPosition)
-				.normalize();
-
-			// プレイヤーの向きを考慮した角度を計算
-			const playerAngle = this.playerModel.rotation.y;
-			const bossAngle = Math.atan2(direction.x, direction.z);
-			const relativeAngle = bossAngle - playerAngle;
-
-			// 画面の中心からの相対位置を計算
-			const screenCenterX = window.innerWidth / 2;
-			const screenCenterY = window.innerHeight / 2;
-			const indicatorDistance = Math.min(window.innerWidth, window.innerHeight) * 0.4;
-			
-			// 角度に基づいて画面端の位置を計算
-			const screenX = screenCenterX + Math.sin(relativeAngle) * indicatorDistance;
-			const screenY = screenCenterY - Math.cos(relativeAngle) * indicatorDistance;
-
-			// 画面の端に配置
-			const edgeMargin = 20;
-			let left = screenX;
-			let top = screenY;
-
-			// 画面外の位置を調整
-			if (left < 0) left = edgeMargin;
-			if (left > window.innerWidth) left = window.innerWidth - edgeMargin;
-			if (top < 0) top = edgeMargin;
-			if (top > window.innerHeight) top = window.innerHeight - edgeMargin;
-
-			// インジケーターを作成または更新
-			if (!this.messageIndicators) {
-				this.messageIndicators = new Map();
-			}
-
-			// 既存のインジケーターを削除
-			if (this.messageIndicators.has('boss')) {
-				this.messageIndicators.get('boss').remove();
-				this.messageIndicators.delete('boss');
-			}
-
-			// 新しいインジケーターを作成
-			const indicator = document.createElement('div');
-			indicator.className = 'message-indicator';
-			indicator.innerHTML = `<i class="fas fa-crown"></i> ボスまでの距離: ${distance}m`;
-			indicator.style.position = 'fixed';
-			indicator.style.color = 'red';
-			indicator.style.fontSize = '20px';
-			indicator.style.pointerEvents = 'none';
-			indicator.style.zIndex = '1000';
-			indicator.style.left = `${left}px`;
-			indicator.style.top = `${top}px`;
-
-			// インジケーターを追加
-			if (!document.getElementById('messageIndicators')) {
-				const container = document.createElement('div');
-				container.id = 'messageIndicators';
-				document.body.appendChild(container);
-			}
-			document.getElementById('messageIndicators').appendChild(indicator);
-			this.messageIndicators.set('boss', indicator);
-
-			// 3秒後に削除
-			setTimeout(() => {
-				if (this.messageIndicators.has('boss')) {
-					this.messageIndicators.get('boss').remove();
-					this.messageIndicators.delete('boss');
-				}
-			}, 3000);
-		}
-	}
-
-	spawnBosses() {
-		// 既存のボスを削除
-		this.bosses.forEach(boss => {
-			if (boss.mesh) {
-				this.scene.remove(boss.mesh);
-			}
-		});
-		this.bosses = [];
-
-		// 3体のボスを生成
-		for (let i = 0; i < 3; i++) {
-			const position = this.getRandomBossSpawnPosition();
-			const bossData = {
-				type: 'boss',
-				position: position,
-				rotation: { x: 0, y: Math.random() * Math.PI * 2, z: 0 }, // ランダムな回転を追加
-				id: `boss_${Date.now()}_${i}`
-			};
-			this.spawnEnemy(bossData);
-			this.bosses.push(bossData);
-		}
-	}
-
-	getRandomBossSpawnPosition() {
-		const mapSize = GameConfig.MAP.SIZE;
-		const halfSize = mapSize / 2;
-		const minDistance = 100; // プレイヤーからの最小距離
-
-		let position;
-		let attempts = 0;
-		const maxAttempts = 50;
-
-		do {
-			position = new THREE.Vector3(
-				(Math.random() - 0.5) * (mapSize - minDistance * 2),
-				0,
-				(Math.random() - 0.5) * (mapSize - minDistance * 2)
-			);
-
-			// マップの境界からminDistance以上離れていることを確認
-			if (Math.abs(position.x) > halfSize - minDistance || 
-				Math.abs(position.z) > halfSize - minDistance) {
-				attempts++;
-				continue;
-			}
-
-			// プレイヤーからの距離をチェック
-			const distanceToPlayer = position.distanceTo(this.playerModel.getPosition());
-			if (distanceToPlayer < minDistance) {
-				attempts++;
-				continue;
-			}
-
-			// 高さを設定
-			position.y = this.getHeightAt(position.x, position.z);
-			return position;
-
-		} while (attempts < maxAttempts);
-
-		// デフォルトの位置を返す
-		return new THREE.Vector3(0, 0, 0);
-	}*/
 	// プレイヤーライトの強度を調整するメソッド
 	updatePlayerLightIntensity() {
 		if (!this.playerLight) return;
@@ -2755,24 +2414,15 @@ if(this.devMode){
 		// 世界の時間を24時間表記に変換（0-23時）
 		const worldHours = Math.floor(worldTime / (gameDayLengthMs / 24));
 		const worldMinutes = Math.floor((worldTime % (gameDayLengthMs / 24)) / (gameDayLengthMs / 24 / 60));
-
-
-
 		const playerCountElement = document.getElementById('player-count-number');
 		if (playerCountElement) {
 			//playerCountElement.textContent = this.players.size;
 		}
-
-
-
 		// 時間表示を更新
 		const timeDisplay = document.getElementById('timeDisplay');
 		if (timeDisplay) {
 			timeDisplay.innerHTML = `<i class="fas fa-vial"></i> ${this.totalKeyItemsCollected || 0} <i class="fas fa-user-alt"></i> ${this.players.size + 1} <br><i class="fas fa-stopwatch"></i> ${survivalDays}D ${survivalHours.toString().padStart(2, '0')}H ${survivalMinutes.toString().padStart(2, '0')}M<br><i class="fas fa-clock"></i> ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
 		}
-
-
-
 	}
 
 	// 霧の設定を更新するメソッド
@@ -2816,14 +2466,15 @@ if(this.devMode){
 		if (!position) return;
 		
 		// 10%の確率でアイテムをスポーン
-		if (Math.random() < 0.2) {
-			// GameConfig.ITEMSからランダムにアイテムタイプを選択
+		if (Math.random() < 0.8) {
+			// GameConfig.ITEMSからランダムにアイテムタイプsを選択
 			const itemTypes = Object.entries(GameConfig.ITEMS)
 				.filter(([_, item]) => item.dropChance !== undefined)
 				.map(([type]) => type);
 			
-			const selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+			var selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
 			
+			//var selectedType = 'food';
 			// アイテムを生成（地面の高さを考慮）
 			const terrainHeight = this.getHeightAt(position.x, position.z);
 			const itemPosition = new THREE.Vector3(

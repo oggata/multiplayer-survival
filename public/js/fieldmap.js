@@ -189,7 +189,7 @@ class FieldMap {
         await this.generateTerrain();
         
         // 建物の生成
-        this.generateBuildings();
+        //this.generateBuildings();
         
         // 安全なスポーン位置を視覚的に表現する円柱を生成
         this.createSafeZoneVisuals();
@@ -755,105 +755,7 @@ class FieldMap {
         
         // 基本的な地形の高さを計算
         const baseHeight = this.generateBaseTerrain(x, z);
-        
-        // 安全なスポーン位置との距離をチェック
-        const isNearSafeSpot = this.safeSpawnPositions.some(pos => {
-            const dx = x - pos.x;
-            const dz = z - pos.z;
-            const distance = Math.sqrt(dx * dx + dz * dz);
-            return distance < this.SAFE_SPOT_DISTANCE;
-        });
-
-        // 安全なスポーン位置の近くの場合は、メサを生成しない
-        if (isNearSafeSpot) {
-            return baseHeight;
-        }
-        
-        // メサが生成される確率を計算（キャニオン以外のバイオームで低確率）
-        let mesaChance = 0.015;
-
-        // biomeがnullの場合はデフォルト値を使用
-        if (biome && biome.type) {
-            if(biome.type === 'canyon'){
-                mesaChance = 1.0;
-            }else if(biome.type === 'forest'){
-                mesaChance = 0.1;
-            }else if(biome.type === 'ruins'){
-                mesaChance = 0.1;
-            }else if(biome.type === 'urban'){
-                mesaChance = 0.01;
-            }else if(biome.type === 'industrial'){
-                mesaChance = 0.0;   
-            }else{
-                mesaChance = 0.1;
-            }
-        }
-/*
-        // メサの生成判定
-        if (this.getDeterministicRandom(x, z, 'mesa') < mesaChance) {
-            // メサの中心からの距離を計算
-            const centerX = Math.floor(x / 100) * 100 + 50;
-            const centerZ = Math.floor(z / 100) * 100 + 50;
-            const distanceFromCenter = Math.sqrt(
-                Math.pow(x - centerX, 2) + 
-                Math.pow(z - centerZ, 2)
-            );
-            
-            // メサの高さと幅をバイオームごとに調整
-            let mesaHeight, mesaWidth;
-            switch (biome.type) {
-                case 'canyon':
-                    mesaHeight = 150;
-                    mesaWidth = 80;
-                    break;
-                case 'urban':
-                    mesaHeight = 100;
-                    mesaWidth = 60;
-                    break;
-                case 'forest':
-                    mesaHeight = 80;
-                    mesaWidth = 70;
-                    break;
-                case 'ruins':
-                    mesaHeight = 90;
-                    mesaWidth = 65;
-                    break;
-                case 'industrial':
-                    mesaHeight = 70;
-                    mesaWidth = 55;
-                    break;
-                default:
-                    mesaHeight = 60;
-                    mesaWidth = 50;
-            }
-
-            // メサの長さを制限するための追加の計算
-            const mesaLength = Math.sqrt(
-                Math.pow(x - centerX, 2) + 
-                Math.pow(z - centerZ, 2)
-            );
-            const maxMesaLength = mesaWidth * 1.5; // メサの最大長さを設定
-
-            // メサの長さが制限を超えた場合、高さを徐々に減少させる
-            if (mesaLength > maxMesaLength) {
-                const reductionFactor = Math.max(0, 1 - (mesaLength - maxMesaLength) / (mesaWidth * 0.5));
-                mesaHeight *= reductionFactor;
-            }
-            
-            // メサの形状を生成
-            const mesaFactor = Math.max(0, 1 - distanceFromCenter / mesaWidth);
-            const mesaHeightContribution = mesaHeight * Math.pow(mesaFactor, 2);
-            
-            // メサの周辺に崖を生成
-            const cliffHeight = mesaHeight * 0.6;
-            const cliffWidth = mesaWidth * 0.3;
-            const cliffFactor = Math.max(0, 1 - Math.abs(distanceFromCenter - mesaWidth) / cliffWidth);
-            const cliffHeightContribution = cliffHeight * cliffFactor;
-            
-            // 基本地形とメサの高さを組み合わせ
-            return baseHeight + mesaHeightContribution + cliffHeightContribution;
-        }
-*/        
+                  
         return baseHeight;
     }
 
@@ -1322,6 +1224,32 @@ class FieldMap {
             }
         }
 
+        for(var i = 0; i < 3; i++) {
+            const x = chunkPosition.x + (this.getDeterministicRandom(chunkX, chunkZ, 'trushX' + i) - 0.5) * this.chunkSize;
+            const z = chunkPosition.z + (this.getDeterministicRandom(chunkX, chunkZ, 'trushZ' + i) - 0.5) * this.chunkSize;
+            
+            // チャンクの範囲内かチェック
+            if (Math.abs(x - chunkPosition.x) > this.chunkSize/2 ||
+                Math.abs(z - chunkPosition.z) > this.chunkSize/2) {
+                continue;
+            }
+
+            // ランダムな回転を設定
+            const rotation = this.getDeterministicRandom(chunkX, chunkZ, 'carRot' + i) * Math.PI * 2;
+            
+            try {
+                const car = await this.fieldObject.createTrash(x, z, rotation);   
+                if (car && car.mesh) {
+                    car.mesh.position.set(x, this.getHeightAt(x, z) + 0.5, z);
+                    this.scene.add(car.mesh);
+                    chunkObjects.push(car);
+                    this.objects.push(car);
+                }
+            } catch (error) {
+                console.error('車の生成に失敗しました:', error);
+            }
+        }
+
         // 木の生成
         let treeCount;
         if (biome.type === 'forest') {
@@ -1578,7 +1506,7 @@ class FieldMap {
 
     generateBuildings() {
         const buildingCount = Math.floor(this.rng() * (GameConfig.MAP.BUILDINGS.MAX_COUNT - GameConfig.MAP.BUILDINGS.MIN_COUNT + 1)) + GameConfig.MAP.BUILDINGS.MIN_COUNT;
-        
+        buildingCount = 1;
         for (let i = 0; i < buildingCount; i++) {
             let attempts = 0;
             let placed = false;

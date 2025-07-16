@@ -5,7 +5,7 @@ class Weather {
     constructor(scene, camera) {
         this.scene = scene;
         this.camera = camera;
-        this.currentWeather = 'clear';
+        this.currentWeather = 'rain';
         this.weatherObjects = {
             rain: null,
             snow: null,

@@ -668,7 +668,7 @@ const GameConfig = {
 
 	// 気象設定
 	WEATHER: {
-		TYPES: ['clear', 'cloudy', 'rain', 'snow', 'storm'],
+		TYPES: ['rain'],
 		CHANGE_INTERVAL: 300, // 気象変化の間隔（秒）
 		// 時間帯ごとの天候確率（0-1の値）
 		TIME_BASED_PROBABILITIES: {
@@ -710,7 +710,7 @@ const GameConfig = {
 			DROP_SIZE: 0.15, // 雨滴のサイズを少し大きく
 			DROP_SPEED: 20, // 落下速度を上げる
 			DROP_COLOR: 0x88ccff,
-			COVERAGE_RADIUS: 1000 // 雨の範囲を広げる
+			COVERAGE_RADIUS: 5000 // 雨の範囲を広げる
 		},
 		SNOW: {
 			FLAKE_COUNT: 2000, // 雪片の数を増やす

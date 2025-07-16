@@ -198,7 +198,74 @@ class FieldObject {
 
 
         const modelPaths = [
-            '/gltf/car.glb'
+            '/gltf/car.glb?aa'
+        ];
+        const modelPath = modelPaths[Math.floor(this.rng() * modelPaths.length)];
+
+        // GLTFモデルをロード
+        this.gltfLoader.load(modelPath, (gltf) => {
+            const model = gltf.scene;
+            
+            // モデルのスケールを調整
+            var scale = 1;
+            model.scale.set(scale, scale, scale);
+            
+            // モデルの位置を調整
+            model.position.y = 0;
+            // 車の回転を設定
+            if (rotation !== undefined) {
+                model.rotation.y = rotation;
+            }
+                        
+            // モデルをグループに追加
+            carGroup.add(model);
+            
+            // マテリアルの調整と影の設定
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                    
+                    // マテリアルが存在する場合、明度を調整
+                    if (child.material) {
+                        // 既存のマテリアルをコピーして調整
+                        const originalMaterial = child.material;
+                        const adjustedMaterial = originalMaterial.clone();
+                        
+                        // 色を明るくする
+                        if (adjustedMaterial.color) {
+                            const color = adjustedMaterial.color.clone();
+                            color.multiplyScalar(1.5); // 明度を1.5倍に
+                            adjustedMaterial.color = color;
+                        }
+                        
+                        // emissiveを追加して明るさを向上
+                        adjustedMaterial.emissive = new THREE.Color(0x222222);
+                        adjustedMaterial.emissiveIntensity = 0.1;
+                        
+                        // roughnessを下げて反射を増加
+                        if (adjustedMaterial.roughness !== undefined) {
+                            adjustedMaterial.roughness = Math.max(0.1, adjustedMaterial.roughness * 0.8);
+                        }
+                        
+                        child.material = adjustedMaterial;
+                    }
+                }
+            });
+        });
+
+        return { mesh: carGroup, position: carGroup.position };
+    }
+    
+    createTrash(x, z, rotation) {
+        const carGroup = new THREE.Group();
+        carGroup.position.set(x, 0, z);
+
+
+        const modelPaths = [
+            '/gltf/trush-1.glb',
+            '/gltf/trush-2.glb',
+            '/gltf/trush-3.glb'
         ];
         const modelPath = modelPaths[Math.floor(this.rng() * modelPaths.length)];
 
@@ -260,7 +327,6 @@ class FieldObject {
 
 
 
-
     createTree(x, z, height, specifiedType = null) {
         const treeGroup = new THREE.Group();
         treeGroup.position.set(x, 0, z);
@@ -272,7 +338,7 @@ class FieldObject {
         
         // GLTFモデルのパスを選択
         const modelPaths = [
-            '/gltf/tree001.glb'
+            '/gltf/tree-2.glb'
         ];
         const modelPath = modelPaths[Math.floor(this.rng() * modelPaths.length)];
 

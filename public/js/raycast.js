@@ -1,6 +1,4 @@
-/**
- * 気象システムを管理するクラス
- */
+
 class Raycast {
     
     constructor(game) {
