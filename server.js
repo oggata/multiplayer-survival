@@ -1377,6 +1377,8 @@ io.on('connection', (socket) => {
         if (players[socket.id]) {
             players[socket.id].health = 100;
             io.emit('playerRestarted', players[socket.id]);
+            // 追加: リスタートしたプレイヤーに全プレイヤーリストを送信
+            socket.emit('currentPlayers', Object.values(players));
         }
     });
     

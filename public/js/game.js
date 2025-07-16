@@ -1700,10 +1700,10 @@ if(this.devMode){
 		this.playerSpawnTime = Date.now();
 		this.killedEnemies = 0; // 倒した敵数をリセット
 		// ランダムなリスポーンポイントを探す
-		const safePosition = this.findSafeRespawnPosition();
-		this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
+		//const safePosition = this.findSafeRespawnPosition();
+		//this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
 		// 新しいキャラクターを作成（他のプレイヤーの近くにスポーン）
-		this.createPlayerModel();
+		//this.createPlayerModel(); // ← これを削除
 		// サーバーにリスタートを通知
 		this.socket.emit('playerRestart');
 	}
