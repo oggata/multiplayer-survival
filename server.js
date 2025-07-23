@@ -65,15 +65,15 @@ const players = {};
 const enemies = {};
 
 // 敵の生成間隔（ミリ秒）
-const ENEMY_SPAWN_INTERVAL = 1000; // 2秒ごとに敵を生成
+const ENEMY_SPAWN_INTERVAL = 50; // 2秒ごとに敵を生成
 
 // プレイヤーの視界範囲（単位）
 const PLAYER_VISION_RANGE = 100;
 
 // 敵のスポーン範囲（プレイヤーからの距離）
 const SPAWN_RANGE = {
-    MIN: 30,  // 最小距離を短縮
-    MAX: 80   // 最大距離を短縮
+    MIN: 60,  // 最小距離を短縮
+    MAX: 120   // 最大距離を短縮
 };
 
 // プレイヤーの移動先予測範囲
@@ -83,11 +83,11 @@ const PLAYER_PREDICTION_RANGE = 50; // 予測範囲を短縮
 const MAX_ENEMIES = {
     MORNING:  20,   // 朝（6:00-12:00）
     DAY: 30,      // 昼（12:00-18:00）
-    EVENING: 100,  // 夕方（18:00-24:00）
-    NIGHT: 250     // 夜（0:00-6:00）
+    EVENING: 150,  // 夕方（18:00-24:00）
+    NIGHT: 3300     // 夜（0:00-6:00）
 };
 
-const SPAWN_DISTANCE_TO_PLAYER = 1000;
+const SPAWN_DISTANCE_TO_PLAYER = 400;
 
 // マップサイズ(クライアントと揃えてください)
 const MAP_SIZE = 6000;
@@ -188,8 +188,8 @@ const BIOME_CONFIG = {
             name: 'forest',
             color: 0x1B3D1B,
             enemyWeights: {
-                NORMAL: 0.3,
-                FAST: 0.3,
+                NORMAL: 0.5,
+                FAST: 0.5,
                 SHOOTER: 0,
                 GIANT: 0,
                 CRAB: 0,
@@ -202,14 +202,14 @@ const BIOME_CONFIG = {
             name: 'ruins',
             color: 0x4A3A2A,
             enemyWeights: {
-                NORMAL: 0.2,
+                NORMAL: 0.5,
                 FAST: 0,
                 SHOOTER: 0.5,
-                GIANT: 0.1,
-                CRAB: 0.1,
-                FLYING: 0.1,
-                SLIME: 0.2,
-                BOSS: 0.1
+                GIANT: 0,
+                CRAB: 0,
+                FLYING: 0,
+                SLIME: 0,
+                BOSS: 0
             }
         },
         industrial: {
@@ -996,9 +996,9 @@ function getSpawnPosition() {
     //console.log('選択した安全なスポーン位置:', closestSafePosition, 'オフセット:', offset);
 
     return {
-        x: randomPlayer.position.x,
+        x: closestSafePosition.x + offset.x,
         y: 0,
-        z: randomPlayer.position.z
+        z: closestSafePosition.z + offset.z
     };
 }
 

@@ -229,7 +229,7 @@ const GameConfig = {
 		},
 		LOD: {
 			DISTANCES: [100, 200, 300], // LODの距離閾値
-			SEGMENTS: [30, 30, 30] // 各LODレベルのセグメント数
+			SEGMENTS: [5, 5, 5] // 各LODレベルのセグメント数
 		},
 		DEBUG: {
 			SHOW_WIREFRAME: false, // メッシュのワイヤーフレームを表示するかどうか

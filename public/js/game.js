@@ -3787,32 +3787,22 @@ if(this.devMode){
 				// 低品質設定
 				//this.renderer.setPixelRatio(1);
 				//this.renderer.shadowMap.enabled = false;
-
-
-				this.visibleDistance1 = GameConfig.MAP.VISLBLE_DISTANCE;
-				this.objectVisibleDistance1 = GameConfig.MAP.OBJECT_VISIBLE_DISTANCE;
-
-
+				this.visibleDistance1 = 180;
+				this.objectVisibleDistance1 = 180;
 				break;
 			case 'medium':
 				// 中品質設定
 				//this.renderer.setPixelRatio(1.5);
 				//this.renderer.shadowMap.enabled = true;
-
-				this.visibleDistance1 = 100;
-				this.objectVisibleDistance1 = 120;
-
-
+				this.visibleDistance1 = 200;
+				this.objectVisibleDistance1 = 200;
 				break;
 			case 'high':
 				// 高品質設定
 				//this.renderer.setPixelRatio(2);
 				//this.renderer.shadowMap.enabled = true;
-
-				this.visibleDistance1 = 150;
-				this.objectVisibleDistance1 = 200;
-
-
+				this.visibleDistance1 = 250;
+				this.objectVisibleDistance1 = 250;
 				break;
 		}
 	}
