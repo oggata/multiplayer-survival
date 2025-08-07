@@ -686,6 +686,7 @@
     <div id="gameOver">
         <div>GameOver</div>
         <button id="restartButton">Restart</button>
+        <button id="gameOverRankingButton" class="ranking-btn">ランキング</button>
     </div>
 
     <!-- マップモーダル -->
@@ -705,13 +706,12 @@
 
         <div class="control-buttons">
 
-            <button id="warpButton" class="control-button warp-btn" title="ワープ"><i class="fas fa-random"></i></button>
-            <button id="backpackButton" class="control-button backpack-btn" title="バックパック"><i class="fas fa-briefcase"></i></button>
-            <button id="cameraButton" class="control-button camera-btn" title="カメラ"><i class="fas fa-camera"></i></button>
 
-            <button id="rankingButton" class="control-button ranking-btn" title="ランキング"><i class="fas fa-trophy"></i></button>
+            <button id="backpackButton" class="control-button backpack-btn" title="バックパック"><i class="fas fa-briefcase"></i></button>
+
+
             <button id="settingsButton" class="control-button settings-btn" title="設定"><i class="fas fa-cog"></i></button>
-            <button id="mapButton" class="control-button map-btn" title="マップ"><i class="fas fa-qrcode"></i></button>
+            
         </div>
     </div>
     
@@ -842,8 +842,21 @@
                     </div>
                 </div>
 
+                <div class="settings-section">
+                    <h3><i class="fas fa-camera"></i> camera</h3>
+                    <div class="setting-item">
+                        <label for="cameraModeSelect">camera mode:</label>
+                        <select id="cameraModeSelect">
+                            <option value="third">Third Person</option>
+                            <option value="first">First Person</option>
+                            <option value="far">Far View</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="settings-actions">
                     <button id="saveSettingsBtn" class="save-settings-btn">save settings</button>
+                    <button id="settingsRankingButton" class="ranking-btn">ランキング</button>
                 </div>
             </div>
         </div>

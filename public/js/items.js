@@ -34,6 +34,7 @@ const ITEMS_CONFIG = {
             description: '体力を回復する',
             color: 0xff0000,
             dropChance: 0.1,
+            category: 'medicine',
             effects: {
                 instant: {
                     type: 'health',
@@ -46,6 +47,7 @@ const ITEMS_CONFIG = {
             description: '空腹を満たす',
             color: 0x8B4513,
             dropChance: 0.15,
+            category: 'food',
             effects: {
                 instant: {
                     type: 'hunger',
@@ -58,6 +60,7 @@ const ITEMS_CONFIG = {
             description: '喉の渇きを癒す',
             color: 0x0000ff,
             dropChance: 0.15,
+            category: 'drink',
             effects: {
                 instant: {
                     type: 'thirst',
@@ -70,6 +73,7 @@ const ITEMS_CONFIG = {
             description: '病気を治す',
             color: 0x00ff00,
             dropChance: 0.08,
+            category: 'medicine',
             effects: {
                 instant: {
                     type: 'virus',
@@ -195,6 +199,19 @@ const ITEMS_CONFIG = {
                     type: 'balaclava',
                     value: 10,
                     duration: 60
+                }
+            }
+        },
+        warpPotion: {
+            name: 'ワープ薬',
+            description: '他のプレイヤーの近くに瞬間移動する',
+            color: 0x9932CC,
+            dropChance: 0.03,
+            category: 'medicine',
+            effects: {
+                instant: {
+                    type: 'warp',
+                    value: 1
                 }
             }
         },
@@ -624,6 +641,7 @@ const ITEMS_CONFIG = {
             description: 'Restores health',
             color: 0xff0000,
             dropChance: 0.1,
+            category: 'medicine',
             effects: {
                 instant: {
                     type: 'health',
@@ -636,6 +654,7 @@ const ITEMS_CONFIG = {
             description: 'Satisfies hunger',
             color: 0x8B4513,
             dropChance: 0.15,
+            category: 'food',
             effects: {
                 instant: {
                     type: 'hunger',
@@ -648,6 +667,7 @@ const ITEMS_CONFIG = {
             description: 'Quenches thirst',
             color: 0x0000ff,
             dropChance: 0.15,
+            category: 'drink',
             effects: {
                 instant: {
                     type: 'thirst',
@@ -660,6 +680,7 @@ const ITEMS_CONFIG = {
             description: 'Cures illness',
             color: 0x00ff00,
             dropChance: 0.08,
+            category: 'medicine',
             effects: {
                 instant: {
                     type: 'virus',
@@ -785,6 +806,19 @@ const ITEMS_CONFIG = {
                     type: 'balaclava',
                     value: 10,
                     duration: 60
+                }
+            }
+        },
+        warpPotion: {
+            name: 'Warp Potion',
+            description: 'Instantly teleport near another player',
+            color: 0x9932CC,
+            dropChance: 0.03,
+            category: 'medicine',
+            effects: {
+                instant: {
+                    type: 'warp',
+                    value: 1
                 }
             }
         },

@@ -82,9 +82,9 @@ const PLAYER_PREDICTION_RANGE = 50; // 予測範囲を短縮
 // 時間帯ごとの敵の最大数
 const MAX_ENEMIES = {
     MORNING:  20,   // 朝（6:00-12:00）
-    DAY: 30,      // 昼（12:00-18:00）
-    EVENING: 150,  // 夕方（18:00-24:00）
-    NIGHT: 3300     // 夜（0:00-6:00）
+    DAY: 40,      // 昼（12:00-18:00）
+    EVENING: 200,  // 夕方（18:00-24:00）
+    NIGHT: 500     // 夜（0:00-6:00）
 };
 
 const SPAWN_DISTANCE_TO_PLAYER = 400;
@@ -104,8 +104,25 @@ const ENEMY_CONFIG = {
         model: 'humanoid',
         visionRange: 30,
         speed:  0.2,
-        health: 40,
+        health: 10,
         weight: 0.6
+    },
+    FAST: {
+        model: 'quadruped',
+        visionRange: 40,
+        speed: 0.35, // 移動速度を0.5から0.3に減少
+        health: 20,
+        weight: 0.25
+    },
+    SHOOTER: {
+        model: 'hexapod',
+        visionRange: 40,
+        speed: 0.25,
+        health: 40,
+        weight: 0.15,
+        shootInterval: 6000, // 3秒ごとに弾を発射
+        bulletSpeed: 15,
+        bulletDamage: 15
     },
     SLIME: {
         model: 'slime',
@@ -113,23 +130,6 @@ const ENEMY_CONFIG = {
         speed: 0.2,
         health: 40,
         weight: 0.3
-    },
-    FAST: {
-        model: 'quadruped',
-        visionRange: 40,
-        speed: 0.3, // 移動速度を0.5から0.3に減少
-        health: 40,
-        weight: 0.25
-    },
-    SHOOTER: {
-        model: 'hexapod',
-        visionRange: 40,
-        speed: 0.2,
-        health: 40,
-        weight: 0.15,
-        shootInterval: 6000, // 3秒ごとに弾を発射
-        bulletSpeed: 15,
-        bulletDamage: 15
     },
     GIANT: {
         model: 'giant',

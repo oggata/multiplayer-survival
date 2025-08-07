@@ -281,4 +281,62 @@
     top: 30px;
     left: 30px;
     transition: transform 0.1s ease, background-color 0.2s ease;
+}
+
+/* ランキングボタンのスタイル */
+.ranking-btn {
+    background-color: #FFD700;
+    color: #333;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    margin: 5px;
+}
+
+.ranking-btn:hover {
+    background-color: #FFA500;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#gameOverRankingButton {
+    background-color: #FFD700;
+    color: #333;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    margin: 10px 5px;
+}
+
+#gameOverRankingButton:hover {
+    background-color: #FFA500;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#settingsRankingButton {
+    background-color: #FFD700;
+    color: #333;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    margin: 5px;
+}
+
+#settingsRankingButton:hover {
+    background-color: #FFA500;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 } 
