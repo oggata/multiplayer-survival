@@ -609,7 +609,7 @@ function updateEnemies() {
                 let minDistance = Infinity;
 
                 Object.values(players).forEach(player => {
-                    if (player.health <= 0) return;
+                    if (player.health <= 0 || player.isDead) return;
                     const dx = player.position.x - enemy.position.x;
                     const dz = player.position.z - enemy.position.z;
                     const distance = Math.sqrt(dx * dx + dz * dz);
@@ -658,7 +658,7 @@ function updateEnemies() {
         let minDistance = Infinity;
         
         Object.values(players).forEach(player => {
-            if (player.health <= 0) return;
+            if (player.health <= 0 || player.isDead) return;
             
             const dx = player.position.x - enemy.position.x;
             const dz = player.position.z - enemy.position.z;
@@ -750,7 +750,7 @@ function updateEnemies() {
             
             // プレイヤーとの衝突チェック
             Object.values(players).forEach(player => {
-                if (player.health <= 0) return;
+                if (player.health <= 0 || player.isDead) return;
                 
                 const dx = player.position.x - newPosition.x;
                 const dz = player.position.z - newPosition.z;
@@ -854,7 +854,7 @@ function updateEnemies() {
             
             // プレイヤーとの衝突チェック
             Object.values(players).forEach(player => {
-                if (player.health <= 0) return;
+                if (player.health <= 0 || player.isDead) return;
                 
                 const dx = player.position.x - newPosition.x;
                 const dz = player.position.z - newPosition.z;
@@ -1315,7 +1315,8 @@ io.on('connection', (socket) => {
 		color: playerColor,
 		hash: playerHash,
 		name: null, // プレイヤー名を初期化
-		spawnTime: Date.now() // スポーン時間を記録
+		spawnTime: Date.now(), // スポーン時間を記録
+		isDead: false // 死亡フラグを追加
 	};
     
     // シード値とゲーム開始時間をクライアントに送信
@@ -1372,10 +1373,20 @@ io.on('connection', (socket) => {
         }
     });
     
+    // プレイヤーが死亡した時の処理
+    socket.on('playerDied', () => {
+        if (players[socket.id]) {
+            players[socket.id].isDead = true;
+            players[socket.id].health = 0;
+            io.emit('playerDied', socket.id);
+        }
+    });
+    
     // プレイヤーがリスタートした時の処理
     socket.on('playerRestart', () => {
         if (players[socket.id]) {
             players[socket.id].health = 100;
+            players[socket.id].isDead = false; // 死亡フラグをリセット
             io.emit('playerRestarted', players[socket.id]);
             // 追加: リスタートしたプレイヤーに全プレイヤーリストを送信
             socket.emit('currentPlayers', Object.values(players));
@@ -1465,6 +1476,7 @@ function createAutoPlayer() {
         hash: generatePlayerHash(),
         spawnTime: Date.now(),
         isAutoPlayer: true,
+        isDead: false, // 死亡フラグを追加
         targetPosition: null,
         lastUpdate: Date.now()
     };
@@ -1482,7 +1494,7 @@ function updateAutoPlayers() {
     const WEAPON_ID = 'bullet001';
 
     Object.values(autoPlayers).forEach(autoPlayer => {
-        if (autoPlayer.health <= 0) return;
+        if (autoPlayer.health <= 0 || autoPlayer.isDead) return;
 
         // --- 目標位置の再設定 ---
         if (!autoPlayer.targetPosition || now - autoPlayer.lastUpdate > 6000) {

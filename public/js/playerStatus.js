@@ -175,7 +175,7 @@ class PlayerStatus {
             this.health = Math.min(this.maxHealth, this.health + thirstHeal);
         }
         
-        if(this.health < 0) {
+        if(this.health <= 0 && !this.isGameOver) {
             this.isGameOver = true;
             this.game.gameOver();
         }   

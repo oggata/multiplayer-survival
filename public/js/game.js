@@ -1386,7 +1386,7 @@ if(this.devMode){
 		this.updateHealthDisplay();
 
 		// HPが0になったらゲームオーバー
-		if (this.playerStatus.health <= 0) {
+		if (this.playerStatus.health <= 0 && !this.isGameOver) {
 			this.gameOver();
 		}
 	}
@@ -1495,7 +1495,11 @@ if(this.devMode){
 
 	// ゲームオーバー処理
 	gameOver() {
+		if (this.isGameOver) return;
 		this.isGameOver = true;
+
+		// サーバーにプレイヤーの死亡を通知
+		this.socket.emit('playerDied');
 
 		// BGMを停止
 		this.audioManager.stopBGM();
