@@ -1178,8 +1178,20 @@ if(this.devMode){
 		// 現在の位置を保存
 		const currentPosition = this.playerModel.getPosition().clone();
 
+		// スタミナの処理
+		if (isRunning && isMoving && this.playerStatus.stamina > 0) {
+			// 走っている時はスタミナを減少
+			this.playerStatus.decreaseStamina(this.playerStatus.staminaDecreaseRate * deltaTime);
+		}
+
 		// プレイヤーモデルの移動
 		const moveSpeed2 = this.moveSpeed + this.playerStatus.moveSpeedMultiplier;
+		
+		// スタミナが0の場合は走れない
+		if (isRunning && this.playerStatus.stamina <= 0) {
+			isRunning = false;
+		}
+		
 		this.playerModel.move(moveDirection, isRunning ? moveSpeed2 * 2 : moveSpeed2, deltaTime);
 		this.playerModel.setRunning(isRunning);
 
@@ -1258,7 +1270,7 @@ if(this.devMode){
 			if (this.fieldMap && this.fieldMap.isSafeSpot) {
 				const pos = this.playerModel.getPosition();
 				if (this.fieldMap.isSafeSpot(pos.x, pos.z)) {
-					safeZoneMultiplier = 3.0; // 安全地帯内なら3倍速で減少
+					safeZoneMultiplier = 6.0; // 安全地帯内なら6倍速で減少（2倍に変更）
 				}
 			}
 			// --- ここまで ---
@@ -1358,8 +1370,6 @@ if(this.devMode){
 		if (this.isGameOver) return;
 		//console.log(damage);
 		this.playerStatus.health -= damage;
-		// 出血を増加させる
-		this.playerStatus.increaseBleeding(damage);
 
 		// --- 血エフェクトを追加 ---
 		if (this.playerModel && this.playerModel.getPosition) {
@@ -2079,12 +2089,12 @@ if(this.devMode){
 					effectMessage += isEnglish 
 						? `\n💧 Thirst recovered by ${instantEffects.value}!`
 						: `\n💧 喉の渇きが${instantEffects.value}回復しました！`;
-				} else if (instantEffects.type === 'virus') {
-					// ウイルス効果（負の値で減少）
-					this.playerStatus.bleeding = Math.max(0, this.playerStatus.bleeding + instantEffects.value);
+				} else if (instantEffects.type === 'stamina') {
+					// スタミナ効果
+					this.playerStatus.addStamina(instantEffects.value);
 					effectMessage += isEnglish 
-						? `\n💊 Disease recovered by ${Math.abs(instantEffects.value)}!`
-						: `\n💊 病気が${Math.abs(instantEffects.value)}回復しました！`;
+						? `\n⚡ Stamina recovered by ${instantEffects.value}!`
+						: `\n⚡ スタミナが${instantEffects.value}回復しました！`;
 				} else if (instantEffects.type === 'warp') {
 					// ワープ効果
 					this.warpToRandomPlayer();
@@ -2119,11 +2129,11 @@ if(this.devMode){
 						? `\n🧼 Hygiene ${instantEffects.hygiene > 0 ? '+' : ''}${instantEffects.hygiene}!`
 						: `\n🧼 衛生が${instantEffects.hygiene > 0 ? '+' : ''}${instantEffects.hygiene}変化しました！`;
 				}
-				if (instantEffects.infection !== undefined) {
-					this.playerStatus.bleeding = Math.max(0, this.playerStatus.bleeding + instantEffects.infection);
+				if (instantEffects.stamina !== undefined) {
+					this.playerStatus.addStamina(instantEffects.stamina);
 					effectMessage += isEnglish 
-						? `\n🦠 Infection risk increased by ${instantEffects.infection}!`
-						: `\n🦠 感染リスクが${instantEffects.infection}増加しました！`;
+						? `\n⚡ Stamina recovered by ${instantEffects.stamina}!`
+						: `\n⚡ スタミナが${instantEffects.stamina}回復しました！`;
 				}
 			}
 			
@@ -2227,12 +2237,12 @@ if(this.devMode){
 						effectMessage += isEnglish 
 							? `\n💧 Thirst recovered by ${instantEffects.value}!`
 							: `\n💧 喉の渇きが${instantEffects.value}回復しました！`;
-					} else if (instantEffects.type === 'virus') {
-						// ウイルス効果（負の値で減少）
-						this.playerStatus.bleeding = Math.max(0, this.playerStatus.bleeding + instantEffects.value);
+					} else if (instantEffects.type === 'stamina') {
+						// スタミナ効果
+						this.playerStatus.addStamina(instantEffects.value);
 						effectMessage += isEnglish 
-							? `\n💊 Disease recovered by ${Math.abs(instantEffects.value)}!`
-							: `\n💊 病気が${Math.abs(instantEffects.value)}回復しました！`;
+							? `\n⚡ Stamina recovered by ${instantEffects.value}!`
+							: `\n⚡ スタミナが${instantEffects.value}回復しました！`;
 					} else if (instantEffects.type === 'warp') {
 						// ワープ効果
 						this.warpToRandomPlayer();
@@ -2267,11 +2277,11 @@ if(this.devMode){
 							? `\n🧼 Hygiene ${instantEffects.hygiene > 0 ? '+' : ''}${instantEffects.hygiene}!`
 							: `\n🧼 衛生が${instantEffects.hygiene > 0 ? '+' : ''}${instantEffects.hygiene}変化しました！`;
 					}
-					if (instantEffects.infection !== undefined) {
-						this.playerStatus.bleeding = Math.max(0, this.playerStatus.bleeding + instantEffects.infection);
+					if (instantEffects.stamina !== undefined) {
+						this.playerStatus.addStamina(instantEffects.stamina);
 						effectMessage += isEnglish 
-							? `\n🦠 Infection risk increased by ${instantEffects.infection}!`
-							: `\n🦠 感染リスクが${instantEffects.infection}増加しました！`;
+							? `\n⚡ Stamina recovered by ${instantEffects.stamina}!`
+							: `\n⚡ スタミナが${instantEffects.stamina}回復しました！`;
 					}
 				}
 			}

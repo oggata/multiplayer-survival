@@ -7,18 +7,16 @@ class PlayerStatus {
         this.hunger = 100;
         this.maxThirst = 100;
         this.thirst = this.maxThirst;
-        this.maxBleeding = 100;
-        this.bleeding = 0;
-        this.maxTemperature = 100;
-        this.temperature = 50;
+        this.maxStamina = 100;
+        this.stamina = this.maxStamina;
         this.moveSpeedMultiplier = 0;
         this.effects = new Map(); // アクティブなエフェクトを管理
 
         this.healthDecreaseRate = 0.1;
         this.hungerDecreaseRate = GameConfig.STATUS.IDLE.HUNGER;
         this.thirstDecreaseRate = GameConfig.STATUS.IDLE.THIRST;
-        this.bleedingIncreaseRate = 0.1;
-        this.temperatureChangeRate = 0.1;
+        this.staminaDecreaseRate = 20; // 走り時のスタミナ減少率（1秒あたり）
+        this.staminaRecoveryRate = 10; // スタミナ回復率（1秒あたり）
 
         this.isGameOver = false;
 
@@ -28,24 +26,10 @@ class PlayerStatus {
         this.hungerText = document.getElementById('hungerValue');
         this.thirstBar = document.querySelector('.status-bar.thirst .status-fill');
         this.thirstText = document.getElementById('thirstValue');
-        this.bleedingBar = document.querySelector('.status-bar.bleeding .status-fill');
-        this.bleedingText = document.getElementById('bleedingValue');
-        this.temperatureBar = document.querySelector('.status-bar.temperature .status-fill');
-        this.temperatureText = document.getElementById('temperatureValue');
+        this.staminaBar = document.querySelector('.status-bar.stamina .status-fill');
+        this.staminaText = document.getElementById('staminaValue');
         this.hygieneBar = document.querySelector('.status-bar.hygiene .status-fill');
         this.hygieneText = document.getElementById('hygieneValue');
-
-        // 気温関連のパラメータ
-        this.baseTemperature = 20; // 基準気温
-        this.clothingBonus = 0; // 服による気温補正
-        this.minTemperature = -10; // 最低気温
-        this.maxTemperature = 40; // 最高気温
-        this.temperatureDamageThreshold = 10; // ダメージを受ける気温閾値
-        this.temperatureDamageRate = 0.1; // ダメージを受ける速度
-        
-        // 天気と時間による気温変化
-        this.weather = 'sunny'; // 'sunny', 'rainy', 'snowy'
-        this.isDaytime = true;
 
         // ステータスの減少率（1秒あたり）
         this.hungerDecreaseRate = GameConfig.PLAYER.hungerDecreaseRate;
@@ -65,9 +49,8 @@ class PlayerStatus {
         // エフェクトの更新
         this.updateEffects(deltaTime);
         
-        // 気温の更新
-        this.updateTemperature();
-        
+        // スタミナの更新
+        this.updateStamina(deltaTime);
         
         this.updateHealthFromStatus(deltaTime);
 
@@ -98,15 +81,7 @@ class PlayerStatus {
         this.updateUI();
     }
 
-    stopBleeding(amount) {
-        this.bleeding = Math.max(0, this.bleeding - amount);
-        this.updateUI();
-    }
 
-    adjustTemperature(amount) {
-        this.temperature = Math.max(35, Math.min(42, this.temperature + amount));
-        this.updateUI();
-    }
 
     clean(amount) {
         this.hygiene = Math.min(this.maxHygiene, this.hygiene + amount);
@@ -117,8 +92,7 @@ class PlayerStatus {
         this.health = GameConfig.PLAYER.MAX_HEALTH;
         this.hunger = 100;
         this.thirst = 100;
-        this.bleeding = 0;
-        this.temperature = 37;
+        this.stamina = this.maxStamina;
         this.hygiene = 100;
         this.isGameOver = false;
         document.getElementById('gameOver').style.display = 'none';
@@ -130,21 +104,11 @@ class PlayerStatus {
         if (this.hungerBar) this.hungerBar.style.width = `${this.hunger}%`;
         if (this.thirstBar) this.thirstBar.style.width = `${this.thirst}%`;
         
-        // 出血ゲージの更新
-        if (this.bleedingBar) {
-            const bleedingPercentage = (this.bleeding / this.maxBleeding) * 100;
-            this.bleedingBar.style.width = `${bleedingPercentage}%`;
+        // スタミナゲージの更新
+        if (this.staminaBar) {
+            const staminaPercentage = (this.stamina / this.maxStamina) * 100;
+            this.staminaBar.style.width = `${staminaPercentage}%`;
         }
-        
-        if (this.temperatureBar) this.temperatureBar.style.width = `${Math.min(100, Math.max(0, ((this.temperature - 35) / 3) * 100))}%`;
-        
-        // 気温バーの更新
-        if (this.temperatureBar) {
-            // 0-40度を0-100%に変換
-            const temperaturePercentage = (this.temperature / this.maxTemperature) * 100;
-            this.temperatureBar.style.width = `${temperaturePercentage}%`;
-        }
-
     }
 
     
@@ -152,10 +116,7 @@ class PlayerStatus {
         return this.isGameOver;
     }
 
-    increaseBleeding(amount) {
-        this.bleeding = Math.min(this.maxBleeding, this.bleeding + amount);
-        this.updateUI();
-    }
+
 
     decreaseHunger(amount) {
         this.hunger = Math.max(0, this.hunger - amount);
@@ -172,23 +133,46 @@ class PlayerStatus {
         this.updateUI();
     }
 
+    // スタミナを減少させる（走り時）
+    decreaseStamina(amount) {
+        this.stamina = Math.max(0, this.stamina - amount);
+        this.updateUI();
+    }
+
+    // スタミナを回復させる
+    addStamina(amount) {
+        this.stamina = Math.min(this.maxStamina, this.stamina + amount);
+        this.updateUI();
+    }
+
+    // スタミナの更新処理
+    updateStamina(deltaTime) {
+        // 時間と共にスタミナを回復
+        this.addStamina(this.staminaRecoveryRate * deltaTime);
+    }
+
     updateHealthFromStatus(deltaTime) {
         
-        // 空腹が20%を切った場合
-        if (this.hunger < 20) {
-            this.health += (this.hunger-80) * 0.005 * deltaTime;
-            //console.log("hunger" + (this.hunger-80) * 0.05 * deltaTime);
+        // 空腹が30%以下になった場合、HPを徐々に減少
+        if (this.hunger < 30) {
+            const hungerDamage = (30 - this.hunger) * 0.01 * deltaTime;
+            this.health = Math.max(0, this.health - hungerDamage);
+        }
+        // 空腹が70%以上ある場合、HPを徐々に回復
+        else if (this.hunger > 70) {
+            const hungerHeal = (this.hunger - 70) * 0.005 * deltaTime;
+            this.health = Math.min(this.maxHealth, this.health + hungerHeal);
         }
         
-        // 喉の渇きが20%を切った場合
-        if (this.thirst < 20) {
-            this.health += (this.thirst-80) * 0.0005 * deltaTime;
-            //console.log("thirs" + (this.thirst-80) * 0.05 * deltaTime);
+        // 喉の渇きが30%以下になった場合、HPを徐々に減少
+        if (this.thirst < 30) {
+            const thirstDamage = (30 - this.thirst) * 0.01 * deltaTime;
+            this.health = Math.max(0, this.health - thirstDamage);
         }
-
-        if (this.bleeding > 80) {
-            this.health += (this.bleeding) * 0.005 * deltaTime;
-            //console.log("bleeding" + (this.bleeding) * 0.05 * deltaTime);
+        // 喉の渇きが70%以上ある場合、HPを徐々に回復
+        else if (this.thirst > 70) {
+            const thirstHeal = (this.thirst - 70) * 0.005 * deltaTime;
+            this.health = Math.min(this.maxHealth, this.health + thirstHeal);
         }
         
         if(this.health < 0) {
@@ -244,10 +228,6 @@ class PlayerStatus {
         console.log('効果適用:', effect.type, effect);
 
         switch (effect.type) {
-            case 'bandage':
-                // 出血を減少
-                this.stopBleeding(effect.value * deltaTime);
-                break;
             case 'regeneration':
                 // HPを回復
                 this.heal(effect.value * deltaTime);
@@ -267,16 +247,9 @@ class PlayerStatus {
                 // HPを回復し続ける
                 this.heal(effect.value * deltaTime);
                 break;
-            case 'jacket':
-            case 'boonieHat':
-            case 'tacticalVest':
-            case 'balaclava':
-                // 体温を上げる
-                this.clothingBonus = effect.value;
-                break;
-            case 'temperature':
-                // 体温調整
-                this.adjustTemperature(effect.value * deltaTime);
+            case 'stamina':
+                // スタミナを回復
+                this.addStamina(effect.value * deltaTime);
                 break;
             default:
                 console.warn(`未知の効果タイプ: ${effect.type}`);
@@ -344,57 +317,7 @@ class PlayerStatus {
         console.log('現在の効果:', this.effects);
     }
 
-    // 天気と時間を設定するメソッド
-    setWeather(weather) {
-        this.weather = weather;
-        this.updateTemperature();
-    }
 
-    setDaytime(isDaytime) {
-        this.isDaytime = isDaytime;
-        this.updateTemperature();
-    }
-
-    // 気温を更新するメソッド
-    updateTemperature() {
-        // 天気と時間に基づいて基準気温を設定
-        if (this.weather === 'sunny') {
-            this.baseTemperature = this.isDaytime ? 30 : 20;
-        } else if (this.weather === 'rainy') {
-            this.baseTemperature = this.isDaytime ? 10 : 0;
-        } else if (this.weather === 'snowy') {
-            this.baseTemperature = this.isDaytime ? 0 : -10;
-        }
-
-        // 体感気温を計算（基準気温 + 服による補正）
-        const feltTemperature = this.baseTemperature + this.clothingBonus;
-        
-        // 気温を0-40度の範囲に制限
-        this.temperature = Math.max(this.minTemperature, Math.min(this.maxTemperature, feltTemperature));
-        
-        // UIを更新
-        this.updateUI();
-        
-        // 低温ダメージをチェック
-        this.checkTemperatureDamage();
-    }
-
-    // 服による気温補正を設定
-    setClothingBonus(bonus) {
-        this.clothingBonus = bonus;
-        this.updateTemperature();
-    }
-
-    // 低温ダメージをチェック
-    checkTemperatureDamage() {
-        
-        if (this.temperature <= this.temperatureDamageThreshold) {
-            // 気温が閾値以下の場合、HPを徐々に減少
-            const damage = this.temperatureDamageRate * (this.temperatureDamageThreshold - this.temperature);
-            this.health = Math.max(0, this.health - damage);
-            this.updateUI();
-        }
-    }
 
 
 } 

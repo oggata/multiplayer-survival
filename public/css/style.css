@@ -147,8 +147,7 @@
 .hunger .status-fill { background-color: #ffbb33; }
 .thirst .status-fill { background-color: #33b5e5; }
 .hygiene .status-fill { background-color: #00C851; }
-.temperature .status-fill { background-color: #ff4444; }
-.bleeding .status-fill { background-color: #aa66cc; }
+.stamina .status-fill { background-color: #44ff44; }
 .sleep .status-fill { background-color: #2BBBAD; }
 .sanity .status-fill { background-color: #ff8800; }
 
