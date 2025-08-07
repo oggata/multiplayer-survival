@@ -99,15 +99,7 @@
             border-radius: 50px;
         }
 
-        #messageButton, #warpButton, #backpackButton, #cameraButton, #jumpButton, #mapButton {
-            position: static !important;
-            width: auto !important;
-            height: auto !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            right: auto !important;
-            bottom: auto !important;
-        }
+
 
         #coordinates {
             position: fixed;
@@ -251,12 +243,7 @@
                 bottom: 10px;
                 right: 130px;
             }
-            #backpackButton {
-                width: 100px;
-                height: 50px;
-                bottom: 10px;
-                right: 10px;
-            }
+
         }
         #statusContainer {
             position: fixed;
@@ -410,6 +397,62 @@
             border-radius: 15px;
         }
 
+        /* 設定ボタンを右上に配置 */
+        .settings-button-container {
+            position: fixed;
+            top: 30px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .settings-button {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            background: rgba(128, 128, 128, 0.8);
+        }
+
+        .settings-button:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        /* バックパックボタンを右下に配置 */
+        .backpack-button-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .backpack-button {
+            width: 70px;
+            height: 70px;
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            background: rgba(255, 170, 68, 0.8);
+        }
+
+        .backpack-button:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
         .control-button {
             width: 50px;
             height: 50px;
@@ -452,6 +495,18 @@
                 width: 45px;
                 height: 45px;
                 font-size: 18px;
+            }
+
+            .settings-button {
+                width: 35px;
+                height: 35px;
+                font-size: 14px;
+            }
+
+            .backpack-button {
+                width: 60px;
+                height: 60px;
+                font-size: 20px;
             }
         }
 
@@ -676,7 +731,7 @@
 </head>
 <body><canvas id="gameCanvas"></canvas>
     <div id="game-container">
-        <div id="timeDisplay" style="position: absolute; top: 30px; right: 5px; background-color: rgba(0, 0, 0, 0.7); color: white; padding: 5px; border-radius: 3px; font-family: Arial, sans-serif; font-size: 10px;">           
+        <div id="timeDisplay" style="position: absolute; top: 30px; left: 5px; background-color: rgba(0, 0, 0, 0.7); color: white; padding: 5px; border-radius: 3px; font-family: Arial, sans-serif; font-size: 10px;">           
         </div>
 
     </div>
@@ -703,16 +758,16 @@
         <div id="leftJoystick">
             <div id="joystickKnob"></div>
         </div>
+    </div>
 
-        <div class="control-buttons">
+    <!-- 設定ボタンを右上に配置 -->
+    <div class="settings-button-container">
+        <button id="settingsButton" class="settings-button" title="設定"><i class="fas fa-cog"></i></button>
+    </div>
 
-
-            <button id="backpackButton" class="control-button backpack-btn" title="バックパック"><i class="fas fa-briefcase"></i></button>
-
-
-            <button id="settingsButton" class="control-button settings-btn" title="設定"><i class="fas fa-cog"></i></button>
-            
-        </div>
+    <!-- バックパックボタンを右下に配置 -->
+    <div class="backpack-button-container">
+        <button id="backpackButton" class="backpack-button" title="バックパック"><i class="fas fa-briefcase"></i></button>
     </div>
     
     <div id="status" class="status-container">

@@ -959,46 +959,18 @@ setInterval(updateEnemies, 100);
 
 // プレイヤーのスポーン位置を取得する関数
 function getSpawnPosition() {
-    // 他のプレイヤーがいない場合は、安全なスポーン位置からランダムに選択
-    if (Object.keys(players).length === 0) {
-        //console.log('他のプレイヤーがいないため、安全なスポーン位置を選択します');
-        const randomPosition = safeSpawnPositions[Math.floor(Math.random() * safeSpawnPositions.length)];
-        return {
-            x: randomPosition.x,
-            y: 0,
-            z: randomPosition.z
-        };
-    }
-
-    // 他のプレイヤーがいる場合は、最も近い安全なスポーン位置を選択
-    const randomPlayer = Object.values(players)[Math.floor(Math.random() * Object.values(players).length)];
-    let closestSafePosition = safeSpawnPositions[0];
-    let minDistance = Infinity;
-
-    safeSpawnPositions.forEach(position => {
-        const dx = position.x - randomPlayer.position.x;
-        const dz = position.z - randomPlayer.position.z;
-        const distance = Math.sqrt(dx * dx + dz * dz);
-        
-        if (distance < minDistance) {
-            minDistance = distance;
-            closestSafePosition = position;
-        }
-    });
-
-    // 選択した安全な位置の周囲に少しランダムなオフセットを加える
+    // 安全地帯リストからランダムに選ぶ
+    const randomPosition = safeSpawnPositions[Math.floor(Math.random() * safeSpawnPositions.length)];
+    // 少しだけランダムなオフセットを加える
     const offset = {
-        x: (Math.random() - 0.5) * 10, // -5から5の範囲でランダム
+        x: (Math.random() - 0.5) * 10,
         y: 0,
-        z: (Math.random() - 0.5) * 10  // -5から5の範囲でランダム
+        z: (Math.random() - 0.5) * 10
     };
-
-    //console.log('選択した安全なスポーン位置:', closestSafePosition, 'オフセット:', offset);
-
     return {
-        x: closestSafePosition.x + offset.x,
+        x: randomPosition.x + offset.x,
         y: 0,
-        z: closestSafePosition.z + offset.z
+        z: randomPosition.z + offset.z
     };
 }
 
