@@ -1255,7 +1255,7 @@ function emitKeyItemCollectTimeLeft() {
 setInterval(emitKeyItemCollectTimeLeft, 200); // 0.2秒ごとに送信
 
 io.on('connection', (socket) => {
-    console.log('プレイヤーが接続しました:', socket.id);
+    console.log('プレイヤーが接続しました:', socket.id, `(現在のプレイヤー数: ${Object.keys(players).length + 1})`);
     
     // 使用可能な色からランダムに選択
     const availableColors = playerColors.filter(color => !usedColors.has(color));
@@ -1298,7 +1298,10 @@ io.on('connection', (socket) => {
         playerHash: playerHash
     });
     
- // 少し遅らせてプレイヤー情報を送信（確実にgameConfigが処理された後）
+    // 初期プレイヤー数を送信
+    socket.emit('playerCountUpdate', Object.keys(players).length);
+    
+      // 少し遅らせてプレイヤー情報を送信（確実にgameConfigが処理された後）
     setTimeout(() => {
         // 現在のプレイヤーと敵の情報を送信
         socket.emit('currentPlayers', Object.values(players));
@@ -1306,6 +1309,9 @@ io.on('connection', (socket) => {
         
         // 新しいプレイヤーの情報を他のプレイヤーに送信
         socket.broadcast.emit('newPlayer', players[socket.id]);
+        
+        // プレイヤー数を全員に通知
+        io.emit('playerCountUpdate', Object.keys(players).length);
     }, 100); // 100ms遅延
     
     // プレイヤーの移動を処理
@@ -1367,7 +1373,7 @@ io.on('connection', (socket) => {
     
     // 切断時の処理
     socket.on('disconnect', () => {
-        console.log('プレイヤーが切断しました:', socket.id);
+        console.log('プレイヤーが切断しました:', socket.id, `(現在のプレイヤー数: ${Object.keys(players).length - 1})`);
         
         // 使用していた色を解放
         if (players[socket.id]) {
@@ -1382,6 +1388,9 @@ io.on('connection', (socket) => {
         
         // 現在のプレイヤーリストを全員に送信
         io.emit('currentPlayers', Object.values(players));
+        
+        // プレイヤー数を全員に通知
+        io.emit('playerCountUpdate', Object.keys(players).length);
     });
     
     // プレイヤーがメッセージを送信した時の処理

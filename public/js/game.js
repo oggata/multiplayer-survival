@@ -770,15 +770,30 @@ if(this.devMode){
 		this.socket.on('newPlayer', (player) => {
 			if(player.id !== this.socket.id){
 				console.log('新規のプレイヤー:', player);
+				console.log('サーバー全体のプレイヤー数:', this.players.size + 2); // 自分 + 新規プレイヤー + 既存プレイヤー
 				this.addPlayer(player);
-				this.updatePlayerCount();
+				// プレイヤー数はサーバーから受信するので、ここでは更新しない
 			}
 		});
 
 		this.socket.on('playerDisconnected', (playerId) => {
-			//console.log('プレイヤーが切断しました:', playerId);
+			console.log('プレイヤーが切断しました:', playerId);
+			console.log('サーバー全体のプレイヤー数:', this.players.size); // 自分 + 残りのプレイヤー
 			this.removePlayer(playerId);
-			this.updatePlayerCount();
+			// プレイヤー数はサーバーから受信するので、ここでは更新しない
+		});
+
+		// サーバーから正確なプレイヤー数を受信
+		this.socket.on('playerCountUpdate', (count) => {
+			const playerCountElement = document.getElementById('playerCount');
+			console.log('playerCount要素の検索結果:', playerCountElement);
+			if (playerCountElement) {
+				playerCountElement.textContent = count;
+				console.log('プレイヤー数表示を更新しました:', count);
+			} else {
+				console.log('playerCount要素が見つかりません');
+			}
+			console.log('サーバー全体のプレイヤー数:', count);
 		});
 
 		this.socket.on('playerMoved', (player) => {
@@ -959,7 +974,7 @@ if(this.devMode){
 
 		this.scene.add(character.character);
 		this.players.set(playerData.id, character);
-		this.updatePlayerCount();
+		// プレイヤー数はサーバーから受信するので、ここでは更新しない
 	}
 
 	removePlayer(playerId) {
@@ -1400,10 +1415,12 @@ if(this.devMode){
 
 	// プレイヤー数を更新するメソッド
 	updatePlayerCount() {
-		const playerCountElement = document.getElementById('player-count-number');
-		if (playerCountElement) {
-			//playerCountElement.textContent = this.players.size;
-		}
+		// プレイヤー数はサーバーから受信するので、ここでは更新しない
+		// const playerCountElement = document.getElementById('player-count-number');
+		// if (playerCountElement) {
+		// 	// 自分自身も含めた総プレイヤー数を表示
+		// 	playerCountElement.textContent = this.players.size + 1;
+		// }
 		//console.log("enemy count = " + this.enemies.length);
 	}
 
@@ -2494,14 +2511,18 @@ if(this.devMode){
 		// 世界の時間を24時間表記に変換（0-23時）
 		const worldHours = Math.floor(worldTime / (gameDayLengthMs / 24));
 		const worldMinutes = Math.floor((worldTime % (gameDayLengthMs / 24)) / (gameDayLengthMs / 24 / 60));
-		const playerCountElement = document.getElementById('player-count-number');
-		if (playerCountElement) {
-			//playerCountElement.textContent = this.players.size;
-		}
+		// プレイヤー数はサーバーから受信するので、ここでは更新しない
+		// const playerCountElement = document.getElementById('player-count-number');
+		// if (playerCountElement) {
+		// 	// 自分自身も含めた総プレイヤー数を表示
+		// 	playerCountElement.textContent = this.players.size + 1;
+		// }
 		// 時間表示を更新
 		const timeDisplay = document.getElementById('timeDisplay');
 		if (timeDisplay) {
-			timeDisplay.innerHTML = `<i class="fas fa-vial"></i> ${this.totalKeyItemsCollected || 0} <i class="fas fa-user-alt"></i> ${this.players.size + 1} <br><i class="fas fa-stopwatch"></i> ${survivalDays}D ${survivalHours.toString().padStart(2, '0')}H ${survivalMinutes.toString().padStart(2, '0')}M<br><i class="fas fa-clock"></i> ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
+			// プレイヤー数はサーバーから受信するので、ここでは固定値を使用
+			const serverPlayerCount = document.getElementById('playerCount')?.textContent || '1';
+			timeDisplay.innerHTML = `<i class="fas fa-vial"></i> ${this.totalKeyItemsCollected || 0} <i class="fas fa-user-alt"></i> ${serverPlayerCount} <br><i class="fas fa-stopwatch"></i> ${survivalDays}D ${survivalHours.toString().padStart(2, '0')}H ${survivalMinutes.toString().padStart(2, '0')}M<br><i class="fas fa-clock"></i> ${worldHours.toString().padStart(2, '0')}:${worldMinutes.toString().padStart(2, '0')}`;
 		}
 	}
 
@@ -3801,7 +3822,7 @@ if(this.devMode){
 				this.addPlayer(player);
 			}
 		});
-		this.updatePlayerCount();
+		// プレイヤー数はサーバーから受信するので、ここでは更新しない
 	}
 
 	createPlayerModelWithServerPosition(serverPlayerData) {
