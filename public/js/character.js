@@ -29,6 +29,8 @@ class Character {
 
 		// 射撃アニメーション用の変数
 		this.isShooting = false;
+		this.shootTime = 0;
+		this.shootDuration = 0.3;
 
 		// ジャンプアニメーション用の変数
 		this.isJumping = false;
@@ -40,6 +42,10 @@ class Character {
 		this.isFallingBack = false;
 		this.fallBackTime = 0;
 		this.fallBackDuration = 1.0;
+
+		// 上半身と下半身の独立したアニメーション用変数
+		this.upperBodyAnimationTime = 0;
+		this.lowerBodyAnimationTime = 0;
 
 		// キャラクターの作成
 		this.createCharacter();
@@ -256,6 +262,8 @@ class Character {
 
 	updateLimbAnimation(deltaTime) {
 		this.animationTime += deltaTime * this.animationSpeed;
+		this.upperBodyAnimationTime += deltaTime * this.animationSpeed;
+		this.lowerBodyAnimationTime += deltaTime * this.animationSpeed;
 
 		if (this.isFallingBack) {
 			this.updateFallBackAnimation(deltaTime);
@@ -267,92 +275,74 @@ class Character {
 			return;
 		}
 
-		if (this.isAttacking) {
-			this.updateAttackAnimation(deltaTime);
-			return;
-		}
+		// 下半身のアニメーション（常に歩行状態に応じて）
+		this.updateLowerBodyAnimation(deltaTime);
+		
+		// 上半身のアニメーション（状況に応じて）
+		this.updateUpperBodyAnimation(deltaTime);
+	}
 
-		/*
-		//this.isShooting = true;
-		if (this.isShooting) {
-			// 腰の上下動と前後の傾き
-			this.rootBone.position.y = 3 + Math.sin(this.animationTime * 2) * 0.1;
-			this.rootBone.rotation.x = Math.sin(this.animationTime * 2) * 0.02;
-			
-			// 胴体の微妙な揺れ
-			this.spineBone.rotation.z = Math.sin(this.animationTime) * 0.05;
-			this.spineBone.rotation.x = Math.sin(this.animationTime * 2) * 0.02;
-			
-			// 左脚の動き
-			this.leftHipBone.rotation.x = Math.sin(this.animationTime) * this.walkAmplitude;
-			this.leftKneeBone.rotation.x = Math.max(0, Math.sin(this.animationTime - 0.5) * this.walkAmplitude * 1.2);
-			this.leftFootBone.rotation.x = Math.sin(this.animationTime - 1) * 0.3;
-			
-			// 右脚の動き（左脚と逆位相）
-			this.rightHipBone.rotation.x = Math.sin(this.animationTime + Math.PI) * this.walkAmplitude;
-			this.rightKneeBone.rotation.x = Math.max(0, Math.sin(this.animationTime + Math.PI - 0.5) * this.walkAmplitude * 1.2);
-			this.rightFootBone.rotation.x = Math.sin(this.animationTime + Math.PI - 1) * 0.3;
-			
-			// 左腕の射撃姿勢
-			this.leftShoulderBone.rotation.z = -0.15;
-			this.leftShoulderBone.rotation.x = -Math.PI / 4; // 45度前方に
-			this.leftElbowBone.rotation.x = -1.5; // 肘を曲げる
-			
-			// 右腕の射撃姿勢
-			this.rightShoulderBone.rotation.z = 0.15;
-			this.rightShoulderBone.rotation.x = -Math.PI / 6; // 30度前方に
-			this.rightElbowBone.rotation.x = -0.8; // 肘を少し曲げる
-			
-			// 頭の自然な動き
-			this.headBone.rotation.y = Math.sin(this.animationTime * 0.5) * 0.1;
-			this.headBone.rotation.x = Math.sin(this.animationTime * 2) * 0.05;
-			return;
-		}
-			*/
-
+	updateLowerBodyAnimation(deltaTime) {
 		if (this.isMoving) {
 			// 腰の上下動と前後の傾き
-			this.rootBone.position.y = 3 + Math.sin(this.animationTime * 2) * 0.1;
-			this.rootBone.rotation.x = Math.sin(this.animationTime * 2) * 0.02;
-			
-			// 胴体の微妙な揺れ
-			this.spineBone.rotation.z = Math.sin(this.animationTime) * 0.05;
-			this.spineBone.rotation.x = Math.sin(this.animationTime * 2) * 0.02;
+			this.rootBone.position.y = 3 + Math.sin(this.lowerBodyAnimationTime * 2) * 0.1;
+			this.rootBone.rotation.x = Math.sin(this.lowerBodyAnimationTime * 2) * 0.02;
 			
 			// 左脚の動き
-			this.leftHipBone.rotation.x = Math.sin(this.animationTime) * this.walkAmplitude;
-			this.leftKneeBone.rotation.x = Math.max(0, Math.sin(this.animationTime - 0.5) * this.walkAmplitude * 1.2);
-			this.leftFootBone.rotation.x = Math.sin(this.animationTime - 1) * 0.3;
+			this.leftHipBone.rotation.x = Math.sin(this.lowerBodyAnimationTime) * this.walkAmplitude;
+			this.leftKneeBone.rotation.x = Math.max(0, Math.sin(this.lowerBodyAnimationTime - 0.5) * this.walkAmplitude * 1.2);
+			this.leftFootBone.rotation.x = Math.sin(this.lowerBodyAnimationTime - 1) * 0.3;
 			
 			// 右脚の動き（左脚と逆位相）
-			this.rightHipBone.rotation.x = Math.sin(this.animationTime + Math.PI) * this.walkAmplitude;
-			this.rightKneeBone.rotation.x = Math.max(0, Math.sin(this.animationTime + Math.PI - 0.5) * this.walkAmplitude * 1.2);
-			this.rightFootBone.rotation.x = Math.sin(this.animationTime + Math.PI - 1) * 0.3;
-			
-			// 左腕の振り（右脚と同位相）
-			this.leftShoulderBone.rotation.z = -0.15;
-			this.leftShoulderBone.rotation.x = Math.sin(this.animationTime + Math.PI) * this.armSwingAmplitude * 0.4;
-			this.leftElbowBone.rotation.x = -1.2 + Math.sin(this.animationTime + Math.PI - 0.5) * 0.1;
-			
-			// 右腕の振り（左脚と同位相）
-			this.rightShoulderBone.rotation.z = 0.15;
-			this.rightShoulderBone.rotation.x = Math.sin(this.animationTime) * this.armSwingAmplitude * 0.4;
-			this.rightElbowBone.rotation.x = -1.2 + Math.sin(this.animationTime - 0.5) * 0.1;
-			
-			// 頭の自然な動き
-			this.headBone.rotation.y = Math.sin(this.animationTime * 0.5) * 0.1;
-			this.headBone.rotation.x = Math.sin(this.animationTime * 2) * 0.05;
+			this.rightHipBone.rotation.x = Math.sin(this.lowerBodyAnimationTime + Math.PI) * this.walkAmplitude;
+			this.rightKneeBone.rotation.x = Math.max(0, Math.sin(this.lowerBodyAnimationTime + Math.PI - 0.5) * this.walkAmplitude * 1.2);
+			this.rightFootBone.rotation.x = Math.sin(this.lowerBodyAnimationTime + Math.PI - 1) * 0.3;
 		} else {
-			// アイドルアニメーション
+			// アイドル状態の下半身
 			this.rootBone.position.y = 3;
 			this.rootBone.rotation.x = 0;
-			this.spineBone.rotation.set(0, 0, 0);
 			this.leftHipBone.rotation.set(0, 0, 0);
 			this.rightHipBone.rotation.set(0, 0, 0);
 			this.leftKneeBone.rotation.set(0, 0, 0);
 			this.rightKneeBone.rotation.set(0, 0, 0);
 			this.leftFootBone.rotation.set(0, 0, 0);
 			this.rightFootBone.rotation.set(0, 0, 0);
+		}
+	}
+
+	updateUpperBodyAnimation(deltaTime) {
+		if (this.isAttacking) {
+			this.updateAttackAnimation(deltaTime);
+			return;
+		}
+
+		if (this.isShooting) {
+			this.updateShootingAnimation(deltaTime);
+			return;
+		}
+
+		// 通常の上半身アニメーション
+		if (this.isMoving) {
+			// 胴体の微妙な揺れ
+			this.spineBone.rotation.z = Math.sin(this.upperBodyAnimationTime) * 0.05;
+			this.spineBone.rotation.x = Math.sin(this.upperBodyAnimationTime * 2) * 0.02;
+			
+			// 左腕の振り（右脚と同位相）
+			this.leftShoulderBone.rotation.z = -0.15;
+			this.leftShoulderBone.rotation.x = Math.sin(this.upperBodyAnimationTime + Math.PI) * this.armSwingAmplitude * 0.4;
+			this.leftElbowBone.rotation.x = -1.2 + Math.sin(this.upperBodyAnimationTime + Math.PI - 0.5) * 0.1;
+			
+			// 右腕の振り（左脚と同位相）
+			this.rightShoulderBone.rotation.z = 0.15;
+			this.rightShoulderBone.rotation.x = Math.sin(this.upperBodyAnimationTime) * this.armSwingAmplitude * 0.4;
+			this.rightElbowBone.rotation.x = -1.2 + Math.sin(this.upperBodyAnimationTime - 0.5) * 0.1;
+			
+			// 頭の自然な動き
+			this.headBone.rotation.y = Math.sin(this.upperBodyAnimationTime * 0.5) * 0.1;
+			this.headBone.rotation.x = Math.sin(this.upperBodyAnimationTime * 2) * 0.05;
+		} else {
+			// アイドル状態の上半身
+			this.spineBone.rotation.set(0, 0, 0);
 			this.leftShoulderBone.rotation.set(0, 0, -0.15);
 			this.rightShoulderBone.rotation.set(0, 0, 0.15);
 			this.leftElbowBone.rotation.set(-1.2, 0, 0);
@@ -364,6 +354,14 @@ class Character {
 	updateAttackAnimation(deltaTime) {
 		this.attackTime += deltaTime;
 		const progress = Math.min(this.attackTime / this.attackDuration, 1);
+		
+		// 胴体の微妙な揺れ（歩行中の場合）
+		if (this.isMoving) {
+			this.spineBone.rotation.z = Math.sin(this.upperBodyAnimationTime) * 0.05;
+			this.spineBone.rotation.x = Math.sin(this.upperBodyAnimationTime * 2) * 0.02;
+		} else {
+			this.spineBone.rotation.set(0, 0, 0);
+		}
 		
 		if (progress < 0.5) {
 			const upProgress = progress * 2;
@@ -377,10 +375,48 @@ class Character {
 			this.rightShoulderBone.rotation.x = -armAngle;
 		}
 		
+		// 頭の自然な動き
+		this.headBone.rotation.y = Math.sin(this.upperBodyAnimationTime * 0.5) * 0.1;
+		this.headBone.rotation.x = Math.sin(this.upperBodyAnimationTime * 2) * 0.05;
+		
 		if (progress >= 1) {
 			this.isAttacking = false;
 			this.leftShoulderBone.rotation.x = 0;
 			this.rightShoulderBone.rotation.x = 0;
+		}
+	}
+
+	updateShootingAnimation(deltaTime) {
+		this.shootTime += deltaTime;
+		const progress = Math.min(this.shootTime / this.shootDuration, 1);
+		
+		// 胴体の微妙な揺れ（歩行中の場合）
+		if (this.isMoving) {
+			this.spineBone.rotation.z = Math.sin(this.upperBodyAnimationTime) * 0.05;
+			this.spineBone.rotation.x = Math.sin(this.upperBodyAnimationTime * 2) * 0.02;
+		} else {
+			this.spineBone.rotation.set(0, 0, 0);
+		}
+		
+		// 射撃姿勢：右腕を前方に出す
+		const shootAngle = Math.PI / 3; // 60度前方
+		this.rightShoulderBone.rotation.x = -shootAngle;
+		this.rightElbowBone.rotation.x = -0.5; // 肘を少し曲げる
+		
+		// 左腕は自然な位置
+		this.leftShoulderBone.rotation.x = 0;
+		this.leftElbowBone.rotation.x = -1.2;
+		
+		// 頭の自然な動き
+		this.headBone.rotation.y = Math.sin(this.upperBodyAnimationTime * 0.5) * 0.1;
+		this.headBone.rotation.x = Math.sin(this.upperBodyAnimationTime * 2) * 0.05;
+		
+		if (progress >= 1) {
+			this.isShooting = false;
+			this.shootTime = 0;
+			// 元の姿勢に戻す
+			this.rightShoulderBone.rotation.x = 0;
+			this.rightElbowBone.rotation.x = -1.2;
 		}
 	}
 
@@ -546,6 +582,7 @@ class Character {
 
 	startShooting() {
 		this.isShooting = true;
+		this.shootTime = 0;
 	}
 
 	stopShooting() {
