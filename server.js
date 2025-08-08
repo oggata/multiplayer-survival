@@ -64,6 +64,9 @@ const players = {};
 // 敵情報を保存
 const enemies = {};
 
+// プレイヤーごとの敵スポーン回数を追跡
+global.playerSpawnCounts = {};
+
 // 敵の生成間隔（ミリ秒）
 const ENEMY_SPAWN_INTERVAL = 50; // 2秒ごとに敵を生成
 
@@ -497,8 +500,32 @@ function findSafeEnemyPosition() {
         return { x: 0, y: 0, z: 0 };
     }
 
-    // ランダムにプレイヤーを選択
-    const targetPlayer = activePlayers[Math.floor(Math.random() * activePlayers.length)];
+    // プレイヤーごとの敵スポーン回数を追跡するグローバル変数が存在しない場合は初期化
+    if (!global.playerSpawnCounts) {
+        global.playerSpawnCounts = {};
+    }
+
+    // 各プレイヤーのスポーン回数を初期化
+    activePlayers.forEach(player => {
+        if (!global.playerSpawnCounts[player.id]) {
+            global.playerSpawnCounts[player.id] = 0;
+        }
+    });
+
+    // 最もスポーン回数が少ないプレイヤーを選択（平等分配）
+    let targetPlayer = activePlayers[0];
+    let minSpawnCount = global.playerSpawnCounts[targetPlayer.id];
+    
+    for (const player of activePlayers) {
+        if (global.playerSpawnCounts[player.id] < minSpawnCount) {
+            targetPlayer = player;
+            minSpawnCount = global.playerSpawnCounts[player.id];
+        }
+    }
+
+    // 選択されたプレイヤーのスポーン回数を増加
+    global.playerSpawnCounts[targetPlayer.id]++;
+    
     const playerPosition = { ...targetPlayer.position };
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -1356,6 +1383,12 @@ io.on('connection', (socket) => {
         if (players[socket.id]) {
             players[socket.id].isDead = true;
             players[socket.id].health = 0;
+            
+            // プレイヤーのスポーン回数をリセット
+            if (global.playerSpawnCounts && global.playerSpawnCounts[socket.id]) {
+                delete global.playerSpawnCounts[socket.id];
+            }
+            
             io.emit('playerDied', socket.id);
         }
     });
@@ -1365,6 +1398,12 @@ io.on('connection', (socket) => {
         if (players[socket.id]) {
             players[socket.id].health = 100;
             players[socket.id].isDead = false; // 死亡フラグをリセット
+            
+            // プレイヤーのスポーン回数をリセット
+            if (global.playerSpawnCounts && global.playerSpawnCounts[socket.id]) {
+                delete global.playerSpawnCounts[socket.id];
+            }
+            
             io.emit('playerRestarted', players[socket.id]);
             // 追加: リスタートしたプレイヤーに全プレイヤーリストを送信
             socket.emit('currentPlayers', Object.values(players));
@@ -1378,6 +1417,11 @@ io.on('connection', (socket) => {
         // 使用していた色を解放
         if (players[socket.id]) {
             usedColors.delete(players[socket.id].color);
+        }
+        
+        // プレイヤーのスポーン回数をリセット
+        if (global.playerSpawnCounts && global.playerSpawnCounts[socket.id]) {
+            delete global.playerSpawnCounts[socket.id];
         }
         
         // プレイヤー情報を削除
