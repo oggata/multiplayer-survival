@@ -187,19 +187,22 @@ class Game {
 		this.setupControls();
 		this.setupSocketEvents();
 		
-		// 初期設定を適用
-		this.applySettings();
+		// MessageManagerを初期化
+		this.initializeMessageManager();
+		
+		// MemoryManagerを初期化
+		this.initializeMemoryManager();
+		
+		// 初期設定を適用（SettingsManagerが初期化された後に実行）
+		// this.applySettings(); // SettingsManagerに移動済み
 
 		// プレイヤーのハッシュ
 		this.playerHash = null;
 
 		console.log('GameConfig.ITEMS', GameConfig.ITEMS);
 
-		// メッセージポップアップを管理するMap
-		this.messagePopups = new Map();
-
-		this.initMessagePopup();
-		this.setupMessageSocketEvents();
+		// MessageManagerの初期化
+		this.messageManager = new MessageManager(this);
 
 		// URLパラメータをチェックしてstatsウィンドウの表示/非表示を設定
 		//this.checkDevMode();
@@ -215,10 +218,6 @@ class Game {
 
 		// 敵が倒された時のイベントリスナーを追加
 		document.addEventListener('enemyDied', this.handleEnemyDeath.bind(this));
-
-		// メッセージ表示用の要素を追加
-		this.messageIndicators = new Map(); // メッセージインジケーターを管理
-		this.createMessageIndicatorContainer();
 
 		this.testCount = 0;
 
@@ -350,155 +349,7 @@ if(this.devMode){
 		}
 	}
 
-	createMessageIndicatorContainer() {
-		const container = document.createElement('div');
-		container.id = 'messageIndicators';
-		
-		container.style.position = 'fixed';
-		container.style.top = '0';
-		container.style.left = '0';
-		container.style.width = '100%';
-		container.style.height = '100%';
-		container.style.pointerEvents = 'none';
-		container.style.zIndex = '1000';
-		document.body.appendChild(container);
-	}
 
-	setupMessageSocketEvents() {
-		// メッセージを受信したときの処理
-		this.socket.on('showMessage', (data) => {
-			//console.log('メッセージを受信:', data);
-			this.showMessagePopupForPlayer(data.playerId, data.position);
-		});
-	}
-
-	initMessagePopup() {
-		/*
-		const messageButton = document.getElementById('messageButton');
-		messageButton.addEventListener('click', () => {
-			// サーバーにメッセージを送信
-			this.socket.emit('playerMessage', {
-				position: this.playerModel.getPosition()
-			});
-			// 自分の画面にも表示
-			this.showMessagePopup();
-		});
-		*/
-	}
-
-	showMessagePopup() {
-		this.showMessagePopupForPlayer(this.socket.id, this.playerModel.getPosition());
-	}
-
-	showMessagePopupForPlayer(playerId, position) {
-		// プレイヤーの位置を取得
-		const playerPosition = this.players.get(playerId)?.getPosition();
-		if (!playerPosition) return;
-
-		// 画面内かどうかをチェック
-		const screenPosition = this.getScreenPosition(playerPosition);
-		const isOnScreen = screenPosition.x >= 0 && screenPosition.x <= window.innerWidth &&
-			screenPosition.y >= 0 && screenPosition.y <= window.innerHeight;
-
-		if (isOnScreen) {
-			// 画面内の場合は通常のポップアップを表示
-			if (!this.messagePopups) {
-				this.messagePopups = new Map();
-			}
-
-			if (this.messagePopups.has(playerId)) {
-				this.messagePopups.get(playerId).remove();
-				this.messagePopups.delete(playerId);
-			}
-
-			const popup = document.createElement('div');
-			popup.className = 'message-popup';
-			popup.textContent = 'help';
-			document.body.appendChild(popup);
-
-			this.messagePopups.set(playerId, popup);
-
-			popup.style.left = `${screenPosition.x}px`;
-			popup.style.top = `${screenPosition.y}px`;
-
-			setTimeout(() => {
-				if (this.messagePopups && this.messagePopups.has(playerId)) {
-					this.messagePopups.get(playerId).remove();
-					this.messagePopups.delete(playerId);
-				}
-			}, 3000);
-		} else {
-			// 画面外の場合は方向インジケーターを表示
-			this.showMessageIndicator(playerId, screenPosition);
-		}
-	}
-
-	showMessageIndicator(playerId, screenPosition) {
-		// 既存のインジケーターを削除
-		if (this.messageIndicators.has(playerId)) {
-			this.messageIndicators.get(playerId).remove();
-			this.messageIndicators.delete(playerId);
-		}
-
-		// 新しいインジケーターを作成
-		const indicator = document.createElement('div');
-		indicator.className = 'message-indicator';
-		indicator.innerHTML = '<i class="fas fa-exclamation-circle"></i> help';
-		indicator.style.position = 'fixed';
-		indicator.style.color = 'red';
-		indicator.style.fontSize = '20px';
-		indicator.style.pointerEvents = 'none';
-		indicator.style.zIndex = '1000';
-
-		// 画面の端に配置
-		const edgeMargin = 20;
-		let left = screenPosition.x;
-		let top = screenPosition.y;
-
-		// 画面外の位置を調整
-		if (left < 0) left = edgeMargin;
-		if (left > window.innerWidth) left = window.innerWidth - edgeMargin;
-		if (top < 0) top = edgeMargin;
-		if (top > window.innerHeight) top = window.innerHeight - edgeMargin;
-
-		indicator.style.left = `${left}px`;
-		indicator.style.top = `${top}px`;
-
-		// インジケーターを追加
-		document.getElementById('messageIndicators').appendChild(indicator);
-		this.messageIndicators.set(playerId, indicator);
-
-		// 3秒後に削除
-		setTimeout(() => {
-			if (this.messageIndicators.has(playerId)) {
-				this.messageIndicators.get(playerId).remove();
-				this.messageIndicators.delete(playerId);
-			}
-		}, 3000);
-	}
-	
-	updateMessageIndicators() {
-		if (!this.messageIndicators || this.messageIndicators.size === 0) return;
-
-		this.messageIndicators.forEach((indicator, playerId) => {
-			const player = this.players.get(playerId);
-			if (!player) return;
-
-			const screenPosition = this.getScreenPosition(player.getPosition());
-			const edgeMargin = 20;
-			let left = screenPosition.x;
-			let top = screenPosition.y;
-
-			// 画面外の位置を調整
-			if (left < 0) left = edgeMargin;
-			if (left > window.innerWidth) left = window.innerWidth - edgeMargin;
-			if (top < 0) top = edgeMargin;
-			if (top > window.innerHeight) top = window.innerHeight - edgeMargin;
-
-			indicator.style.left = `${left}px`;
-			indicator.style.top = `${top}px`;
-		});
-	}
 
 	setupScene(seed) {
 		//console.log('シード値:', seed);
@@ -1834,7 +1685,7 @@ if(this.devMode){
 		}
 
 		// メッセージポップアップの位置を更新
-		this.updateMessagePopups();
+		this.messageManager.updateMessagePopups();
 
 		// アイテムとの衝突判定
 		this.checkItemCollisions();
@@ -1876,7 +1727,7 @@ if(this.devMode){
 		}
 
 		// メッセージインジケーターの位置を更新
-		this.updateMessageIndicators();
+		this.messageManager.updateMessageIndicators();
 		this.processCleanupQueue();
 
 		// Statsの更新終了（devModeがtrueの時のみ）
@@ -2142,7 +1993,7 @@ if(this.devMode){
 			}
 			
 			// アイテム効果メッセージを表示
-			this.showItemEffectMessage(effectMessage, itemData.type);
+			this.messageManager.showItemEffectMessage(effectMessage, itemData.type);
 		} else if (itemConfig.effects && itemConfig.effects.duration) {
 			// 持続効果アイテム（武器など）の場合は効果を即座に発動
 			const durationEffect = itemConfig.effects.duration;
@@ -2165,13 +2016,13 @@ if(this.devMode){
 			}
 			
 			// アイテム効果メッセージを表示
-			this.showItemEffectMessage(effectMessage, itemData.type);
+			this.messageManager.showItemEffectMessage(effectMessage, itemData.type);
 		} else {
 			// その他のアイテムの場合はバックパックに追加
 			effectMessage += isEnglish 
 				? `\n📦 Added to backpack!`
 				: `\n📦 バックパックに追加されました！`;
-			this.showItemEffectMessage(effectMessage, itemData.type);
+			this.messageManager.showItemEffectMessage(effectMessage, itemData.type);
 			
 			// アイテムをインベントリに追加
 			this.inventory.push({
@@ -2314,7 +2165,7 @@ if(this.devMode){
 		}
 
 		// アイテム効果メッセージを表示
-		this.showItemEffectMessage(effectMessage, itemType);
+		this.messageManager.showItemEffectMessage(effectMessage, itemType);
 
 		// インベントリからアイテムを削除
 		const index = this.inventory.findIndex(item => item.type === itemType);
@@ -3209,44 +3060,7 @@ if(this.devMode){
 		};
 	}
 
-	// アニメーションループ内でポップアップの位置を更新
-	updateMessagePopups() {
-		// messagePopupsが存在しない場合は初期化
-		if (!this.messagePopups) {
-			this.messagePopups = new Map();
-			return;
-		}
 
-		this.messagePopups.forEach((popup, playerId) => {
-			// プレイヤーの位置を取得
-			let position;
-			if (playerId === this.socket.id) {
-				position = this.playerModel.getPosition();
-			} else {
-				const player = this.players.get(playerId);
-				if (player) {
-					position = player.getPosition();
-				}
-			}
-
-			if (position) {
-				const screenPosition = this.getScreenPosition(position);
-				const isOnScreen = screenPosition.x >= 0 && screenPosition.x <= window.innerWidth &&
-					screenPosition.y >= 0 && screenPosition.y <= window.innerHeight;
-
-				if (isOnScreen) {
-					// 画面内の場合は通常のポップアップを表示
-					popup.style.left = `${screenPosition.x}px`;
-					popup.style.top = `${screenPosition.y}px`;
-					popup.style.display = 'block';
-				} else {
-					// 画面外の場合はポップアップを非表示にしてインジケーターを表示
-					popup.style.display = 'none';
-					this.showMessageIndicator(playerId, screenPosition);
-				}
-			}
-		});
-	}
 
 
 	spawnEnemy(enemyData) {
@@ -3698,568 +3512,47 @@ if(this.devMode){
 	}
 
 	setupRankingButton() {
-		const gameOverRankingButton = document.getElementById('gameOverRankingButton');
-		const settingsRankingButton = document.getElementById('settingsRankingButton');
-		const rankingModal = document.getElementById('rankingModal');
-		const closeRankingModal = document.getElementById('closeRankingModal');
-
-		if (!rankingModal || !closeRankingModal) return;
-
-		// ゲームオーバー画面のランキングボタン
-		if (gameOverRankingButton) {
-			gameOverRankingButton.addEventListener('click', () => {
-				this.showRankingModal();
-			});
-		}
-
-		// 設定画面のランキングボタン
-		if (settingsRankingButton) {
-			settingsRankingButton.addEventListener('click', () => {
-				this.showRankingModal();
-			});
-		}
-
-		closeRankingModal.addEventListener('click', () => {
-			rankingModal.style.display = 'none';
-		});
-
-		// モーダル外をクリックしても閉じる
-		rankingModal.addEventListener('click', (e) => {
-			if (e.target === rankingModal) {
-				rankingModal.style.display = 'none';
-			}
-		});
-	}
-
-	async showRankingModal() {
-		const rankingModal = document.getElementById('rankingModal');
-		const rankingLoading = document.getElementById('rankingLoading');
-		const rankingError = document.getElementById('rankingError');
-		const rankingContent = document.getElementById('rankingContent');
-		const rankingTableBody = document.getElementById('rankingTableBody');
-
-		// モーダルを表示
-		rankingModal.style.display = 'block';
-		
-		// ローディング状態を表示
-		rankingLoading.style.display = 'block';
-		rankingError.style.display = 'none';
-		rankingContent.style.display = 'none';
-
-		try {
-			// ランキングデータを取得
-			const rankingData = await window.neonAPI.getRanking();
-			
-			if (rankingData && rankingData.length > 0) {
-				// ランキングテーブルを更新
-				this.updateRankingTable(rankingData);
-				
-				// コンテンツを表示
-				rankingLoading.style.display = 'none';
-				rankingContent.style.display = 'block';
-			} else {
-				// データがない場合
-				rankingLoading.style.display = 'none';
-				rankingError.style.display = 'block';
-				rankingError.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ランキングデータがありません';
-			}
-		} catch (error) {
-			console.error('ランキング取得エラー:', error);
-			rankingLoading.style.display = 'none';
-			rankingError.style.display = 'block';
-			rankingError.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ランキングの読み込みに失敗しました';
-		}
-	}
-
-	updateRankingTable(rankingData) {
-		const rankingTableBody = document.getElementById('rankingTableBody');
-		
-		// テーブルをクリア
-		rankingTableBody.innerHTML = '';
-		
-		// 現在のプレイヤーIDを取得
-		const currentPlayerId = this.socket ? this.socket.id : null;
-		
-		rankingData.slice(0, 20).forEach((player, index) => {
-			const row = document.createElement('tr');
-			
-			// 順位に応じたクラスを追加
-			if (index === 0) row.classList.add('rank-1');
-			else if (index === 1) row.classList.add('rank-2');
-			else if (index === 2) row.classList.add('rank-3');
-			
-			// 現在のプレイヤーの場合はハイライト
-			if (player.user_id === currentPlayerId) {
-				row.classList.add('current-player');
-			}
-			
-			// 生存時間をゲーム内時間でフォーマット
-			const survivalTime = this.formatGameTimeSurvivalTime(player.survival_time);
-			
-			row.innerHTML = `
-				<td>${index + 1}</td>
-				<td>${player.user_name || 'Unknown Player'}</td>
-				<td>${player.score.toLocaleString()}</td>
-				<td>${survivalTime}</td>
-				<td>${player.killed_enemies}</td>
-			`;
-			
-			rankingTableBody.appendChild(row);
-		});
-	}
-
-	formatSurvivalTime(survivalTimeMs) {
-		const seconds = Math.floor(survivalTimeMs / 1000);
-		const minutes = Math.floor(seconds / 60);
-		const hours = Math.floor(minutes / 60);
-		const days = Math.floor(hours / 24);
-
-		if (days > 0) {
-			return `${days}日 ${hours % 24}時間 ${minutes % 60}分`;
-		} else if (hours > 0) {
-			return `${hours}時間 ${minutes % 60}分`;
-		} else if (minutes > 0) {
-			return `${minutes}分 ${seconds % 60}秒`;
-		} else {
-			return `${seconds}秒`;
-		}
-	}
-
-	// ゲーム内時間で生存時間をフォーマット
-	formatGameTimeSurvivalTime(survivalTimeMs) {
-		const gameDayLength = GameConfig.TIME.DAY_LENGTH;
-		
-		// 生存時間をゲーム内の日数、時間、分に変換
-		const survivalDays = Math.floor(survivalTimeMs / (gameDayLength * 1000));
-		const survivalHours = Math.floor((survivalTimeMs % (gameDayLength * 1000)) / (gameDayLength * 1000 / 24));
-		const survivalMinutes = Math.floor((survivalTimeMs % (gameDayLength * 1000 / 24)) / (gameDayLength * 1000 / 24 / 60));
-
-		if (survivalDays > 0) {
-			return `${survivalDays}日 ${survivalHours}時間 ${survivalMinutes}分`;
-		} else if (survivalHours > 0) {
-			return `${survivalHours}時間 ${survivalMinutes}分`;
-		} else if (survivalMinutes > 0) {
-			return `${survivalMinutes}分`;
-		} else {
-			return `0分`;
-		}
+		// RankingManagerに委譲
+		this.rankingManager = new RankingManager(this);
 	}
 
 	setupSettingsButton() {
-		const settingsButton = document.getElementById('settingsButton');
-		const settingsModal = document.getElementById('settingsModal');
-		const closeSettingsModal = document.getElementById('closeSettingsModal');
-		const playerNameInput = document.getElementById('playerNameInput');
-		const savePlayerNameBtn = document.getElementById('savePlayerNameBtn');
-		const bgmToggle = document.getElementById('bgmToggle');
-		const graphicsQuality = document.getElementById('graphicsQuality');
-		const languageSelect = document.getElementById('languageSelect');
-		const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-
-		if (!settingsButton || !settingsModal || !closeSettingsModal) return;
-
-		// セッティングボタンクリック時の処理
-		settingsButton.addEventListener('click', () => {
-			this.showSettingsModal();
-		});
-
-		// モーダルを閉じる
-		closeSettingsModal.addEventListener('click', () => {
-			settingsModal.style.display = 'none';
-		});
-
-		// モーダル外をクリックしても閉じる
-		settingsModal.addEventListener('click', (e) => {
-			if (e.target === settingsModal) {
-				settingsModal.style.display = 'none';
-			}
-		});
-
-		// プレイヤー名保存ボタン
-		if (savePlayerNameBtn) {
-			savePlayerNameBtn.addEventListener('click', () => {
-				this.savePlayerName();
-			});
-		}
-
-		// 設定保存ボタン
-		if (saveSettingsBtn) {
-			saveSettingsBtn.addEventListener('click', () => {
-				this.saveSettings();
-			});
-		}
-
-		// Enterキーでプレイヤー名を保存
-		if (playerNameInput) {
-			playerNameInput.addEventListener('keypress', (e) => {
-				if (e.key === 'Enter') {
-					this.savePlayerName();
-				}
-			});
-		}
+		// SettingsManagerに委譲
+		this.settingsManager = new SettingsManager(this);
 	}
 
-	showSettingsModal() {
-		const settingsModal = document.getElementById('settingsModal');
-		const playerNameInput = document.getElementById('playerNameInput');
-		const bgmToggle = document.getElementById('bgmToggle');
-		const graphicsQuality = document.getElementById('graphicsQuality');
-		const languageSelect = document.getElementById('languageSelect');
-		const cameraModeSelect = document.getElementById('cameraModeSelect');
-
-		// モーダルを表示
-		settingsModal.style.display = 'block';
-
-		// 現在の設定を読み込み
-		this.loadSettings();
-
-		// 現在のプレイヤー名を表示
-		if (playerNameInput && this.socket) {
-			const currentPlayer = this.players.get(this.socket.id);
-			if (currentPlayer && currentPlayer.name) {
-				playerNameInput.value = currentPlayer.name;
-			} else {
-				playerNameInput.value = window.neonAPI.userName;
-			}
-		}
-
-		// 現在のカメラモードを設定
-		if (cameraModeSelect) {
-			cameraModeSelect.value = this.cameraMode;
-		}
-	}
-
-	async savePlayerName() {
-		const playerNameInput = document.getElementById('playerNameInput');
-		if (!playerNameInput || !this.socket) {
-			console.error('プレイヤー名保存: 必要な要素が見つかりません');
-			return;
-		}
-
-		const newName = playerNameInput.value.trim();
-		if (!newName) {
-			alert('プレイヤー名を入力してください');
-			return;
-		}
-
-		if (newName.length > 20) {
-			alert('プレイヤー名は20文字以内で入力してください');
-			return;
-		}
-
-		console.log('プレイヤー名保存開始:', { socketId: this.socket.id, newName: newName });
-
+	// MessageManagerの初期化
+	initializeMessageManager() {
 		try {
-			// サーバーに名前変更を送信
-			const result = await window.neonAPI.updatePlayerName(this.socket.id, newName);
-			
-			if (result && result.success) {
-				// ローカルのユーザー情報も更新
-				window.neonAPI.setUserInfo(null, newName);
-				window.neonAPI.saveUserInfo();
-				
-				// 成功メッセージ
-				this.showMessage('プレイヤー名が更新されました');
-				console.log('プレイヤー名保存成功');
-			} else {
-				console.error('プレイヤー名保存失敗:', result);
-				alert('プレイヤー名の更新に失敗しました');
-			}
+			this.messageManager = new MessageManager(this);
 		} catch (error) {
-			console.error('プレイヤー名保存エラー:', error);
-			console.error('エラー詳細:', error.message);
-			alert('プレイヤー名の更新に失敗しました: ' + error.message);
+			console.error('MessageManager初期化エラー:', error);
+			// フォールバック: 基本的なメッセージ表示機能を提供
+			this.messageManager = {
+				showMessage: (message) => {
+					console.log('Message:', message);
+					alert(message);
+				},
+				showItemEffectMessage: (message, itemType) => {
+					console.log('Item Effect Message:', message);
+					alert(message);
+				}
+			};
 		}
 	}
 
-	saveSettings() {
-		const bgmToggle = document.getElementById('bgmToggle');
-		const graphicsQuality = document.getElementById('graphicsQuality');
-		const languageSelect = document.getElementById('languageSelect');
-		const cameraModeSelect = document.getElementById('cameraModeSelect');
-
-		// BGM設定を保存
-		if (bgmToggle) {
-			localStorage.setItem('bgm_enabled', bgmToggle.value);
-		}
-
-		// グラフィック設定を保存
-		if (graphicsQuality) {
-			localStorage.setItem('graphics_quality', graphicsQuality.value);
-		}
-
-		// 言語設定を保存
-		if (languageSelect) {
-			localStorage.setItem('language', languageSelect.value);
-		}
-
-		// カメラモード設定を保存
-		if (cameraModeSelect) {
-			localStorage.setItem('camera_mode', cameraModeSelect.value);
-		}
-
-		// 設定を適用
-		this.applySettings();
-
-		// 成功メッセージ
-		this.showMessage('設定が保存されました');
-
-		// モーダルを閉じる
-		const settingsModal = document.getElementById('settingsModal');
-		if (settingsModal) {
-			settingsModal.style.display = 'none';
-		}
+	// MemoryManagerの初期化
+	initializeMemoryManager() {
+		this.memoryManager = new MemoryManager(this);
 	}
 
-	loadSettings() {
-		const bgmToggle = document.getElementById('bgmToggle');
-		const graphicsQuality = document.getElementById('graphicsQuality');
-		const languageSelect = document.getElementById('languageSelect');
-		const cameraModeSelect = document.getElementById('cameraModeSelect');
 
-		// BGM設定を読み込み
-		if (bgmToggle) {
-			const savedBGM = localStorage.getItem('bgm_enabled');
-			bgmToggle.value = savedBGM || 'on';
-		}
 
-		// グラフィック設定を読み込み
-		if (graphicsQuality) {
-			const savedGraphics = localStorage.getItem('graphics_quality');
-			graphicsQuality.value = savedGraphics || 'low';
-		}
 
-		// 言語設定を読み込み
-		if (languageSelect) {
-			const savedLanguage = localStorage.getItem('language');
-			languageSelect.value = savedLanguage || 'ja';
-		}
 
-		// カメラモード設定を読み込み
-		if (cameraModeSelect) {
-			const savedCameraMode = localStorage.getItem('camera_mode');
-			cameraModeSelect.value = savedCameraMode || 'third';
-		}
-	}
 
-	applySettings() {
-		// BGM設定を適用
-		const bgmEnabled = localStorage.getItem('bgm_enabled') || 'on';
-		if (this.audioManager) {
-			if (bgmEnabled === 'off') {
-				this.audioManager.stopBGM();
-			} else {
-				this.audioManager.playBGM();
-			}
-		}
 
-		// グラフィック設定を適用
-		const graphicsQuality = localStorage.getItem('graphics_quality') || 'low';
-		this.applyGraphicsSettings(graphicsQuality);
 
-		// 言語設定を適用
-		const language = localStorage.getItem('language') || 'ja';
-		this.applyLanguageSettings(language);
-
-		// カメラモード設定を適用
-		const cameraMode = localStorage.getItem('camera_mode') || 'third';
-		this.cameraMode = cameraMode;
-		this.updateCameraPosition();
-	}
-
-	applyGraphicsSettings(quality) {
-		switch (quality) {
-			case 'low':
-				// 低品質設定
-				//this.renderer.setPixelRatio(1);
-				//this.renderer.shadowMap.enabled = false;
-				this.visibleDistance1 = 180;
-				this.objectVisibleDistance1 = 180;
-				break;
-			case 'medium':
-				// 中品質設定
-				//this.renderer.setPixelRatio(1.5);
-				//this.renderer.shadowMap.enabled = true;
-				this.visibleDistance1 = 200;
-				this.objectVisibleDistance1 = 200;
-				break;
-			case 'high':
-				// 高品質設定
-				//this.renderer.setPixelRatio(2);
-				//this.renderer.shadowMap.enabled = true;
-				this.visibleDistance1 = 250;
-				this.objectVisibleDistance1 = 250;
-				break;
-		}
-	}
-
-	showMessage(message) {
-		// 画面上に一時的なメッセージを表示
-		let msgDiv = document.getElementById('game-message-popup');
-		if (!msgDiv) {
-			msgDiv = document.createElement('div');
-			msgDiv.id = 'game-message-popup';
-			msgDiv.style.position = 'fixed';
-			msgDiv.style.top = '20%';
-			msgDiv.style.left = '50%';
-			msgDiv.style.transform = 'translate(-50%, -50%)';
-			msgDiv.style.background = 'rgba(0,0,0,0.8)';
-			msgDiv.style.color = '#fff';
-			msgDiv.style.padding = '16px 32px';
-			msgDiv.style.borderRadius = '10px';
-			msgDiv.style.fontSize = '18px';
-			msgDiv.style.zIndex = '3000';
-			document.body.appendChild(msgDiv);
-		}
-		msgDiv.textContent = message;
-		msgDiv.style.display = 'block';
-		// 3秒後に自動で消す
-		clearTimeout(window._gameMsgTimeout);
-		window._gameMsgTimeout = setTimeout(() => {
-			msgDiv.style.display = 'none';
-		}, 3000);
-		console.log(message);
-	}
-
-	showItemEffectMessage(message, itemType = null) {
-		// アイテム効果専用のメッセージ表示
-		let itemMsgDiv = document.getElementById('item-effect-message');
-		if (!itemMsgDiv) {
-			itemMsgDiv = document.createElement('div');
-			itemMsgDiv.id = 'item-effect-message';
-			itemMsgDiv.style.position = 'fixed';
-			itemMsgDiv.style.top = '10%';
-			itemMsgDiv.style.left = '50%';
-			itemMsgDiv.style.transform = 'translate(-50%, -50%)';
-			itemMsgDiv.style.background = 'linear-gradient(135deg, rgba(0,255,0,0.8), rgba(0,200,0,0.8))';
-			itemMsgDiv.style.color = '#fff';
-			itemMsgDiv.style.padding = '12px 24px';
-			itemMsgDiv.style.borderRadius = '10px';
-			itemMsgDiv.style.fontSize = '14px';
-			itemMsgDiv.style.fontWeight = 'bold';
-			itemMsgDiv.style.zIndex = '3001';
-			itemMsgDiv.style.boxShadow = '0 2px 10px rgba(0,255,0,0.3)';
-			itemMsgDiv.style.border = '1px solid rgba(255,255,255,0.3)';
-			itemMsgDiv.style.textAlign = 'center';
-			itemMsgDiv.style.minWidth = '200px';
-			itemMsgDiv.style.maxWidth = '400px';
-			itemMsgDiv.style.opacity = '0';
-			itemMsgDiv.style.transition = 'all 0.3s ease-in-out';
-			itemMsgDiv.style.lineHeight = '1.4';
-			document.body.appendChild(itemMsgDiv);
-		}
-
-		// アイテムタイプに応じて色を変更
-		if (itemType) {
-			const itemConfig = getItemsConfig('ja')[itemType];
-			if (itemConfig && itemConfig.color) {
-				const color = '#' + itemConfig.color.toString(16).padStart(6, '0');
-				itemMsgDiv.style.background = `linear-gradient(135deg, ${color}80, ${color}60)`;
-				itemMsgDiv.style.boxShadow = `0 4px 20px ${color}40`;
-			}
-		}
-
-		itemMsgDiv.textContent = message;
-		itemMsgDiv.style.display = 'block';
-		
-		// フェードインアニメーション
-		setTimeout(() => {
-			itemMsgDiv.style.opacity = '1';
-			itemMsgDiv.style.transform = 'translate(-50%, -50%) scale(1.1)';
-		}, 10);
-
-		// 3秒後にフェードアウト
-		clearTimeout(window._itemEffectTimeout);
-		window._itemEffectTimeout = setTimeout(() => {
-			itemMsgDiv.style.opacity = '0';
-			itemMsgDiv.style.transform = 'translate(-50%, -50%) scale(0.9)';
-			setTimeout(() => {
-				itemMsgDiv.style.display = 'none';
-			}, 300);
-		}, 3000);
-
-		console.log('アイテム効果メッセージ:', message);
-	}
-
-	applyLanguageSettings(language) {
-		// 言語設定を適用
-		console.log('言語設定を適用:', language);
-		
-		// 現在の言語をグローバル変数に保存
-		window.currentLanguage = language;
-		
-		// 必要に応じてUI要素の言語を変更
-		this.updateUILanguage(language);
-	}
-
-	updateUILanguage(language) {
-		// UI要素の言語を更新
-		const texts = this.getLanguageTexts(language);
-		
-		// 設定ボタンのツールチップを更新
-		const settingsButton = document.getElementById('settingsButton');
-		if (settingsButton) {
-			settingsButton.title = texts.settings;
-		}
-
-		// ゲームオーバー画面のランキングボタンのテキストを更新
-		const gameOverRankingButton = document.getElementById('gameOverRankingButton');
-		if (gameOverRankingButton) {
-			gameOverRankingButton.textContent = texts.ranking;
-		}
-
-		// 設定画面のランキングボタンのテキストを更新
-		const settingsRankingButton = document.getElementById('settingsRankingButton');
-		if (settingsRankingButton) {
-			settingsRankingButton.textContent = texts.ranking;
-		}
-
-		// その他のUI要素も必要に応じて更新
-		console.log('UI言語を更新:', language);
-	}
-
-	getLanguageTexts(language) {
-		const texts = {
-			ja: {
-				settings: '設定',
-				ranking: 'ランキング',
-				playerName: 'プレイヤー名',
-				bgm: 'BGM',
-				graphics: 'グラフィック',
-				language: '言語',
-				quality: '品質',
-				low: '低',
-				medium: '中',
-				high: '高',
-				on: 'ON',
-				off: 'OFF',
-				japanese: '日本語',
-				english: 'English',
-				save: '保存',
-				saveSettings: '設定を保存'
-			},
-			en: {
-				settings: 'Settings',
-				ranking: 'Ranking',
-				playerName: 'Player Name',
-				bgm: 'BGM',
-				graphics: 'Graphics',
-				language: 'Language',
-				quality: 'Quality',
-				low: 'Low',
-				medium: 'Medium',
-				high: 'High',
-				on: 'ON',
-				off: 'OFF',
-				japanese: '日本語',
-				english: 'English',
-				save: 'Save',
-				saveSettings: 'Save Settings'
-			}
-		};
-		
-		return texts[language] || texts.ja;
-	}
 
 	updateAllCharactersHeight() {
 		// プレイヤーの高さを更新
@@ -4289,103 +3582,16 @@ if(this.devMode){
 		});
 	}
 
-	// メモリクリーンアップを行うメソッド
+		// メモリクリーンアップを行うメソッド
 	performMemoryCleanup() {
-		// 弾丸
-		const maxBullets = 150;
-		if (this.bullets.length > maxBullets) {
-			const bulletsToRemove = this.bullets.length - maxBullets;
-			for (let i = 0; i < bulletsToRemove; i++) {
-				const bullet = this.bullets.shift();
-				if (bullet) this.cleanupQueue.bullets.push(bullet);
-			}
-		}
-		// 敵弾
-		const maxEnemyBullets = 80;
-		if (this.enemyBullets.size > maxEnemyBullets) {
-			const bulletsToRemove = this.enemyBullets.size - maxEnemyBullets;
-			let removed = 0;
-			for (const [bulletId, bullet] of this.enemyBullets) {
-				if (removed >= bulletsToRemove) break;
-				this.enemyBullets.delete(bulletId);
-				if (bullet) this.cleanupQueue.enemyBullets.push(bullet);
-				removed++;
-			}
-		}
-		/*
-		// アイテム
-		const maxItems = GameConfig.ITEM.MAX_COUNT * 3;
-		if (this.items.length > maxItems) {
-			const itemsToRemove = this.items.length - maxItems;
-			for (let i = 0; i < itemsToRemove; i++) {
-				const item = this.items.shift();
-				if (item) this.cleanupQueue.items.push(item);
-			}
-		}
-			*/
-		// ポップアップ
-		if (this.messagePopups && this.messagePopups.size > 5) {
-			const popupArray = Array.from(this.messagePopups.entries());
-			const popupsToRemove = popupArray.slice(0, popupArray.length - 5);
-			popupsToRemove.forEach(([playerId, popup]) => {
-				this.messagePopups.delete(playerId);
-				if (popup) this.cleanupQueue.popups.push(popup);
-			});
-		}
-		// インジケーター
-		if (this.messageIndicators && this.messageIndicators.size > 3) {
-			const indicatorArray = Array.from(this.messageIndicators.entries());
-			const indicatorsToRemove = indicatorArray.slice(0, indicatorArray.length - 3);
-			indicatorsToRemove.forEach(([playerId, indicator]) => {
-				this.messageIndicators.delete(playerId);
-				if (indicator) this.cleanupQueue.indicators.push(indicator);
-			});
-		}
+		// MemoryManagerに委譲
+		this.memoryManager.performMemoryCleanup();
 	}
 
 	// クリーンアップキューを毎フレーム少しずつ処理する
 	processCleanupQueue() {
-		// 弾丸
-		for (let i = 0; i < 2; i++) {
-			const bullet = this.cleanupQueue.bullets.shift();
-			if (bullet) {
-				if (bullet.model) this.scene.remove(bullet.model);
-				if (bullet.dispose) bullet.dispose();
-			}
-		}
-		// 敵弾
-		for (let i = 0; i < 2; i++) {
-			const bullet = this.cleanupQueue.enemyBullets.shift();
-			if (bullet) {
-				if (bullet.model) this.scene.remove(bullet.model);
-				if (bullet.dispose) bullet.dispose();
-			}
-		}
-		// アイテム
-		for (let i = 0; i < 2; i++) {
-			const item = this.cleanupQueue.items.shift();
-			if (item && item.mesh) {
-				this.scene.remove(item.mesh);
-				if (item.mesh.geometry) item.mesh.geometry.dispose();
-				if (item.mesh.material) {
-					if (Array.isArray(item.mesh.material)) {
-						item.mesh.material.forEach(mat => mat.dispose());
-					} else {
-						item.mesh.material.dispose();
-					}
-				}
-			}
-		}
-		// ポップアップ
-		for (let i = 0; i < 2; i++) {
-			const popup = this.cleanupQueue.popups.shift();
-			if (popup && popup.parentNode) popup.remove();
-		}
-		// インジケーター
-		for (let i = 0; i < 2; i++) {
-			const indicator = this.cleanupQueue.indicators.shift();
-			if (indicator && indicator.parentNode) indicator.remove();
-		}
+		// MemoryManagerに委譲
+		this.memoryManager.processCleanupQueue();
 	}
 
 	// BGM開始のためのユーザーインタラクションUIを設定

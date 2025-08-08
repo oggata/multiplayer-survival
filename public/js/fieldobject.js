@@ -252,6 +252,8 @@ class FieldObject {
                     }
                 }
             });
+        }, undefined, (error) => {
+            console.error('GLTF読み込みエラー:', error, 'ファイル:', modelPath);
         });
 
         return { mesh: carGroup, position: carGroup.position };
@@ -264,8 +266,7 @@ class FieldObject {
 
         const modelPaths = [
             '/gltf/trush-1.glb',
-            '/gltf/trush-2.glb',
-            '/gltf/trush-3.glb'
+            '/gltf/trush-2.glb'
         ];
         const modelPath = modelPaths[Math.floor(this.rng() * modelPaths.length)];
 
@@ -319,6 +320,8 @@ class FieldObject {
                     }
                 }
             });
+        }, undefined, (error) => {
+            console.error('GLTF読み込みエラー:', error, 'ファイル:', modelPath);
         });
 
         return { mesh: carGroup, position: carGroup.position };
