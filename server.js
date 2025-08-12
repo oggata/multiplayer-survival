@@ -68,7 +68,7 @@ const enemies = {};
 global.playerSpawnCounts = {};
 
 // 敵の生成間隔（ミリ秒）
-const ENEMY_SPAWN_INTERVAL = 50; // 2秒ごとに敵を生成
+const ENEMY_SPAWN_INTERVAL = 20; // 0.02秒ごとに敵を生成（より頻繁に）
 
 // プレイヤーの視界範囲（単位）
 const PLAYER_VISION_RANGE = 100;
@@ -84,10 +84,10 @@ const PLAYER_PREDICTION_RANGE = 50; // 予測範囲を短縮
 
 // 時間帯ごとの敵の最大数
 const MAX_ENEMIES = {
-    MORNING:  50,   // 朝（6:00-12:00）
-    DAY: 100,      // 昼（12:00-18:00）
-    EVENING: 300,  // 夕方（18:00-24:00）
-    NIGHT: 500     // 夜（0:00-6:00）
+    MORNING:  100,   // 朝（6:00-12:00）- 2倍に増加
+    DAY: 200,      // 昼（12:00-18:00）- 2倍に増加
+    EVENING: 600,  // 夕方（18:00-24:00）- 2倍に増加
+    NIGHT: 1000     // 夜（0:00-6:00）- 2倍に増加
 };
 
 const SPAWN_DISTANCE_TO_PLAYER = 400;
@@ -165,7 +165,7 @@ const ENEMY_CONFIG = {
 };
 
 // 夜間の倍率
-const NIGHT_MULTIPLIER = 1.2;
+const NIGHT_MULTIPLIER = 1.5; // 1.2から1.5に増加
 
 // バイオームの設定
 const BIOME_CONFIG = {
@@ -701,8 +701,8 @@ function updateEnemies() {
         const oldPosition = { ...enemy.position };
         
         // 最も近いプレイヤーが一定距離以上離れている場合、更新頻度を下げる
-        const updateThreshold = 100;
-        const shouldUpdate = minDistance < updateThreshold || Math.random() < 0.2;
+        const updateThreshold = 150; // 100から150に増加（より広い範囲で更新）
+        const shouldUpdate = minDistance < updateThreshold || Math.random() < 0.3; // 0.2から0.3に増加
         
         if (!shouldUpdate) {
             return;
@@ -1034,7 +1034,7 @@ const keyItemStayStartTimes = {};
 
 // キーアイテム周囲の敵を生成する関数
 function spawnKeyItemEnemies(keyItemPosition, keyItemId) {
-    const enemyCount = 8; // キーアイテム周囲に配置する敵の数
+    const enemyCount = 15; // キーアイテム周囲に配置する敵の数（8から15に増加）
     const spawnRadius = 15; // キーアイテムからの距離
     
     // 既存のキーアイテム敵を削除
