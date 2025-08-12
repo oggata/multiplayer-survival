@@ -69,8 +69,17 @@ class Item {
         this.gltfLoader.load(glbFile, (gltf) => {
             const model = gltf.scene;
             
-            // モデルのスケールを調整
-            const scale = 3;
+            // アイテムタイプに基づいてスケールを調整
+            let scale = 3; // デフォルトスケール
+            
+            // ドリンク系アイテムと武器系アイテムは半分のスケール
+            const waterItems = ['water', 'dirtyWater', 'purifiedWater', 'soda', 'tea', 'juice', 'energyDrink', 'beer', 'spoiledWater'];
+            const weaponItems = ['shotgun', 'plasmacannon', 'machinegun', 'magnum', 'grenadelauncher', 'flamethrower'];
+            
+            if (waterItems.includes(this.type) || weaponItems.includes(this.type)) {
+                scale = 1.5; // 半分のスケール
+            }
+            
             model.scale.set(scale, scale, scale);
             
             // モデルの位置を設定
@@ -91,14 +100,39 @@ class Item {
                     // マテリアルが存在する場合、発光効果を追加
                     if (child.material) {
                         const material = child.material.clone();
+                        // 発光色を設定（アイテム設定の色がある場合はそれを使用、ない場合は白）
+                        const emissiveColor = this.itemConfig.color ? 
+                            new THREE.Color(this.itemConfig.color) : 
+                            new THREE.Color(0xffffff);
+                        material.emissive = emissiveColor;
+                        material.emissiveIntensity = 1.5; // 発光強度をさらに向上
+                        
+                        // マテリアルの基本色も明るくする
                         if (this.itemConfig.color) {
-                            material.emissive = new THREE.Color(this.itemConfig.color);
-                            material.emissiveIntensity = 0.3;
+                            material.color = new THREE.Color(this.itemConfig.color);
                         }
+                        
+                        // マテリアルをより明るく見せるための設定
+                        material.toneMapped = false;
+                        material.needsUpdate = true;
+                        
+                        // 追加の明度向上設定
+                        material.transparent = true;
+                        material.opacity = 0.9;
+                        
                         child.material = material;
                     }
                 }
             });
+            
+            // モデル全体にPointLightを追加してさらに明るくする
+            const pointLight = new THREE.PointLight(
+                this.itemConfig.color ? new THREE.Color(this.itemConfig.color) : new THREE.Color(0xffffff),
+                2.0, // 強度
+                5.0  // 距離
+            );
+            pointLight.position.set(0, 0, 0);
+            model.add(pointLight);
             
             this.mesh = model;
             this.scene.add(this.mesh);
@@ -116,7 +150,10 @@ class Item {
         const material = new THREE.MeshStandardMaterial({
             color: this.itemConfig.color,
             emissive: this.itemConfig.color,
-            emissiveIntensity: 2.5
+            emissiveIntensity: 3.0, // 発光強度を向上
+            toneMapped: false,
+            transparent: true,
+            opacity: 0.9
         });
         
         this.mesh = new THREE.Mesh(geometry, material);

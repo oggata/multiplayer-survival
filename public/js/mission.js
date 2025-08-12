@@ -211,7 +211,7 @@ class MissionManager {
             }
         });
 
-        // ハッキングエフェクトの制御（距離と時間に基づく）
+        // ハッキングゲージの制御（距離と時間に基づく）
         const now = Date.now();
         const timeLeftValid = (this.timeLeft !== null && (now - this.lastTimeLeftReceived) < 2000);
         
@@ -233,174 +233,135 @@ class MissionManager {
             this.hackingEffect.remove();
         }
 
-        // ハッキングエフェクトのコンテナを作成
+        // ハッキングゲージのコンテナを作成
         this.hackingEffect = document.createElement('div');
-        this.hackingEffect.id = 'hacking-effect';
+        this.hackingEffect.id = 'hacking-gauge';
         this.hackingEffect.style.position = 'fixed';
-        this.hackingEffect.style.top = '0';
-        this.hackingEffect.style.left = '0';
-        this.hackingEffect.style.width = '100vw';
-        this.hackingEffect.style.height = '100vh';
-        this.hackingEffect.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
-        this.hackingEffect.style.color = '#00ff00';
-        this.hackingEffect.style.fontFamily = 'monospace';
-        this.hackingEffect.style.fontSize = '12px';
-        this.hackingEffect.style.lineHeight = '1.2';
-        this.hackingEffect.style.overflow = 'hidden';
+        this.hackingEffect.style.top = '20px';
+        this.hackingEffect.style.right = '20px';
+        this.hackingEffect.style.width = '300px';
+        this.hackingEffect.style.height = '60px';
+        this.hackingEffect.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        this.hackingEffect.style.border = '2px solid #00ff00';
+        this.hackingEffect.style.borderRadius = '10px';
+        this.hackingEffect.style.padding = '10px';
         this.hackingEffect.style.zIndex = '3000';
         this.hackingEffect.style.pointerEvents = 'none';
         this.hackingEffect.style.userSelect = 'none';
+        this.hackingEffect.style.fontFamily = 'monospace';
+        this.hackingEffect.style.color = '#00ff00';
 
-        // コードの流れを作成
-        this.createCodeStream();
+        // タイトル
+        const title = document.createElement('div');
+        title.textContent = 'HACKING PROGRESS';
+        title.style.fontSize = '12px';
+        title.style.fontWeight = 'bold';
+        title.style.marginBottom = '5px';
+        title.style.textAlign = 'center';
+
+        // ゲージコンテナ
+        const gaugeContainer = document.createElement('div');
+        gaugeContainer.style.width = '100%';
+        gaugeContainer.style.height = '20px';
+        gaugeContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        gaugeContainer.style.border = '1px solid #00ff00';
+        gaugeContainer.style.borderRadius = '5px';
+        gaugeContainer.style.overflow = 'hidden';
+        gaugeContainer.style.position = 'relative';
+
+        // ゲージバー
+        const gaugeBar = document.createElement('div');
+        gaugeBar.id = 'hacking-gauge-bar';
+        gaugeBar.style.height = '100%';
+        gaugeBar.style.backgroundColor = '#00ff00';
+        gaugeBar.style.width = '0%';
+        gaugeBar.style.transition = 'width 0.3s ease';
+        gaugeBar.style.position = 'relative';
+
+        // ゲージ内のアニメーション効果
+        const gaugeEffect = document.createElement('div');
+        gaugeEffect.style.position = 'absolute';
+        gaugeEffect.style.top = '0';
+        gaugeEffect.style.left = '0';
+        gaugeEffect.style.width = '100%';
+        gaugeEffect.style.height = '100%';
+        gaugeEffect.style.background = 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)';
+        gaugeEffect.style.animation = 'gaugeShine 2s infinite';
+
+        // 残り時間表示
+        const timeDisplay = document.createElement('div');
+        timeDisplay.id = 'hacking-time-display';
+        timeDisplay.style.fontSize = '10px';
+        timeDisplay.style.textAlign = 'center';
+        timeDisplay.style.marginTop = '5px';
+        timeDisplay.style.color = '#00ffff';
+
+        // 要素を組み立て
+        gaugeBar.appendChild(gaugeEffect);
+        gaugeContainer.appendChild(gaugeBar);
+        this.hackingEffect.appendChild(title);
+        this.hackingEffect.appendChild(gaugeContainer);
+        this.hackingEffect.appendChild(timeDisplay);
+
+        // CSSアニメーションを追加
+        if (!document.getElementById('gauge-animation-style')) {
+            const style = document.createElement('style');
+            style.id = 'gauge-animation-style';
+            style.textContent = `
+                @keyframes gaugeShine {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
 
         document.body.appendChild(this.hackingEffect);
     }
 
-    // コードの流れを作成
-    createCodeStream() {
-        const codeLines = [
-            'ACCESSING MAINFRAME...',
-            'BYPASSING SECURITY PROTOCOLS...',
-            'DECRYPTING ENCRYPTION LAYERS...',
-            'INITIALIZING QUANTUM DECODER...',
-            'SCANNING FOR VULNERABILITIES...',
-            'EXECUTING SQL INJECTION...',
-            'CROSS-SITE SCRIPTING ATTEMPT...',
-            'BUFFER OVERFLOW DETECTED...',
-            'STACK SMASHING IN PROGRESS...',
-            'HEAP SPRAYING TECHNIQUE...',
-            'RETURN-ORIENTED PROGRAMMING...',
-            'SHELLCODE EXECUTION...',
-            'PRIVILEGE ESCALATION...',
-            'ROOT ACCESS OBTAINED...',
-            'DOWNLOADING CRITICAL DATA...',
-            'ERASING DIGITAL FOOTPRINTS...',
-            'COVERING TRACKS...',
-            'MISSION ACCOMPLISHED...',
-            '// HACKING SEQUENCE COMPLETE',
-            '/* SECURITY BREACH SUCCESSFUL */',
-            'function hackMainframe() {',
-            '    const target = "keyItem";',
-            '    const exploit = new Exploit();',
-            '    exploit.execute();',
-            '    return "SUCCESS";',
-            '}',
-            'class Exploit {',
-            '    constructor() {',
-            '        this.payload = "MALWARE";',
-            '        this.vector = "ZERO_DAY";',
-            '    }',
-            '    execute() {',
-            '        this.injectCode();',
-            '        this.bypassFirewall();',
-            '        this.extractData();',
-            '    }',
-            '}',
-            'const malware = new Malware();',
-            'malware.infect();',
-            'malware.spread();',
-            'malware.exfiltrate();',
-            '// BACKDOOR INSTALLED',
-            '// KEYLOGGER ACTIVE',
-            '// DATA EXFILTRATION COMPLETE',
-            'console.log("HACKING SUCCESSFUL");',
-            'alert("SYSTEM COMPROMISED");',
-            'document.cookie = "admin=true";',
-            'localStorage.setItem("access", "granted");',
-            'sessionStorage.setItem("privileges", "root");',
-            'fetch("/api/admin", {method: "POST"});',
-            'XMLHttpRequest.open("GET", "/secret");',
-            'WebSocket.send("EXPLOIT");',
-            'eval("malicious_code");',
-            'setTimeout(() => hack(), 1000);',
-            'setInterval(() => steal(), 500);',
-            'requestAnimationFrame(() => attack());',
-            'Promise.resolve().then(() => compromise());',
-            'async function cyberAttack() {',
-            '    await breach();',
-            '    await infiltrate();',
-            '    await extract();',
-            '}',
-            '// CYBER ATTACK IN PROGRESS',
-            '// TARGET: KEY ITEM',
-            '// STATUS: COMPROMISED',
-            '// RESULT: SUCCESS'
-        ];
+    // ゲージの更新
+    updateHackingGauge() {
+        if (!this.hackingEffect || !this.timeLeft) return;
 
-        let currentLine = 0;
-        const streamInterval = setInterval(() => {
-            if (!this.hackingEffect || !this.hackingEffect.parentNode) {
-                clearInterval(streamInterval);
-                return;
-            }
-
-            // 最新の残り秒数を取得
-            let timeLeftText = '';
-            if (this.timeLeft !== null) {
-                const sec = (this.timeLeft / 1000).toFixed(1);
-                timeLeftText = `${sec}sec `;
-            }
-
-            // 新しいコード行を追加
-            const codeLine = document.createElement('div');
-            codeLine.style.padding = '2px 10px';
-            codeLine.style.borderLeft = '2px solid #00ff00';
-            codeLine.style.marginLeft = '10px';
-            codeLine.style.opacity = '0';
-            codeLine.style.transition = 'opacity 0.3s ease-in';
-            codeLine.style.display = 'flex';
-            codeLine.style.alignItems = 'center';
+        const gaugeBar = this.hackingEffect.querySelector('#hacking-gauge-bar');
+        const timeDisplay = this.hackingEffect.querySelector('#hacking-time-display');
+        
+        if (gaugeBar && timeDisplay) {
+            // 残り時間を秒に変換
+            const timeLeftSeconds = this.timeLeft / 1000;
             
-            // 残り秒数とコードを分けて表示
-            const timeElement = document.createElement('span');
-            timeElement.style.color = '#00ffff';
-            timeElement.style.fontWeight = 'bold';
-            timeElement.style.marginRight = '10px';
-            timeElement.style.minWidth = '60px';
-            timeElement.textContent = timeLeftText;
+            // ゲージの進行度を計算（初期値を30秒と仮定）
+            const initialTime = 30; // 初期時間（秒）
+            const progress = Math.max(0, Math.min(100, ((initialTime - timeLeftSeconds) / initialTime) * 100));
             
-            const codeElement = document.createElement('span');
-            codeElement.textContent = codeLines[currentLine % codeLines.length];
+            // ゲージバーの幅を更新
+            gaugeBar.style.width = `${progress}%`;
             
-            codeLine.appendChild(timeElement);
-            codeLine.appendChild(codeElement);
-
-            this.hackingEffect.appendChild(codeLine);
-
-            // フェードイン
-            setTimeout(() => {
-                codeLine.style.opacity = '1';
-            }, 10);
-
-            // 古い行を削除（画面が埋まらないように）
-            if (this.hackingEffect.children.length > 30) {
-                this.hackingEffect.removeChild(this.hackingEffect.firstChild);
+            // 残り時間を表示
+            timeDisplay.textContent = `残り時間: ${timeLeftSeconds.toFixed(1)}秒`;
+            
+            // ゲージの色を進行度に応じて変更
+            if (progress < 30) {
+                gaugeBar.style.backgroundColor = '#ff0000'; // 赤
+            } else if (progress < 70) {
+                gaugeBar.style.backgroundColor = '#ffff00'; // 黄
+            } else {
+                gaugeBar.style.backgroundColor = '#00ff00'; // 緑
             }
-
-            currentLine++;
-
-            // エフェクトの終了条件を削除して、ずっと流れ続けるようにする
-            // if (currentLine >= 50) {
-            //     clearInterval(streamInterval);
-            //     setTimeout(() => {
-            //         this.removeHackingEffect();
-            //     }, 2000);
-            // }
-        }, 100);
+        }
     }
 
-    // ハッキングエフェクトを削除
+    // ハッキングゲージを削除
     removeHackingEffect() {
         if (this.hackingEffect) {
-            this.hackingEffect.style.transition = 'opacity 0.5s ease-out';
+            this.hackingEffect.style.transition = 'opacity 0.3s ease-out';
             this.hackingEffect.style.opacity = '0';
             setTimeout(() => {
                 if (this.hackingEffect && this.hackingEffect.parentNode) {
                     this.hackingEffect.remove();
                 }
                 this.hackingEffect = null;
-            }, 500);
+            }, 300);
         }
     }
 
@@ -512,5 +473,6 @@ class MissionManager {
 
         // ハッキングエフェクトの状態を更新（プレイヤーの向きに関係なく）
         this.updateHackingEffect();
+        this.updateHackingGauge(); // ゲージの更新を追加
     }
 } 
