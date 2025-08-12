@@ -56,8 +56,8 @@ const GameConfig = {
 	MAP: {
 		SIZE: 6000,
 		CHUNK_SIZE: 50,
-		VISLBLE_DISTANCE: 80,
-		OBJECT_VISIBLE_DISTANCE: 60,
+		VISLBLE_DISTANCE: 60, // 視認距離を80から60に短縮
+		OBJECT_VISIBLE_DISTANCE: 45, // オブジェクト視認距離も短縮
 		BOUNDARY_WALL_HEIGHT: 0,
 		BIOME: {
 			RADIUS: 500, // バイオームの半径
@@ -735,10 +735,10 @@ const GameConfig = {
 
 	// 視覚設定
 	VISION: {
-		FOV: 80,
-		MAX_DISTANCE: 100, // 最大表示距離を50に増加
-		FADE_START: 125, // フェード開始距離を40に増加
-		UPDATE_INTERVAL: 500
+		FOV: 75, // FOVを少し狭めてパフォーマンス向上
+		MAX_DISTANCE: 80, // 最大表示距離を短縮
+		FADE_START: 100, // フェード開始距離を短縮
+		UPDATE_INTERVAL: 1000 // 更新間隔を長くしてパフォーマンス向上
 	},
 
 	// ステータス設定

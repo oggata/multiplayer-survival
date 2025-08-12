@@ -46,12 +46,15 @@ class Game {
 		// WebGLレンダラーを使用（Three.js r128ではWebGPUがサポートされていないため）
 		this.renderer = new THREE.WebGLRenderer({
 			canvas: document.getElementById('gameCanvas'),
-			antialias: true
+			antialias: false, // アンチエイリアスを無効化してパフォーマンス向上
+			powerPreference: "high-performance", // 高性能GPUを優先
+			precision: "mediump" // 精度を中程度に設定してパフォーマンス向上
 		});
 		
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
-		this.renderer.setPixelRatio(1);
+		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // ピクセル比を制限
 		this.renderer.shadowMap.enabled = true;
+		this.renderer.shadowMap.type = THREE.PCFShadowMap; // シャドウマップの品質を最適化
 
 
 		this.setupJumpButton();
@@ -1649,8 +1652,8 @@ if(this.devMode){
 		// requestAnimationFrameを使用してアニメーションループを継続
 		requestAnimationFrame(() => this.animate());
 
-		// FPS制限（30FPS）
-		const targetFPS = 30;
+		// FPS制限（60FPSに変更）
+		const targetFPS = 60;
 		const targetFrameTime = 1000 / targetFPS;
 		
 		const currentTime = performance.now();
@@ -1676,8 +1679,8 @@ if(this.devMode){
 		// フレームカウントを更新
 		this.frameCount = (this.frameCount || 0) + 1;
 
-		// 60秒ごとにメモリクリーンアップを実行（頻度を下げる）
-		if (this.frameCount % 1800 === 0) { // 30fps * 60秒 = 1800フレーム
+		// 120秒ごとにメモリクリーンアップを実行（頻度を下げる）
+		if (this.frameCount % 7200 === 0) { // 60fps * 120秒 = 7200フレーム
 			this.performMemoryCleanup();
 		}
 
@@ -1692,11 +1695,13 @@ if(this.devMode){
 			this.updateCameraPosition();
 		}
 		
-		// オブジェクトの表示/非表示を更新
-		this.updateObjectVisibility();
+		// オブジェクトの表示/非表示を更新（3フレームに1回のみ実行）
+		if (this.frameCount % 3 === 0) {
+			this.updateObjectVisibility();
+		}
 
-		// 地形チャンクの表示/非表示を更新
-		if (this.fieldMap && this.playerModel) {
+		// 地形チャンクの表示/非表示を更新（5フレームに1回のみ実行）
+		if (this.frameCount % 5 === 0 && this.fieldMap && this.playerModel) {
 			this.fieldMap.updateTerrainVisibility(this.playerModel.getPosition());
 			this.fieldMap.updateObjectsVisibility(this.playerModel.getPosition());
 		}
@@ -1716,7 +1721,10 @@ if(this.devMode){
 		// 霧の更新
 		this.updateFog();
 
-		this.updateLightDirection();
+		// ライティング更新（10フレームに1回のみ実行）
+		if (this.frameCount % 10 === 0) {
+			this.updateLightDirection();
+		}
 
 		// ボスの位置表示を更新
 		//this.updateBossIndicators();
@@ -1768,32 +1776,34 @@ if(this.devMode){
 		// プレイヤーの位置に基づいてバイオーム名を表示
 		const biome = this.fieldMap.getBiomeAt(this.playerModel.position.x, this.playerModel.position.z);
 
-		// 敵の表示/非表示を更新
-		var a = 0;
-		this.enemies.forEach(enemy => {
-			// スキップフラグがある場合は更新しない
-			if (enemy.skipUpdate) return;
+		// 敵の表示/非表示を更新（2フレームに1回のみ実行）
+		if (this.frameCount % 2 === 0) {
+			var a = 0;
+			this.enemies.forEach(enemy => {
+				// スキップフラグがある場合は更新しない
+				if (enemy.skipUpdate) return;
 
-			// プレイヤーとの距離を計算
-			const playerPosition = this.playerModel.getPosition();
-			const enemyPosition = enemy.model.getPosition();
-			const distance = playerPosition.distanceTo(enemyPosition);
+				// プレイヤーとの距離を計算
+				const playerPosition = this.playerModel.getPosition();
+				const enemyPosition = enemy.model.getPosition();
+				const distance = playerPosition.distanceTo(enemyPosition);
 
-			// 視認距離を超えている場合は非表示にする
-			if (distance > GameConfig.MAP.VISIBLE_DISTANCE) {
-				enemy.model.character.visible = false;
-				return;
-			} else {
-				enemy.model.character.visible = true;
-			}
+				// 視認距離を超えている場合は非表示にする
+				if (distance > GameConfig.MAP.VISLBLE_DISTANCE) {
+					enemy.model.character.visible = false;
+					return;
+				} else {
+					enemy.model.character.visible = true;
+				}
 
-			// 更新優先度が低い敵は3フレームに1回だけ更新
-			if (enemy.updatePriority === 'low' && this.frameCount % 3 !== 0) return;
+				// 更新優先度が低い敵は5フレームに1回だけ更新
+				if (enemy.updatePriority === 'low' && this.frameCount % 5 !== 0) return;
 
-			// アニメーションの更新
-			enemy.model.updateLimbAnimation(deltaTime);
-			a++;
-		});
+				// アニメーションの更新
+				enemy.model.updateLimbAnimation(deltaTime);
+				a++;
+			});
+		}
 		//console.log(`Updated ${a} enemies, frameCount: ${this.frameCount}, deltaTime: ${deltaTime}`);
 
 		this.updateLightDirection();
