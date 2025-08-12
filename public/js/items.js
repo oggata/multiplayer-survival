@@ -10,7 +10,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'shotgun'
                 }
             }
@@ -23,7 +23,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'plasmacannon'
                 }
             }
@@ -68,6 +68,19 @@ const ITEMS_CONFIG = {
                 }
             }
         },
+        experienceCrystal: {
+            name: '経験値クリスタル',
+            description: '経験値を得られるクリスタル',
+            color: 0xffd700,
+            dropChance: 0.0, // 敵が倒された時に必ずドロップするので0
+            category: 'experience',
+            effects: {
+                instant: {
+                    type: 'experience',
+                    value: 15
+                }
+            }
+        },
         medicine: {
             name: '薬',
             description: '病気を治す',
@@ -104,7 +117,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'machinegun'
                 }
             }
@@ -117,7 +130,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'magnum'
                 }
             }
@@ -130,7 +143,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'grenadelauncher'
                 }
             }
@@ -143,7 +156,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'flamethrower'
                 }
             }
@@ -219,10 +232,13 @@ const ITEMS_CONFIG = {
         // 医療アイテム
         adrenaline: {
             name: 'アドレナリン',
-            description: '骨折を治療し移動速度を回復する',
+            description: 'スタミナを全回復し、走ってもスタミナが減らない（30秒）',
             color: 0x808080,
             dropChance: 0.08,
             effects: {
+                immediate: {
+                    stamina: 100
+                },
                 duration: {
                     type: 'adrenaline',
                     value: 5,
@@ -295,13 +311,13 @@ const ITEMS_CONFIG = {
         // 食料アイテム
         dirtyFood: {
             name: '汚れた食料',
-            description: '空腹を30回復するが衛生状態を悪化させる',
+            description: '空腹を30回復するが体力を減少させる',
             color: 0x8b4513,
             dropChance: 0.2,
             effects: {
                 immediate: {
                     hunger: 30,
-                    hygiene: -15
+                    health: -15
                 }
             }
         },
@@ -506,13 +522,13 @@ const ITEMS_CONFIG = {
         // 飲料アイテム
         dirtyWater: {
             name: '汚れた水',
-            description: '喉の渇きを37回復するが衛生状態を悪化させる',
+            description: '喉の渇きを37回復するが体力を減少させる',
             color: 0x8b4513,
             dropChance: 0.2,
             effects: {
                 immediate: {
                     thirst: 37,
-                    hygiene: -20
+                    health: -20
                 }
             }
         },
@@ -530,12 +546,13 @@ const ITEMS_CONFIG = {
         },
         soda: {
             name: 'ソーダ',
-            description: '喉の渇きを45回復する',
+            description: '喉の渇きを45回復しスタミナを30回復する',
             color: 0xff0000,
             dropChance: 0.1,
             effects: {
                 immediate: {
-                    thirst: 45
+                    thirst: 45,
+                    stamina: 30
                 }
             }
         },
@@ -553,22 +570,26 @@ const ITEMS_CONFIG = {
         },
         juice: {
             name: 'ジュース',
-            description: '喉の渇きを37回復し空腹を7回復する',
+            description: '喉の渇きを37回復し空腹を7回復しスタミナを20回復する',
             color: 0xffa500,
             dropChance: 0.1,
             effects: {
                 immediate: {
                     thirst: 37,
-                    hunger: 7
+                    hunger: 7,
+                    stamina: 20
                 }
             }
         },
         energyDrink: {
             name: 'エナジードリンク',
-            description: 'スタミナ回復率を2倍にする（15秒）',
+            description: 'スタミナを全回復し、走ってもスタミナが減らない（15秒）',
             color: 0x00ff00,
             dropChance: 0.1,
             effects: {
+                immediate: {
+                    stamina: 100
+                },
                 duration: {
                     type: 'energyDrink',
                     value: 3.0,
@@ -594,14 +615,13 @@ const ITEMS_CONFIG = {
         },
         spoiledWater: {
             name: '腐った水',
-            description: '喉の渇きを22回復するが感染リスクが高く衛生状態を悪化させる',
+            description: '喉の渇きを22回復するが体力を大幅に減少させる',
             color: 0x8b4513,
             dropChance: 0.2,
             effects: {
                 immediate: {
                     thirst: 22,
-                    hygiene: -30,
-                    infection: 20
+                    health: -30
                 }
             }
         }
@@ -617,7 +637,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'shotgun'
                 }
             }
@@ -630,7 +650,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'plasmacannon'
                 }
             }
@@ -675,6 +695,19 @@ const ITEMS_CONFIG = {
                 }
             }
         },
+        experienceCrystal: {
+            name: 'Experience Crystal',
+            description: 'Crystal that provides experience points',
+            color: 0xffd700,
+            dropChance: 0.0, // Always dropped when enemy is killed
+            category: 'experience',
+            effects: {
+                instant: {
+                    type: 'experience',
+                    value: 15
+                }
+            }
+        },
         medicine: {
             name: 'Medicine',
             description: 'Cures illness',
@@ -696,7 +729,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'temperature',
-                    duration: 30000,
+                    duration: 60,
                     value: 20
                 }
             }
@@ -711,7 +744,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'machinegun'
                 }
             }
@@ -724,7 +757,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'magnum'
                 }
             }
@@ -737,7 +770,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'grenadelauncher'
                 }
             }
@@ -750,7 +783,7 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'wepon',
-                    duration: 99999,
+                    duration: 60,
                     name: 'flamethrower'
                 }
             }

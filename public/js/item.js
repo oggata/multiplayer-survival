@@ -18,12 +18,23 @@ class Item {
         // アイテムタイプに基づいてGLBファイルを選択
         const glbFile = this.getGlbFileForItemType(itemType);
         
-        if (glbFile) {
-            // GLBファイルを使用
+        if (itemType === 'experienceCrystal') {
+            // 経験値クリスタルはボックスで作成
+            this.createExperienceCrystal(position);
+        } else if (glbFile) {
+            // GLBファイルを使用する前に、一時的なメッシュを作成
+            this.createTemporaryMesh(position);
             this.loadGlbModel(glbFile, position);
         } else {
             // デフォルトのSphereGeometryを使用
             this.createSphereMesh(position);
+        }
+        
+        // メッシュが設定されているかチェック
+        if (!this.mesh) {
+            console.warn("アイテムメッシュが初期化されていません:", itemType);
+        } else {
+            console.log("アイテム初期化完了:", itemType, "メッシュ:", this.mesh);
         }
         
         // 回転アニメーション用の変数
@@ -32,6 +43,13 @@ class Item {
         this.floatHeight = 0.7;
         this.initialY = position.y + 0.5;
         this.time = 0;
+        
+        // 経験値クリスタルの自動消去タイマー
+        if (itemType === 'experienceCrystal') {
+            this.lifeTime = 10.0; // 10秒
+            this.currentLifeTime = 0.0;
+        }
+        
         console.log("=== Itemクラスコンストラクタ完了 ===");
     }
 
@@ -50,6 +68,9 @@ class Item {
         
         // 武器系アイテム
         const weaponItems = ['shotgun', 'plasmacannon', 'machinegun', 'magnum', 'grenadelauncher', 'flamethrower'];
+        
+        // 経験値クリスタル
+        const experienceItems = ['experienceCrystal'];
 
         if (foodItems.includes(itemType)) {
             return '/gltf/item-food.glb';
@@ -59,6 +80,8 @@ class Item {
             return '/gltf/item-med.glb';
         } else if (weaponItems.includes(itemType)) {
             return '/gltf/item-wepon.glb';
+        } else if (experienceItems.includes(itemType)) {
+            return null; // 経験値クリスタルはボックスで作成するのでnullを返す
         }
         
         return null; // デフォルトのSphereGeometryを使用
@@ -86,7 +109,7 @@ class Item {
             model.position.copy(position);
             model.position.y += 0.5; // 少し浮かせる
             
-            // ユーザーデータを設定
+            // ユーザーデータを設定（モデル全体と各メッシュに設定）
             model.userData = { 
                 itemType: this.type
             };
@@ -96,6 +119,11 @@ class Item {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
+                    
+                    // 各メッシュにもユーザーデータを設定
+                    child.userData = { 
+                        itemType: this.type
+                    };
                     
                     // マテリアルが存在する場合、発光効果を追加
                     if (child.material) {
@@ -134,9 +162,14 @@ class Item {
             pointLight.position.set(0, 0, 0);
             model.add(pointLight);
             
+            // 既存の一時的なメッシュを削除
+            if (this.mesh && this.mesh.parent) {
+                this.mesh.parent.remove(this.mesh);
+            }
+            
             this.mesh = model;
             this.scene.add(this.mesh);
-            console.log("GLBアイテムメッシュをシーンに追加完了");
+            console.log("GLBアイテムメッシュをシーンに追加完了:", this.type);
         }, undefined, (error) => {
             console.error('GLBファイルの読み込みに失敗しました:', error);
             // 読み込みに失敗した場合はデフォルトのSphereGeometryを使用
@@ -166,12 +199,81 @@ class Item {
         this.scene.add(this.mesh);
         console.log("デフォルトアイテムメッシュをシーンに追加完了");
     }
+
+    // 経験値クリスタル用のボックスを作成
+    createExperienceCrystal(position) {
+        // クリスタル形状のボックスを作成
+        const geometry = new THREE.BoxGeometry(0.4, 0.6, 0.4);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0xffd700, // 金色
+            emissive: 0xffd700, // 発光色も金色
+            emissiveIntensity: 2.0, // 発光強度
+            toneMapped: false,
+            transparent: true,
+            opacity: 0.9
+        });
+        
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.copy(position);
+        this.mesh.position.y += 0.5; // 少し浮かせる
+        
+        // ユーザーデータを設定
+        this.mesh.userData = { 
+            itemType: this.type
+        };
+        
+        this.scene.add(this.mesh);
+        console.log("経験値クリスタルメッシュをシーンに追加完了");
+    }
+
+    // GLBアイテム用の一時的なメッシュを作成
+    createTemporaryMesh(position) {
+        // 一時的な球体メッシュを作成
+        const geometry = new THREE.SphereGeometry(0.3, 8, 6);
+        const material = new THREE.MeshBasicMaterial({
+            color: this.itemConfig.color || 0xffffff,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.copy(position);
+        this.mesh.position.y += 0.5; // 少し浮かせる
+        
+        // ユーザーデータを設定
+        this.mesh.userData = { 
+            itemType: this.type
+        };
+        
+        this.scene.add(this.mesh);
+        console.log("一時的メッシュをシーンに追加完了:", this.type);
+    }
     
     // アイテムのアニメーションを更新
     update(deltaTime) {
         if (!this.mesh) return;
         
         this.time += deltaTime;
+        
+        // 経験値クリスタルのライフタイム更新
+        if (this.type === 'experienceCrystal' && this.lifeTime !== undefined) {
+            this.currentLifeTime += deltaTime;
+            
+            // ライフタイムが終了したら消去
+            if (this.currentLifeTime >= this.lifeTime) {
+                this.dispose();
+                return;
+            }
+            
+            // 残り時間に応じて透明度を変更（フェードアウト効果）
+            const remainingTime = this.lifeTime - this.currentLifeTime;
+            if (remainingTime < 2.0) { // 最後の2秒でフェードアウト
+                const fadeAlpha = remainingTime / 2.0;
+                if (this.mesh.material) {
+                    this.mesh.material.opacity = fadeAlpha;
+                }
+            }
+        }
         
         // 回転
         this.mesh.rotation.y += this.rotationSpeed;
@@ -183,10 +285,20 @@ class Item {
     
     // アイテムを取得した時の処理
     collect() {
+        console.log("アイテム収集処理開始:", this.type, "メッシュ:", this.mesh);
+        
+        // メッシュが存在しない場合は収集できない
+        if (!this.mesh) {
+            console.log("メッシュが存在しません:", this.type);
+            return null;
+        }
+        
         // シーンから削除
-        if (this.mesh && this.mesh.parent) {
+        if (this.mesh.parent) {
             this.mesh.parent.remove(this.mesh);
         }
+        
+        console.log("アイテム収集完了:", this.type);
         return this.type;
     }
 

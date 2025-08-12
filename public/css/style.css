@@ -150,6 +150,46 @@
 .stamina .status-fill { background-color: #44ff44; }
 .sleep .status-fill { background-color: #2BBBAD; }
 .sanity .status-fill { background-color: #ff8800; }
+.experience .status-fill { background-color: #ffd700; }
+
+/* 経験値ゲージのスタイル */
+.experience-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+}
+
+.experience-item {
+    display: flex;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 8px 12px;
+    border-radius: 8px;
+    min-width: 120px;
+}
+
+.experience-item i {
+    margin-right: 8px;
+    font-size: 14px;
+    color: #ffd700;
+}
+
+.experience-item .status-bar {
+    width: 80px;
+    height: 8px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0 8px;
+}
+
+.experience-text {
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+}
 
 .share-buttons {
     display: flex;

@@ -1048,8 +1048,8 @@ if(this.devMode){
 		const currentPosition = this.playerModel.getPosition().clone();
 
 		// スタミナの処理
-		if (isRunning && isMoving && this.playerStatus.stamina > 0) {
-			// 走っている時はスタミナを減少
+		if (isRunning && isMoving && this.playerStatus.stamina > 0 && !this.playerStatus.staminaConsumptionDisabled) {
+			// 走っている時はスタミナを減少（効果中は無効化）
 			this.playerStatus.decreaseStamina(this.playerStatus.staminaDecreaseRate * deltaTime);
 		}
 
@@ -1830,9 +1830,15 @@ if(this.devMode){
 
 		// 敵の表示/非表示を更新
 		//itemの更新
-		this.items.forEach(item => {
-			item.update(deltaTime);
-		});
+		for (let i = this.items.length - 1; i >= 0; i--) {
+			const item = this.items[i];
+			if (item && item.mesh) {
+				item.update(deltaTime);
+			} else {
+				// メッシュが存在しない場合は配列から削除
+				this.items.splice(i, 1);
+			}
+		}
 
 		// アイテム効果の表示を更新
 		this.updateEffectsDisplay();
@@ -1908,9 +1914,12 @@ if(this.devMode){
 				// アイテムを収集
 				const itemData = item.collect();
 				if (itemData) {
+					console.log("アイテム収集:", itemData, "距離:", distance);
 					this.collectItem(itemData);
 					this.scene.remove(item.mesh);
 					this.items.splice(i, 1);
+				} else {
+					console.log("アイテム収集失敗:", item.type, "メッシュ:", item.mesh);
 				}
 			}
 		}
@@ -1943,6 +1952,27 @@ if(this.devMode){
 		// アイテム名を取得
 		const itemName = itemConfig.name || itemData.type;
 		const isEnglish = lang === 'en';
+		
+		// 経験値クリスタルの場合はメッセージを表示しない
+		if (itemData.type === 'experienceCrystal') {
+			// 経験値効果を適用（メッセージなし）
+			if (itemConfig.effects && (itemConfig.effects.instant || itemConfig.effects.immediate)) {
+				const instantEffects = itemConfig.effects.instant || itemConfig.effects.immediate;
+				
+				// instant形式（日本語設定）
+				if (instantEffects.type && instantEffects.type === 'experience') {
+					this.playerStatus.addExperience(instantEffects.value);
+				}
+				// immediate形式（英語設定）
+				else if (instantEffects.experience) {
+					this.playerStatus.addExperience(instantEffects.experience);
+				}
+			}
+			
+			// アイテム数を更新
+			this.updateItemCount();
+			return;
+		}
 		
 		// 言語に応じたメッセージを生成
 		let effectMessage = isEnglish 
@@ -1977,6 +2007,12 @@ if(this.devMode){
 					effectMessage += isEnglish 
 						? `\n⚡ Stamina recovered by ${instantEffects.value}!`
 						: `\n⚡ スタミナが${instantEffects.value}回復しました！`;
+				} else if (instantEffects.type === 'experience') {
+					// 経験値効果
+					this.playerStatus.addExperience(instantEffects.value);
+					effectMessage += isEnglish 
+						? `\n⭐ Experience gained: ${instantEffects.value}!`
+						: `\n⭐ 経験値を${instantEffects.value}獲得しました！`;
 				} else if (instantEffects.type === 'warp') {
 					// ワープ効果
 					this.warpToRandomPlayer();
@@ -2004,6 +2040,12 @@ if(this.devMode){
 					effectMessage += isEnglish 
 						? `\n💧 Thirst recovered by ${instantEffects.thirst}!`
 						: `\n💧 喉の渇きが${instantEffects.thirst}回復しました！`;
+				}
+				if (instantEffects.experience) {
+					this.playerStatus.addExperience(instantEffects.experience);
+					effectMessage += isEnglish 
+						? `\n⭐ Experience gained: ${instantEffects.experience}!`
+						: `\n⭐ 経験値を${instantEffects.experience}獲得しました！`;
 				}
 				if (instantEffects.hygiene !== undefined) {
 					this.playerStatus.hygiene = Math.max(0, Math.min(100, this.playerStatus.hygiene + instantEffects.hygiene));
@@ -2125,6 +2167,12 @@ if(this.devMode){
 						effectMessage += isEnglish 
 							? `\n⚡ Stamina recovered by ${instantEffects.value}!`
 							: `\n⚡ スタミナが${instantEffects.value}回復しました！`;
+					} else if (instantEffects.type === 'experience') {
+						// 経験値効果
+						this.playerStatus.addExperience(instantEffects.value);
+						effectMessage += isEnglish 
+							? `\n⭐ Experience gained: ${instantEffects.value}!`
+							: `\n⭐ 経験値を${instantEffects.value}獲得しました！`;
 					} else if (instantEffects.type === 'warp') {
 						// ワープ効果
 						this.warpToRandomPlayer();
@@ -2152,6 +2200,12 @@ if(this.devMode){
 						effectMessage += isEnglish 
 							? `\n💧 Thirst recovered by ${instantEffects.thirst}!`
 							: `\n💧 喉の渇きが${instantEffects.thirst}回復しました！`;
+					}
+					if (instantEffects.experience) {
+						this.playerStatus.addExperience(instantEffects.experience);
+						effectMessage += isEnglish 
+							? `\n⭐ Experience gained: ${instantEffects.experience}!`
+							: `\n⭐ 経験値を${instantEffects.experience}獲得しました！`;
 					}
 					if (instantEffects.hygiene !== undefined) {
 						this.playerStatus.hygiene = Math.max(0, Math.min(100, this.playerStatus.hygiene + instantEffects.hygiene));
@@ -2586,29 +2640,48 @@ if(this.devMode){
 		
 		console.log("敵の位置:", position);
 		
-		// 10%の確率でアイテムをスポーン
+		// 40%の確率でアイテムをスポーン
 		if (Math.random() < 0.4) {
 			// ITEMS_CONFIGからランダムにアイテムタイプを選択
 			const itemsConfig = getItemsConfig('ja');
 			const itemTypes = Object.entries(itemsConfig)
-				.filter(([_, item]) => item.dropChance !== undefined)
+				.filter(([_, item]) => item.dropChance !== undefined && item.dropChance > 0)
 				.map(([type]) => type);
 			
-			var selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
-			console.log("選択されたアイテムタイプ:", selectedType);
-			
-			//var selectedType = 'food';
-			// アイテムを生成（地面の高さを考慮）
+			if (itemTypes.length > 0) {
+				var selectedType = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+				console.log("選択されたアイテムタイプ:", selectedType);
+				
+				// アイテムを生成
+				const terrainHeight = this.getHeightAt(position.x, position.z);
+				const itemPosition = new THREE.Vector3(
+					position.x,
+					terrainHeight + 0.5,
+					position.z
+				);
+				console.log("アイテム生成位置:", itemPosition);
+				this.spawnItem(selectedType, itemPosition);
+			} else {
+				// アイテムが生成されない場合は経験値クリスタルをスポーン
+				const terrainHeight = this.getHeightAt(position.x, position.z);
+				const crystalPosition = new THREE.Vector3(
+					position.x,
+					terrainHeight + 0.5,
+					position.z
+				);
+				console.log("経験値クリスタル生成位置（フォールバック）:", crystalPosition);
+				this.spawnItem('experienceCrystal', crystalPosition);
+			}
+		} else {
+			// アイテムが生成されない場合は経験値クリスタルをスポーン
 			const terrainHeight = this.getHeightAt(position.x, position.z);
-			const itemPosition = new THREE.Vector3(
+			const crystalPosition = new THREE.Vector3(
 				position.x,
 				terrainHeight + 0.5,
 				position.z
 			);
-			console.log("アイテム生成位置:", itemPosition);
-			console.log("spawnItem呼び出し前");
-			this.spawnItem(selectedType, itemPosition);
-			console.log("spawnItem呼び出し後");
+			console.log("経験値クリスタル生成位置（フォールバック）:", crystalPosition);
+			this.spawnItem('experienceCrystal', crystalPosition);
 		}
 
 		// --- ここで血痕を生成 ---

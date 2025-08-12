@@ -12,6 +12,14 @@ class PlayerStatus {
         this.moveSpeedMultiplier = 0;
         this.effects = new Map(); // アクティブなエフェクトを管理
 
+        // 経験値システムを追加
+        this.level = 1;
+        this.experience = 0;
+        this.experienceToNextLevel = this.getExperienceForLevel(2); // レベル2に必要な経験値
+
+        // スタミナ消費無効化フラグ
+        this.staminaConsumptionDisabled = false;
+
         this.healthDecreaseRate = 0.1;
         this.hungerDecreaseRate = GameConfig.STATUS.IDLE.HUNGER;
         this.thirstDecreaseRate = GameConfig.STATUS.IDLE.THIRST;
@@ -31,12 +39,80 @@ class PlayerStatus {
         this.hygieneBar = document.querySelector('.status-bar.hygiene .status-fill');
         this.hygieneText = document.getElementById('hygieneValue');
 
+        // 経験値ゲージの要素を取得
+        this.experienceBar = document.querySelector('.status-bar.experience .status-fill');
+        this.experienceText = document.getElementById('experienceText');
+
         // ステータスの減少率（1秒あたり）
         this.hungerDecreaseRate = GameConfig.PLAYER.hungerDecreaseRate;
         this.thirstDecreaseRate = GameConfig.PLAYER.thirstDecreaseRate;
         this.hygieneDecreaseRate = GameConfig.PLAYER.hygieneDecreaseRate;
 
         this.updateUI();
+    }
+
+    // レベルに必要な経験値を計算するメソッド
+    getExperienceForLevel(level) {
+        // レベル2以降は前のレベルより60%多く必要（より厳しく）
+        if (level <= 1) return 0;
+        return Math.floor(120 * Math.pow(1.6, level - 2));
+    }
+
+    // 経験値を追加するメソッド
+    addExperience(amount) {
+        this.experience += amount;
+        
+        // レベルアップチェック
+        while (this.experience >= this.experienceToNextLevel) {
+            this.levelUp();
+        }
+        
+        this.updateUI();
+    }
+
+    // レベルアップ処理
+    levelUp() {
+        this.level++;
+        this.experience -= this.experienceToNextLevel;
+        this.experienceToNextLevel = this.getExperienceForLevel(this.level + 1);
+        
+        // レベルアップ時の効果（HP、スタミナ、移動速度の向上など）
+        this.maxHealth += 10;
+        this.health = this.maxHealth; // HPを全回復
+        this.maxStamina += 5;
+        this.stamina = this.maxStamina; // スタミナを全回復
+        
+        // 全てのステータスを完全回復
+        this.hunger = 100; // 空腹を完全回復
+        this.thirst = 100; // 喉の渇きを完全回復
+        this.hygiene = 100; // 衛生を完全回復
+        
+        // レベルアップメッセージを表示
+        if (this.game.messageManager) {
+            const lang = localStorage.getItem('language') || 'ja';
+            const message = lang === 'en' 
+                ? `🎉 Level Up! You are now Level ${this.level}! All stats recovered! 🎉`
+                : `🎉 レベルアップ！レベル${this.level}になりました！全ステータス回復！🎉`;
+            this.game.messageManager.showMessage(message);
+        }
+        
+        console.log(`レベルアップ！レベル${this.level}になりました！全ステータス回復！`);
+    }
+
+    // 経験値ゲージの更新
+    updateExperienceUI() {
+        if (this.experienceBar) {
+            const experiencePercentage = (this.experience / this.experienceToNextLevel) * 100;
+            this.experienceBar.style.width = `${experiencePercentage}%`;
+        }
+        
+        if (this.experienceText) {
+            const lang = localStorage.getItem('language') || 'ja';
+            const text = lang === 'en' 
+                ? `Lv.${this.level} (${this.experience}/${this.experienceToNextLevel})`
+                : `Lv.${this.level} (${this.experience}/${this.experienceToNextLevel})`;
+            this.experienceText.textContent = text;
+        }
     }
 
     update(deltaTime) {
@@ -94,6 +170,10 @@ class PlayerStatus {
         this.thirst = 100;
         this.stamina = this.maxStamina;
         this.hygiene = 100;
+        // 経験値システムをリセット
+        this.level = 1;
+        this.experience = 0;
+        this.experienceToNextLevel = this.getExperienceForLevel(2);
         this.isGameOver = false;
         document.getElementById('gameOver').style.display = 'none';
         this.updateUI();
@@ -109,6 +189,9 @@ class PlayerStatus {
             const staminaPercentage = (this.stamina / this.maxStamina) * 100;
             this.staminaBar.style.width = `${staminaPercentage}%`;
         }
+        
+        // 経験値ゲージの更新
+        this.updateExperienceUI();
     }
 
     
@@ -209,6 +292,9 @@ class PlayerStatus {
     updateEffects(deltaTime) {
         const currentTime = Date.now();
         
+        // スタミナ消費無効化フラグをリセット
+        this.staminaConsumptionDisabled = false;
+        
         // 期限切れの効果を削除し、アクティブな効果を適用
         for (const [id, effect] of this.effects.entries()) {
             // 効果が期限切れかチェック
@@ -233,8 +319,9 @@ class PlayerStatus {
                 this.heal(effect.value * deltaTime);
                 break;
             case 'adrenaline':
-                // 移動速度を上昇
+                // 移動速度を上昇し、スタミナ消費を無効化
                 this.moveSpeedMultiplier = effect.value;
+                this.staminaConsumptionDisabled = true;
                 break;
             case 'wepon':
                 // 武器を強化（何もしない、武器マネージャーで処理）
@@ -244,8 +331,8 @@ class PlayerStatus {
                 this.addHunger(effect.value * deltaTime);
                 break;
             case 'energyDrink':
-                // HPを回復し続ける
-                this.heal(effect.value * deltaTime);
+                // スタミナ消費を無効化
+                this.staminaConsumptionDisabled = true;
                 break;
             case 'stamina':
                 // スタミナを回復
