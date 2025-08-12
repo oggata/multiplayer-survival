@@ -65,6 +65,8 @@ class EnhancedEnemy {
             enemyData.position.z
         );
         this.isMoving = false;
+        this.disposedByVision = false; // 視界外での削除フラグ
+        this.killedByPlayer = false; // プレイヤーによる攻撃で倒されたかどうかのフラグ
         
         // 衝突判定用の半径を設定（キャラクタータイプに応じて調整）
         this.collisionRadius = this.getCollisionRadius();
@@ -118,6 +120,12 @@ class EnhancedEnemy {
     takeDamage(damage) {
         if (this.isDead) return;
         
+        // 視界外での削除の場合はダメージ処理をスキップ
+        if (this.disposedByVision) {
+            console.log(`視界外削除のためダメージ処理をスキップ: ${this.id}`);
+            return;
+        }
+        
         this.health -= damage;
         
         // ダメージエフェクトを適用
@@ -126,6 +134,8 @@ class EnhancedEnemy {
         }
         
         if (this.health <= 0) {
+            // プレイヤーによる攻撃で倒されたことを記録
+            this.killedByPlayer = true;
             this.die();
         }
     }
@@ -148,40 +158,65 @@ class EnhancedEnemy {
     die() {
         if (this.isDead) return;
         
+        console.log(`敵の死亡処理開始: ${this.id}, disposedByVision: ${this.disposedByVision}`);
+        
         this.isDead = true;
         
-        // 死亡音を再生
-        //this.game.audioManager.play('enemyDeath');
-        
-        // 死亡エフェクトを生成
-        this.createDeathEffect();
+        // 視界外での削除の場合はenemyDiedイベントを発火しない
+        if (!this.disposedByVision) {
+            console.log(`正常な死亡処理: ${this.id}`);
+            // 死亡音を再生
+            //this.game.audioManager.play('enemyDeath');
+            
+            // 死亡エフェクトを生成
+            this.createDeathEffect();
 
-        // サーバーに敵の死亡を通知
-        this.game.socket.emit('enemyDied', this.id);
+            // サーバーに敵の死亡を通知
+            this.game.socket.emit('enemyDied', this.id);
+        } else {
+            console.log(`視界外削除のため死亡処理をスキップ: ${this.id}`);
+            // 視界外削除の場合は直接モデルを削除
+            setTimeout(() => {
+                console.log(`視界外削除の敵を直接削除: ${this.id}`);
+                this.model.dispose();
+            }, 100);
+            return;
+        }
 
-        // 敵を削除
+        // 敵を削除（dispose()を呼ばずに直接モデルを削除）
         setTimeout(() => {
-            this.dispose();
+            console.log(`敵の削除タイマー実行: ${this.id}`);
+            this.model.dispose();
         }, 100); // 0.1秒後に削除
     }
 
     forceDie() {
         if (this.isDead) return;
         
+        console.log(`敵の強制死亡処理開始: ${this.id}, disposedByVision: ${this.disposedByVision}`);
+        
         this.isDead = true;
         
-        // 死亡音を再生
-        //this.game.audioManager.play('enemyDeath');
-        
-        // 死亡エフェクトを生成
-        this.createDeathEffect();
+        // 視界外での削除の場合はenemyDiedイベントを発火しない
+        if (!this.disposedByVision) {
+            console.log(`正常な強制死亡処理: ${this.id}`);
+            // 死亡音を再生
+            //this.game.audioManager.play('enemyDeath');
+            
+            // 強制死亡の場合はkilledByPlayerフラグを設定しない
+            // 死亡エフェクトを生成
+            this.createDeathEffect();
 
-        // サーバーに敵の死亡を通知
-        this.game.socket.emit('enemyDied', this.id);
+            // サーバーに敵の死亡を通知
+            this.game.socket.emit('enemyDied', this.id);
+        } else {
+            console.log(`視界外削除のため強制死亡処理をスキップ: ${this.id}`);
+        }
 
-        // 敵を削除
+        // 敵を削除（dispose()を呼ばずに直接モデルを削除）
         setTimeout(() => {
-            this.dispose();
+            console.log(`敵の強制削除タイマー実行: ${this.id}`);
+            this.model.dispose();
         }, 100); // 0.1秒後に削除
     }
 
@@ -189,14 +224,24 @@ class EnhancedEnemy {
     forcedDieByServer() {
         if (this.isDead) return;
         
+        console.log(`敵のサーバー強制死亡処理開始: ${this.id}, disposedByVision: ${this.disposedByVision}`);
+        
         this.isDead = true;
         
-        // 死亡エフェクトを生成
-        this.createDeathEffect();
+        // 視界外での削除の場合は死亡エフェクトを生成しない
+        if (!this.disposedByVision) {
+            console.log(`正常なサーバー強制死亡処理: ${this.id}`);
+            // サーバー強制死亡の場合はkilledByPlayerフラグを設定しない
+            // 死亡エフェクトを生成
+            this.createDeathEffect();
+        } else {
+            console.log(`視界外削除のためサーバー強制死亡処理をスキップ: ${this.id}`);
+        }
         
-        // 敵を削除
+        // 敵を削除（dispose()を呼ばずに直接モデルを削除）
         setTimeout(() => {
-            this.dispose();
+            console.log(`敵のサーバー削除タイマー実行: ${this.id}`);
+            this.model.dispose();
         }, 100); // 0.1秒後に削除
     }
 /*
@@ -207,6 +252,14 @@ class EnhancedEnemy {
     }
 */
     createDeathEffect() {
+        // プレイヤーによる攻撃で倒された場合のみ出血エフェクトを生成
+        if (!this.killedByPlayer) {
+            console.log(`プレイヤーによる攻撃ではないため死亡エフェクト生成をスキップ: ${this.id}`);
+            return;
+        }
+        
+        console.log(`プレイヤーによる攻撃で倒されたため出血エフェクト生成開始: ${this.id}`);
+        
         // パーティクルエフェクトの作成
         const particleCount = 50;
         const particles = new THREE.BufferGeometry();
@@ -355,6 +408,20 @@ class EnhancedEnemy {
     }
 
     dispose() {
-        this.model.dispose();
+        console.log(`敵のdispose処理: ${this.id}, disposedByVision: ${this.disposedByVision}, isDead: ${this.isDead}`);
+        
+        // 既に死亡している場合は直接モデルを削除
+        if (this.isDead) {
+            console.log(`既に死亡済みのため直接削除: ${this.id}`);
+            this.model.dispose();
+        } else if (!this.disposedByVision) {
+            // 視界外削除でない場合は正常な死亡処理
+            console.log(`正常なdispose処理: ${this.id}`);
+            this.die();
+        } else {
+            // 視界外での削除の場合は直接モデルを削除
+            console.log(`視界外削除のdispose処理: ${this.id}`);
+            this.model.dispose();
+        }
     }
 }

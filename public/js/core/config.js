@@ -611,7 +611,7 @@ const GameConfig = {
 			reload: 3.0,
 			damage: 100,
 			speed: 10,
-			explosionRadius: 6,
+			explosionRadius: 12, // 爆発範囲を大きく
 			lifetime: 5.2,
 			color: 0x666666
 		},
@@ -623,8 +623,8 @@ const GameConfig = {
 			color: 0xff6600
 		},
 		PLASMACANNON: {
-			reload: 2.5,
-			damage: 10,
+			reload: 3.0, // リロード時間を少し長く
+			damage: 8,   // ダメージを少し下げる
 			speed: 5,
 			lifetime: 1.0,
 			color: 0x00ffff

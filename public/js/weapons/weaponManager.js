@@ -30,9 +30,10 @@ class WeponManager {
 		const now = Date.now();
 		let shootInterval = 800; // デフォルトの間隔
 		var aa = this.game.playerStatus.getCurrentWeponType();
-		//console.log(aa);	
+		console.log('武器タイプ取得結果:', aa);	
 
 		const weaponId = aa[aa.length - 1] || 'bullet001';
+		console.log('使用武器ID:', weaponId);
 		const shootPosition = playerModel.getPosition().clone();
 
 		shootPosition.y += 1.1; // 発射位置を少し上げる
@@ -74,17 +75,26 @@ class WeponManager {
 			case 'lasergun':
 				// レーザーガン：3発連続発射
 				for (let i = 0; i < 3; i++) {
-					const bullet = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
-					this.game.bullets.push(bullet);
+									const bullet = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
+				this.bullets.push(bullet);
 				}
 				break;
 
 			case 'grenadelauncher':
 				// グレネードランチャー：爆発性の弾
 				const grenade = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
-				grenade.explosionRadius = 5;
+				grenade.explosionRadius = GameConfig.WEAPON.GRENADELAUNCHER.explosionRadius;
 				grenade.explosionDamage = 100;
-				this.game.bullets.push(grenade);
+				
+				// プレイヤーの移動速度を取得して弾の速度に反映
+				if (this.game.playerModel && this.game.playerModel.velocity) {
+					const playerVelocity = this.game.playerModel.velocity.clone();
+					// プレイヤーの速度を弾の速度に加算
+					grenade.velocity.add(playerVelocity.multiplyScalar(0.5)); // プレイヤーの速度の50%を加算
+					console.log('グレネードランチャー: プレイヤーの速度を反映', playerVelocity);
+				}
+				
+				this.bullets.push(grenade);
 				break;
 
 			case 'flamethrower':
@@ -93,26 +103,26 @@ class WeponManager {
 					const spreadDirection = direction.clone();
 					spreadDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), i * 0.2);
 					const bullet = this.createBullet(shootPosition, spreadDirection, this.socket.id, weaponId);
-					this.game.bullets.push(bullet);
+					this.bullets.push(bullet);
 				}
 				break;
 
 			case 'plasmacannon':
 				// プラズマキャノン：チェーンライトニング効果
-				const plasma = this.game.createBullet(shootPosition, direction, this.socket.id, weaponId);
+				const plasma = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
 				plasma.chainLightning = true;
-				plasma.chainRange = 10;
-				plasma.chainDamage = 5;
-				this.game.bullets.push(plasma);
+				plasma.chainRange = 8;  // 範囲を少し狭く
+				plasma.chainDamage = 4; // チェーンダメージを少し下げる
+				this.bullets.push(plasma);
 				break;
 
 			case 'missilelauncher':
 				// ミサイルランチャー：追尾ミサイル
-				const missile = this.game.createBullet(shootPosition, direction, this.socket.id, weaponId);
+				const missile = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
 				missile.homing = true;
 				missile.homingRange = 30;
 				missile.homingSpeed = 1;
-				this.game.bullets.push(missile);
+				this.bullets.push(missile);
 				break;
 
 			case 'shotgun':
@@ -122,7 +132,7 @@ class WeponManager {
 					spreadDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), i * 0.2);
 					const bullet = this.createBullet(shootPosition, spreadDirection, this.socket.id, weaponId);
 					bullet.fireLauncher = true;
-					this.game.bullets.push(bullet);
+					this.bullets.push(bullet);
 				}
 				break;
 
@@ -130,14 +140,14 @@ class WeponManager {
 				// マシンガン：5発連続発射
 				for (let i = 0; i < 5; i++) {
 					const bullet = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
-					this.game.bullets.push(bullet);
+					this.bullets.push(bullet);
 				}
 				break;
 
 			case 'magnum':
 				const bullet1 = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
 				bullet1.nanoSwarm = true;
-				this.game.bullets.push(bullet1);
+				this.bullets.push(bullet1);
 				
 				break;
 
@@ -152,7 +162,7 @@ class WeponManager {
 				//bullet.nanoSwarmLauncher = true;
 				//bullet.bubbleGun = true;	
 				//bullet.homing = true;	
-				this.game.bullets.push(bullet);
+				this.bullets.push(bullet);
 				break;
 		}
 		// サーバーに発射情報を送信
@@ -187,7 +197,7 @@ class WeponManager {
 
 			if (!bullet.update(deltaTime)) {
 				// 弾が寿命を迎えた場合
-				this.scene.remove(bullet.model);
+				this.game.scene.remove(bullet.model);
 				bullet.dispose(); // disposeメソッドを呼び出してメモリを解放
 				this.bullets.splice(i, 1);
 				continue;
@@ -200,7 +210,7 @@ class WeponManager {
 				
 				// 遠すぎる弾丸を削除
 				if (distance > GameConfig.MAP.VISLBLE_DISTANCE * 2) {
-					this.scene.remove(bullet.model);
+					this.game.scene.remove(bullet.model);
 					bullet.dispose(); // disposeメソッドを呼び出してメモリを解放
 					this.bullets.splice(i, 1);
 					continue;
@@ -208,7 +218,7 @@ class WeponManager {
 			}
 
 			// 敵との当たり判定
-			for (const [enemyId, enemy] of this.enemies) {
+			for (const [enemyId, enemy] of this.game.enemies) {
 				if (enemy && enemy.health > 0 && enemy.model) {
 					const distance = bullet.model.position.distanceTo(enemy.model.position);
 					if (distance < 2) { // 当たり判定の距離
@@ -222,13 +232,20 @@ class WeponManager {
 							enemy.takeDamage(bullet.getDamage());
 							//enemy.takeDamage(100);
 							// 弾を削除
-							this.scene.remove(bullet.model);
+							this.game.scene.remove(bullet.model);
 							bullet.dispose(); // disposeメソッドを呼び出してメモリを解放
 							this.bullets.splice(i, 1);
 							// 敵が死亡した場合の処理
 							if (enemy.health <= 0) {
-								this.game.socket.emit('enemyDied', enemyId);
-								this.game.handleEnemyDeath(enemyId);
+								console.log(`敵の体力が0になりました: ${enemyId}, disposedByVision: ${enemy.disposedByVision}`);
+								// 視界外での削除の場合はenemyDiedイベントを発火しない
+								if (!enemy.disposedByVision) {
+									console.log(`正常な敵死亡処理: ${enemyId}`);
+									this.game.socket.emit('enemyDied', enemyId);
+									this.game.handleEnemyDeath(enemyId);
+								} else {
+									console.log(`視界外削除のため敵死亡処理をスキップ: ${enemyId}`);
+								}
 							}
 							break;
 						}
@@ -247,10 +264,18 @@ class WeponManager {
 
 			// チェーンライトニングの処理
 			if (bullet.chainLightning) {
-				const nearbyEnemies = this.getNearbyEnemies(bullet.model.position,20);
-				for (const enemy of nearbyEnemies) {
+				const nearbyEnemies = this.getNearbyEnemies(bullet.model.position, bullet.chainRange);
+				// 一度に倒せる敵の数を3体までに制限
+				const maxTargets = 3;
+				const limitedEnemies = nearbyEnemies.slice(0, maxTargets);
+				
+				for (const enemy of limitedEnemies) {
 					enemy.takeDamage(bullet.chainDamage);
 					this.createLightningEffect(bullet.model.position, enemy.model.position);
+				}
+				
+				if (nearbyEnemies.length > maxTargets) {
+					console.log(`プラズマキャノン: ${nearbyEnemies.length}体の敵を検出、${maxTargets}体に制限`);
 				}
 			}
 
@@ -387,21 +412,23 @@ class WeponManager {
 			};
 			animate();
 	
-			// 範囲内の敵にダメージを与える
+			// 範囲内の敵を全て倒す（制限なし）
+			let hitCount = 0;
 			this.game.enemies.forEach((enemy, enemyId) => {
 				if (!enemy || enemy.isDead) return;
 				const distance = enemy.model.position.distanceTo(position);
 				if (distance <= radius) {
-					const damageRatio = 1 - (distance / radius);
-					var actualDamage = Math.floor(damage * damageRatio);
-					actualDamage = damage; // 最小ダメージは1
-					enemy.takeDamage(actualDamage);
+					// 範囲内の敵は即座に倒す（ダメージは最大値）
+					enemy.takeDamage(damage);
+					hitCount++;
 					this.game.socket.emit('enemyHit', {
 						targetId: enemyId,
-						damage: actualDamage
+						damage: damage
 					});
 				}
 			});
+			
+			console.log(`グレネードランチャー爆発: 範囲${radius}内で${hitCount}体の敵を倒しました`);
 		}
 	
 		createLightningEffect(startPosition, endPosition) {

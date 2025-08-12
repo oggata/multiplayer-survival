@@ -83,31 +83,16 @@ const ITEMS_CONFIG = {
         },
         medicine: {
             name: '薬',
-            description: '病気を治す',
+            description: '体力全回復',
             color: 0x00ff00,
             dropChance: 0.08,
             category: 'medicine',
             effects: {
-                instant: {
-                    type: 'virus',
-                    value: -20
+                immediate: {
+                    health: 100
                 }
             }
         },
-        warmClothes: {
-            name: '暖かい服',
-            description: '体温を上げる',
-            color: 0xffa500,
-            dropChance: 0.1,
-            effects: {
-                duration: {
-                    type: 'temperature',
-                    duration: 30000,
-                    value: 20
-                }
-            }
-        },
-        
         // 武器アイテム
         machinegun: {
             name: 'マシンガン',
@@ -165,53 +150,40 @@ const ITEMS_CONFIG = {
         // 防具アイテム
         jacket: {
             name: 'ジャケット',
-            description: '体感温度を10度上げる',
+            description: 'HPが回復し続ける',
             color: 0x808080,
             dropChance: 0.08,
             effects: {
                 duration: {
-                    type: 'jacket',
-                    value: 10,
-                    duration: 60
+                    type: 'healthRegen',
+                    duration: 60,
+                    value: 5
                 }
             }
         },
         boonieHat: {
             name: 'ブーニーハット',
-            description: '体感温度を10度上げる',
+            description: 'HPが回復し続ける',
             color: 0x808080,
             dropChance: 0.08,
             effects: {
                 duration: {
-                    type: 'boonieHat',
-                    value: 10,
-                    duration: 60
+                    type: 'healthRegen',
+                    duration: 60,
+                    value: 5
                 }
             }
         },
         tacticalVest: {
             name: 'タクティカルベスト',
-            description: '体感温度を10度上げる',
+            description: 'HPが回復し続ける、スタミナがずっと最大',
             color: 0x808080,
             dropChance: 0.08,
             effects: {
                 duration: {
-                    type: 'tacticalVest',
-                    value: 10,
-                    duration: 60
-                }
-            }
-        },
-        balaclava: {
-            name: 'バラクラバ',
-            description: '体感温度を10度上げる',
-            color: 0x808080,
-            dropChance: 0.08,
-            effects: {
-                duration: {
-                    type: 'balaclava',
-                    value: 10,
-                    duration: 60
+                    type: 'healthRegenStaminaLock',
+                    duration: 60,
+                    value: 5
                 }
             }
         },
@@ -248,14 +220,14 @@ const ITEMS_CONFIG = {
         },
         bandage: {
             name: '包帯',
-            description: '出血を回復する（30秒）',
+            description: 'HPが回復し続ける',
             color: 0xffffff,
             dropChance: 0.1,
             effects: {
                 duration: {
-                    type: 'bandage',
-                    value: 0.45,
-                    duration: 30
+                    type: 'healthRegen',
+                    duration: 60,
+                    value: 5
                 }
             }
         },
@@ -297,13 +269,14 @@ const ITEMS_CONFIG = {
         },
         morphine: {
             name: 'モルヒネ',
-            description: '痛みを完全に消し体力を15回復する',
+            description: 'スタミナが減らない（ずっと最大値）',
             color: 0xff00ff,
             dropChance: 0.04,
             effects: {
-                immediate: {
-                    health: 15,
-                    pain: 0
+                duration: {
+                    type: 'staminaLock',
+                    duration: 60,
+                    value: 1
                 }
             }
         },
@@ -824,19 +797,6 @@ const ITEMS_CONFIG = {
             effects: {
                 duration: {
                     type: 'tacticalVest',
-                    value: 10,
-                    duration: 60
-                }
-            }
-        },
-        balaclava: {
-            name: 'Balaclava',
-            description: 'The perceived temperature increases by 10 degrees',
-            color: 0x808080,
-            dropChance: 0.08,
-            effects: {
-                duration: {
-                    type: 'balaclava',
                     value: 10,
                     duration: 60
                 }

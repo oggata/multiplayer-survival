@@ -120,7 +120,9 @@ class SettingsManager {
 				window.neonAPI.saveUserInfo();
 				
 				// 成功メッセージ
-				this.game.showMessage('プレイヤー名が更新されました');
+				if (this.game.messageManager) {
+					this.game.messageManager.showMessage('プレイヤー名が更新されました');
+				}
 				console.log('プレイヤー名保存成功');
 			} else {
 				console.error('プレイヤー名保存失敗:', result);
@@ -163,7 +165,9 @@ class SettingsManager {
 		this.applySettings();
 
 		// 成功メッセージ
-		this.game.showMessage('設定が保存されました');
+		if (this.game.messageManager) {
+			this.game.messageManager.showMessage('設定が保存されました');
+		}
 
 		// モーダルを閉じる
 		const settingsModal = document.getElementById('settingsModal');

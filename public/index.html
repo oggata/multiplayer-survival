@@ -280,6 +280,15 @@
             pointer-events: none;
             width: 0;
         }
+        
+        .status-text {
+            position: absolute;
+            right: -60px;
+            top: -2px;
+            font-size: 10px;
+            color: white;
+            white-space: nowrap;
+        }
         #health .status-fill { background: #ff4444; }
         #hunger .status-fill { background: #ffaa44; }
         #thirst .status-fill { background: #44aaff; }
@@ -775,24 +784,28 @@
                 <i class="fas fa-heartbeat"></i>
                 <div class="status-bar health">
                     <div class="status-fill"></div>
+                    <span class="status-text">100/100</span>
                 </div>
             </div>
             <div class="status-item">
                 <i class="fas fa-hamburger"></i>
                 <div class="status-bar hunger">
                     <div class="status-fill"></div>
+                    <span class="status-text">100%</span>
                 </div>
             </div>
             <div class="status-item">
                 <i class="fas fa-tint"></i>
                 <div class="status-bar thirst">
                     <div class="status-fill"></div>
+                    <span class="status-text">100%</span>
                 </div>
             </div>
             <div class="status-item">
                 <i class="fas fa-running"></i>
                 <div class="status-bar stamina">
                     <div class="status-fill"></div>
+                    <span class="status-text">100/100</span>
                 </div>
             </div>
     </div>
@@ -924,7 +937,7 @@
         
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="js/neon.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
@@ -941,38 +954,63 @@
             console.error('Stats.jsの読み込みに失敗しました');
         }
     </script>
-    <script src="js/config.js"></script>
-    <script src="js/items.js"></script>
-    <script src="js/audioManager.js"></script>
-    <script src="js/character.js"></script>
-    <script src="js/quadrupedCharacter.js"></script>
-    <script src="js/crabCharacter.js"></script>
-
-<script src="js/giantCharacter.js"></script>
-<script src="js/flyingCharacter.js"></script>
-<script src="js/bossCharacter.js"></script>
-<script src="js/slimeCharacter.js"></script>
-
-<script src="js/enemyCharacter.js"></script>
-<script src="js/fatCharacter.js"></script>
-
-    <script src="js/hexapodCharacter.js"></script>
-    <script src="js/enhancedEnemy.js"></script>
-    <script src="js/fieldmap.js"></script>
-    <script src="js/playerStatus.js"></script>
-    <script src="js/item.js"></script>
-    <script src="js/weather.js"></script>
-    <script src="js/bullet.js"></script>
-    <script src="js/fieldobject.js"></script>
-    <script src="js/rankingManager.js"></script>
-    <script src="js/settingsManager.js"></script>
-    <script src="js/messageManager.js"></script>
-    <script src="js/memoryManager.js"></script>
-    <script src="js/game.js"></script>
-    <script src="js/mission.js"></script>
-    <script src="js/enemyBullet.js"></script>
-    <script src="js/raycast.js"></script>
-    <script src="js/weponManager.js"></script>
+    <!-- Core -->
+    <script src="js/core/config.js"></script>
+    <script src="js/core/raycast.js"></script>
+    
+    <!-- Items -->
+    <script src="js/items/items.js"></script>
+    <script src="js/items/item.js"></script>
+    <script src="js/items/itemManager.js"></script>
+    <script src="js/items/itemEffectManager.js"></script>
+    
+    <!-- Managers -->
+    <script src="js/managers/audioManager.js"></script>
+    <script src="js/managers/effectManager.js"></script>
+    <script src="js/managers/memoryManager.js"></script>
+    <script src="js/managers/mission.js"></script>
+    <script src="js/managers/timeManager.js"></script>
+    
+    <!-- Characters -->
+    <script src="js/characters/character.js"></script>
+    <script src="js/characters/playerStatus.js"></script>
+    <script src="js/characters/player.js"></script>
+    
+    <!-- Enemy Characters -->
+    <script src="js/characters/enemies/enemyCharacter.js"></script>
+    <script src="js/characters/enemies/bossCharacter.js"></script>
+    <script src="js/characters/enemies/crabCharacter.js"></script>
+    <script src="js/characters/enemies/fatCharacter.js"></script>
+    <script src="js/characters/enemies/flyingCharacter.js"></script>
+    <script src="js/characters/enemies/giantCharacter.js"></script>
+    <script src="js/characters/enemies/hexapodCharacter.js"></script>
+    <script src="js/characters/enemies/quadrupedCharacter.js"></script>
+    <script src="js/characters/enemies/slimeCharacter.js"></script>
+    <script src="js/characters/enemies/enhancedEnemy.js"></script>
+    
+    <!-- Weapons -->
+    <script src="js/weapons/weaponManager.js"></script>
+    <script src="js/weapons/bullet.js"></script>
+    <script src="js/weapons/enemyBullet.js"></script>
+    
+    <!-- World -->
+    <script src="js/world/fieldmap.js"></script>
+    <script src="js/world/fieldobject.js"></script>
+    <script src="js/world/terrainManager.js"></script>
+    <script src="js/world/weather.js"></script>
+    
+    <!-- UI -->
+    <script src="js/ui/uiManager.js"></script>
+    <script src="js/ui/uiSetup.js"></script>
+    <script src="js/ui/messageManager.js"></script>
+    <script src="js/ui/rankingManager.js"></script>
+    <script src="js/ui/settingsManager.js"></script>
+    
+    <!-- Effects -->
+    <script src="js/effects/neon.js"></script>
+    
+    <!-- Core Game -->
+    <script src="js/core/game.js"></script>
 
 
 <script>

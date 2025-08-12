@@ -41,7 +41,8 @@ class Game {
 		};
 
 		// 視点切り替えボタンを追加
-		this.setupCameraButton();
+		this.uiSetup = new UISetup(this);
+		this.uiSetup.setupCameraButton();
 		
 		// WebGLレンダラーを使用（Three.js r128ではWebGPUがサポートされていないため）
 		this.renderer = new THREE.WebGLRenderer({
@@ -57,10 +58,10 @@ class Game {
 		this.renderer.shadowMap.type = THREE.PCFShadowMap; // シャドウマップの品質を最適化
 
 
-		this.setupJumpButton();
-		this.setupRankingButton();
-		this.setupSettingsButton();
-		this.setupMapButton();
+		this.uiSetup.setupJumpButton();
+		this.uiSetup.setupRankingButton();
+		this.uiSetup.setupSettingsButton();
+		this.uiSetup.setupMapButton();
 
 
 		// モノクロ効果用のシェーダーを追加
@@ -222,29 +223,17 @@ class Game {
 		// 敵が倒された時のイベントリスナーを追加
 		document.addEventListener('enemyDied', this.handleEnemyDeath.bind(this));
 
+		// 開発者モード用のキーボードショートカット
+		if (this.devMode) {
+			document.addEventListener('keydown', this.handleDevKeydown.bind(this));
+		}
+
 		this.testCount = 0;
 
-		// アイテム効果表示用の要素
-		this.effectsContainer = document.createElement('div');
-		this.effectsContainer.id = 'effectsContainer';
-		this.effectsContainer.style.cssText = `
-            position: fixed;
-            top: 30px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 8px;
-            border-radius: 5px;
-            color: white;
-            font-size: 11px;
-            z-index: 1000;
-            min-width: 250px;
-        `;
-		document.body.appendChild(this.effectsContainer);
+		// ItemEffectManagerの初期化
+		this.itemEffectManager = new ItemEffectManager(this);
 
-		// 初期表示を設定
-		this.updateEffectsDisplay();
-
-		// ゲーム開始時にランダムなアイテムを3つバックパックに入れる
+		// ゲーム開始時にランダムなアイテムを3つバックパックに入れる（ワープ薬を必ず1つ含める）
 		const lang = localStorage.getItem('language') || 'ja';
 		const items = ItemsConfig.getItemsConfig(lang) || {};
 		console.log('lang:', lang);
@@ -253,42 +242,38 @@ class Game {
 			.filter(([_, item]) => item.dropChance !== undefined)
 			.map(([type]) => type);
 
+		// ワープ薬を必ず1つ追加
+		this.inventory.push({
+			id: Date.now(),
+			type: 'warpPotion'
+		});
+		console.log('ワープ薬を初期インベントリに追加');
 
-
-if(this.devMode){
-
-		for (let i = 0; i < 10; i++) {
-			const randomIndex = Math.floor(Math.random() * itemTypes.length);
-			const selectedType = itemTypes[i];
-			//console.log('selectedType', selectedType);
-			if (selectedType) {
-				this.inventory.push({
-					id: Date.now() + i,
-					type: selectedType
-				});
+		if(this.devMode){
+			// デバッグモードではワープ薬以外に9個のランダムアイテムを追加
+			for (let i = 0; i < 9; i++) {
+				const randomIndex = Math.floor(Math.random() * itemTypes.length);
+				const selectedType = itemTypes[randomIndex];
+				if (selectedType) {
+					this.inventory.push({
+						id: Date.now() + i + 1,
+						type: selectedType
+					});
+				}
+			}
+		} else {
+			// 通常モードではワープ薬以外に2個のランダムアイテムを追加
+			for (let i = 0; i < 2; i++) {
+				const randomIndex = Math.floor(Math.random() * itemTypes.length);
+				const selectedType = itemTypes[randomIndex];
+				if (selectedType) {
+					this.inventory.push({
+						id: Date.now() + i + 1,
+						type: selectedType
+					});
+				}
 			}
 		}
-
-}else{
-
-
-
-			
-		for (let i = 0; i < 3; i++) {
-			const randomIndex = Math.floor(Math.random() * itemTypes.length);
-			const selectedType = itemTypes[randomIndex];
-			//console.log('selectedType', selectedType);
-			if (selectedType) {
-				this.inventory.push({
-					id: Date.now() + i,
-					type: selectedType
-				});
-			}
-		}
-
-
-
-}
 
 
 
@@ -336,11 +321,11 @@ if(this.devMode){
 		};
 
 		// BGM開始のためのユーザーインタラクションUIを追加
-		this.setupAudioInteractionUI();
+		this.uiSetup.setupAudioInteractionUI();
 		
 		// iOSデバイス用の追加設定
 		if (this.audioManager.isIOS) {
-			this.setupIOSAudioHandlers();
+			this.uiSetup.setupIOSAudioHandlers();
 		}
 
 		// 歩行状態の直前値を記録
@@ -892,13 +877,23 @@ if(this.devMode){
 
 
 		this.socket.on('enemiesKilled', (enemyIds) => {
+			console.log(`=== enemiesKilledイベント受信: ${enemyIds.join(', ')} ===`);
 			enemyIds.forEach(enemyId => {
 				const enemy = this.enemies.get(enemyId);
 				if (enemy) {
-					// 音を再生
-					//this.audioManager.play('enemyDeath');
-					enemy.forceDie();
+					console.log(`enemiesKilled処理開始: ${enemyId}, disposedByVision: ${enemy.disposedByVision}, isDead: ${enemy.isDead}`);
+					// 視界外での削除の場合はforceDie()を呼ばない
+					if (!enemy.disposedByVision) {
+						console.log(`enemiesKilled - 正常な敵死亡処理: ${enemyId}`);
+						// 音を再生
+						//this.audioManager.play('enemyDeath');
+						enemy.forceDie();
+					} else {
+						console.log(`enemiesKilled - 視界外削除のため処理をスキップ: ${enemyId}`);
+					}
 					this.enemies.delete(enemyId);
+				} else {
+					console.log(`enemiesKilled - 敵が見つかりません: ${enemyId}`);
 				}
 			});
 		});
@@ -2115,145 +2110,7 @@ if(this.devMode){
 	}
 
 	useItem(itemType) {
-		const lang = localStorage.getItem('language') || 'ja';
-		const itemConfig = ItemsConfig.getItemConfig(itemType, lang);
-		if (!itemConfig) {
-			console.warn('アイテム設定が見つかりません:', itemType);
-			return;
-		}
-		
-		console.log('アイテム使用:', itemType, itemConfig);
-		
-		// アイテム名を取得
-		const itemName = itemConfig.name || itemType;
-		const isEnglish = lang === 'en';
-		let effectMessage = isEnglish 
-			? `✨ Used ${itemName}! ✨`
-			: `✨ ${itemName}を使用しました！ ✨`;
-		
-		// 食べ物・飲み物サウンド
-		if (itemConfig.category === 'food') {
-			this.audioManager.play('eat');
-		} else if (itemConfig.category === 'drink') {
-			this.audioManager.play('drink');
-		}
-		
-		// 即時効果の適用（instant形式とimmediate形式の両方に対応）
-		if (itemConfig.effects) {
-			const instantEffects = itemConfig.effects.instant || itemConfig.effects.immediate;
-			if (instantEffects) {
-				console.log('即時効果適用:', instantEffects);
-				
-				// instant形式（日本語設定）
-				if (instantEffects.type) {
-					if (instantEffects.type === 'health') {
-						this.playerStatus.addHealth(instantEffects.value);
-						effectMessage += isEnglish 
-							? `\n💚 Health recovered by ${instantEffects.value}!`
-							: `\n💚 体力が${instantEffects.value}回復しました！`;
-					} else if (instantEffects.type === 'hunger') {
-						this.playerStatus.addHunger(instantEffects.value);
-						effectMessage += isEnglish 
-							? `\n🍖 Hunger recovered by ${instantEffects.value}!`
-							: `\n🍖 空腹が${instantEffects.value}回復しました！`;
-					} else if (instantEffects.type === 'thirst') {
-						this.playerStatus.addThirst(instantEffects.value);
-						effectMessage += isEnglish 
-							? `\n💧 Thirst recovered by ${instantEffects.value}!`
-							: `\n💧 喉の渇きが${instantEffects.value}回復しました！`;
-					} else if (instantEffects.type === 'stamina') {
-						// スタミナ効果
-						this.playerStatus.addStamina(instantEffects.value);
-						effectMessage += isEnglish 
-							? `\n⚡ Stamina recovered by ${instantEffects.value}!`
-							: `\n⚡ スタミナが${instantEffects.value}回復しました！`;
-					} else if (instantEffects.type === 'experience') {
-						// 経験値効果
-						this.playerStatus.addExperience(instantEffects.value);
-						effectMessage += isEnglish 
-							? `\n⭐ Experience gained: ${instantEffects.value}!`
-							: `\n⭐ 経験値を${instantEffects.value}獲得しました！`;
-					} else if (instantEffects.type === 'warp') {
-						// ワープ効果
-						this.warpToRandomPlayer();
-						effectMessage += isEnglish 
-							? `\n✨ Warped to another player!`
-							: `\n✨ 他のプレイヤーの近くにワープしました！`;
-					}
-				}
-				// immediate形式（英語設定）
-				else {
-					if (instantEffects.health) {
-						this.playerStatus.addHealth(instantEffects.health);
-						effectMessage += isEnglish 
-							? `\n💚 Health recovered by ${instantEffects.health}!`
-							: `\n💚 体力が${instantEffects.health}回復しました！`;
-					}
-					if (instantEffects.hunger) {
-						this.playerStatus.addHunger(instantEffects.hunger);
-						effectMessage += isEnglish 
-							? `\n🍖 Hunger recovered by ${instantEffects.hunger}!`
-							: `\n🍖 空腹が${instantEffects.hunger}回復しました！`;
-					}
-					if (instantEffects.thirst) {
-						this.playerStatus.addThirst(instantEffects.thirst);
-						effectMessage += isEnglish 
-							? `\n💧 Thirst recovered by ${instantEffects.thirst}!`
-							: `\n💧 喉の渇きが${instantEffects.thirst}回復しました！`;
-					}
-					if (instantEffects.experience) {
-						this.playerStatus.addExperience(instantEffects.experience);
-						effectMessage += isEnglish 
-							? `\n⭐ Experience gained: ${instantEffects.experience}!`
-							: `\n⭐ 経験値を${instantEffects.experience}獲得しました！`;
-					}
-					if (instantEffects.hygiene !== undefined) {
-						this.playerStatus.hygiene = Math.max(0, Math.min(100, this.playerStatus.hygiene + instantEffects.hygiene));
-						effectMessage += isEnglish 
-							? `\n🧼 Hygiene ${instantEffects.hygiene > 0 ? '+' : ''}${instantEffects.hygiene}!`
-							: `\n🧼 衛生が${instantEffects.hygiene > 0 ? '+' : ''}${instantEffects.hygiene}変化しました！`;
-					}
-					if (instantEffects.stamina !== undefined) {
-						this.playerStatus.addStamina(instantEffects.stamina);
-						effectMessage += isEnglish 
-							? `\n⚡ Stamina recovered by ${instantEffects.stamina}!`
-							: `\n⚡ スタミナが${instantEffects.stamina}回復しました！`;
-					}
-				}
-			}
-		}
-
-		// 持続効果の適用
-		if (itemConfig.effects && itemConfig.effects.duration) {
-			const durationEffect = itemConfig.effects.duration;
-			console.log('持続効果適用:', durationEffect);
-			this.playerStatus.addDurationEffect(durationEffect);
-			
-			// 持続効果のメッセージを追加
-			if (durationEffect.type === 'wepon') {
-				effectMessage += isEnglish 
-					? `\n⚔️ Equipped ${itemName}!`
-					: `\n⚔️ ${itemName}を装備しました！`;
-			} else if (durationEffect.type === 'temperature') {
-				effectMessage += isEnglish 
-					? `\n🔥 Temperature increased by ${durationEffect.value}!`
-					: `\n🔥 体温が${durationEffect.value}上昇しました！`;
-			} else {
-				effectMessage += isEnglish 
-					? `\n⏰ Effect lasts for ${Math.floor(durationEffect.duration / 1000)} seconds!`
-					: `\n⏰ 効果が${Math.floor(durationEffect.duration / 1000)}秒間持続します！`;
-			}
-		}
-
-		// アイテム効果メッセージを表示
-		this.messageManager.showItemEffectMessage(effectMessage, itemType);
-
-		// インベントリからアイテムを削除
-		const index = this.inventory.findIndex(item => item.type === itemType);
-		if (index !== -1) {
-			this.inventory.splice(index, 1);
-			this.updateBackpackUI();
-		}
+		this.itemEffectManager.useItem(itemType);
 	}
 
 	dropItem(itemId) {
@@ -2627,10 +2484,43 @@ if(this.devMode){
 			console.log("敵が見つからないか、モデルが無効です:", enemyId);
 			return;
 		}
+		
+		// 敵が視界外で削除された場合は出血エフェクトを生成しない
+		const playerPosition = this.playerModel.getPosition();
+		const enemyPosition = enemy.model.getPosition();
+		const distance = playerPosition.distanceTo(enemyPosition);
+		const maxDistance = GameConfig.MAP.VISLBLE_DISTANCE;
+		const disposeDistance = maxDistance * 1.5;
+		
+		console.log(`handleEnemyDeath - 敵ID: ${enemyId}, 距離: ${distance}, disposeDistance: ${disposeDistance}`);
+		
+		if (distance > disposeDistance) {
+			console.log("視界外の敵の削除のため、出血エフェクト、経験値、アイテムスポーンを生成しません");
+			return;
+		}
+		
+		// 敵が既に視界外削除フラグを持っている場合も処理をスキップ
+		if (enemy.disposedByVision) {
+			console.log("敵が既に視界外削除フラグを持っているため、処理をスキップします");
+			return;
+		}
 
 		// 倒した敵数をカウントアップ
 		this.killedEnemies++;
 		console.log("倒した敵数:", this.killedEnemies);
+		
+		// 経験値を獲得（敵の種類に応じて経験値を変更）
+		let experienceGained = 10; // デフォルトの経験値
+		if (enemy.type === 'boss') {
+			experienceGained = 50;
+		} else if (enemy.type === 'giant') {
+			experienceGained = 30;
+		} else if (enemy.type === 'flying') {
+			experienceGained = 20;
+		}
+		
+		this.playerStatus.addExperience(experienceGained);
+		console.log(`経験値を${experienceGained}獲得しました！`);
 
 		const position = enemy.model.getPosition();
 		if (!position) {
@@ -2687,6 +2577,34 @@ if(this.devMode){
 		// --- ここで血痕を生成 ---
 		this.createBloodstain(position);
 		console.log("敵の死亡処理完了");
+	}
+
+	// 開発者モード用のキーボードハンドラー
+	handleDevKeydown(event) {
+		if (!this.devMode) return;
+
+		switch (event.key) {
+			case 'e':
+			case 'E':
+				// Eキーで経験値を100追加
+				this.playerStatus.addExperience(100);
+				console.log('開発者モード: 経験値を100追加しました');
+				break;
+			case 'h':
+			case 'H':
+				// Hキーで体力を全回復
+				this.playerStatus.health = this.playerStatus.maxHealth;
+				this.playerStatus.updateGauges();
+				console.log('開発者モード: 体力を全回復しました');
+				break;
+			case 's':
+			case 'S':
+				// Sキーでスタミナを全回復
+				this.playerStatus.stamina = this.playerStatus.maxStamina;
+				this.playerStatus.updateGauges();
+				console.log('開発者モード: スタミナを全回復しました');
+				break;
+		}
 	}
 
 	spawnItem(itemType, position) {
@@ -2758,6 +2676,11 @@ if(this.devMode){
 		this.devMode = isDevMode;
 		console.log('this.devMode:', this.devMode);
 
+		// devModeがtrueの時にキーボードショートカットを設定
+		if (this.devMode) {
+			document.addEventListener('keydown', this.handleDevKeydown.bind(this));
+		}
+
 		// devModeがtrueの時にStats.jsを初期化
 		if (this.devMode && !this.stats) {
 			console.log('Stats.jsの初期化を開始します');
@@ -2819,6 +2742,13 @@ if(this.devMode){
 
 			if (distance > disposeDistance) {
 				// 完全に削除する距離を超えている場合は削除
+				// 視界外での削除のため、die()メソッドを呼ばずに直接削除
+				console.log(`=== 視界外での敵削除開始: ${enemyId}, 距離: ${distance}, disposeDistance: ${disposeDistance} ===`);
+				console.log(`削除前の状態 - disposedByVision: ${enemy.disposedByVision}, isDead: ${enemy.isDead}`);
+				enemy.disposedByVision = true;
+				enemy.isDead = true; // 死亡フラグも設定してdie()メソッドが呼ばれないようにする
+				console.log(`削除後の状態 - disposedByVision: ${enemy.disposedByVision}, isDead: ${enemy.isDead}`);
+				
 				if (enemy.model.character) {
 					this.scene.remove(enemy.model.character);
 					enemy.model.character.traverse(child => {
@@ -2834,8 +2764,13 @@ if(this.devMode){
 						}
 					});
 				}
-				// 敵をMapから削除
-				this.enemies.delete(enemyId);
+				// 敵をMapから削除する前に遅延を入れる（enemiesKilledイベントの処理を待つ）
+				setTimeout(() => {
+					if (this.enemies.has(enemyId)) {
+						console.log(`敵をMapから削除: ${enemyId}`);
+						this.enemies.delete(enemyId);
+					}
+				}, 200);
 				return;
 			} else if (distance > maxDistance) {
 				// 最大距離を超えているか視界外の場合は非表示
@@ -3208,59 +3143,7 @@ if(this.devMode){
 
 	// アイテム効果の表示を更新
 	updateEffectsDisplay() {
-		if (!this.effectsContainer) return;
-
-		const effects = this.playerStatus.getCurrentEffects();
-		//console.log(effects);
-		// 効果がない場合はコンテナを非表示
-		if (Object.keys(effects).length === 0) {
-			this.effectsContainer.style.display = 'none';
-			return;
-		}
-
-		// 効果がある場合はコンテナを表示
-		this.effectsContainer.style.display = 'block';
-
-		let html = '';
-
-		for (const [effectId, effect] of Object.entries(effects)) {
-			const remainingTime = Math.ceil(effect.remainingTime);
-			const lang = localStorage.getItem('language') || 'ja';
-			
-			// 武器効果の場合は特別な処理
-			if (effect.type === 'wepon') {
-				html += `
-                    <span style="margin: 0 8px 0 0; font-size: 10px; display: inline-block;">
-                        <span style="color: #4CAF50; font-weight: bold; font-size: 10px;">[${effect.name}]</span>
-                        <span style="color: #4CAF50; font-size: 9px;">武器効果</span>
-                        <span style="color: #FFD700; margin-left: 3px; font-size: 9px;">${remainingTime}s</span>
-                    </span>
-                `;
-			} else {
-				// その他の効果はItemsConfigから取得
-				const effectConfig = ItemsConfig.getItemConfig(effect.type, lang);
-				if (effectConfig) {
-					html += `
-                        <span style="margin: 0 8px 0 0; font-size: 10px; display: inline-block;">
-                            <span style="color: #4CAF50; font-weight: bold; font-size: 10px;">[${effectConfig.name}]</span>
-                            <span style="color: #4CAF50; font-size: 9px;">${effectConfig.description}</span>
-                            <span style="color: #FFD700; margin-left: 3px; font-size: 9px;">${remainingTime}s</span>
-                        </span>
-                    `;
-				} else {
-					// 効果設定が見つからない場合のフォールバック
-					html += `
-                        <span style="margin: 0 8px 0 0; font-size: 10px; display: inline-block;">
-                            <span style="color: #4CAF50; font-weight: bold; font-size: 10px;">[${effect.type}]</span>
-                            <span style="color: #4CAF50; font-size: 9px;">効果</span>
-                            <span style="color: #FFD700; margin-left: 3px; font-size: 9px;">${remainingTime}s</span>
-                        </span>
-                    `;
-				}
-			}
-		}
-
-		this.effectsContainer.innerHTML = html;
+		this.itemEffectManager.updateEffectsDisplay();
 	}
 
 	handleEnemyKilled(enemyIds) {
@@ -3565,65 +3448,7 @@ if(this.devMode){
 	}
 
 
-	setupJumpButton() {
-		const jumpButton = document.getElementById('jumpButton');
-		if (!jumpButton) return;
 
-			jumpButton.addEventListener('click', () => {
-				if (this.playerModel) {
-					this.playerModel.startJump();
-				}
-			});
-	}
-
-	setupCameraButton() {
-		// 設定画面のカメラモード選択を設定
-		const cameraModeSelect = document.getElementById('cameraModeSelect');
-		if (!cameraModeSelect) return;
-
-		// 現在のカメラモードを選択状態に反映
-		cameraModeSelect.value = this.cameraMode;
-
-		cameraModeSelect.addEventListener('change', () => {
-			// 視点モードを変更
-			this.cameraMode = cameraModeSelect.value;
-			// カメラ位置を更新
-			this.updateCameraPosition();
-		});
-	}
-
-	setupMapButton() {
-		const mapButton = document.getElementById('mapButton');
-		const mapModal = document.getElementById('mapModal');
-		const closeMapModal = document.getElementById('closeMapModal');
-
-		if (!mapButton || !mapModal || !closeMapModal) return;
-
-		mapButton.addEventListener('click', () => {
-			mapModal.style.display = 'block';
-		});
-
-		closeMapModal.addEventListener('click', () => {
-			mapModal.style.display = 'none';
-		});
-
-		// モーダル外をクリックしても閉じる
-		mapModal.addEventListener('click', (e) => {
-			if (e.target === mapModal) {
-				mapModal.style.display = 'none';
-			}
-		});
-	}
-
-	setupRankingButton() {
-		// RankingManagerに委譲
-		this.rankingManager = new RankingManager(this);
-	}
-
-	setupSettingsButton() {
-		// SettingsManagerに委譲
-		this.settingsManager = new SettingsManager(this);
-	}
 
 	// MessageManagerの初期化
 	initializeMessageManager() {
@@ -3698,180 +3523,7 @@ if(this.devMode){
 		this.memoryManager.processCleanupQueue();
 	}
 
-	// BGM開始のためのユーザーインタラクションUIを設定
-	setupAudioInteractionUI() {
-		// iOSデバイスかどうかを判定
-		const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-		
-		// 音声開始ボタンを作成
-		const audioButton = document.createElement('div');
-		audioButton.id = 'audioStartButton';
-		
-		// iOS用の特別なメッセージ
-		const iosMessage = isIOS ? 
-			'<div style="font-size: 12px; margin-top: 5px; color: #ff6b6b;">iOS: Tap to start background music</div>' : 
-			'<div style="font-size: 12px; margin-top: 5px; color: #ccc;">(due to the browsers autoplay policy)</div>';
-		
-		audioButton.innerHTML = `
-			<div style="
-				position: fixed;
-				top: 50%;
-				left: 50%;
-				transform: translate(-50%, -50%);
-				background: rgba(0, 0, 0, 0.9);
-				color: white;
-				padding: 25px;
-				border-radius: 15px;
-				text-align: center;
-				z-index: 10000;
-				cursor: pointer;
-				font-size: 18px;
-				border: 3px solid #4CAF50;
-				box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-				min-width: 280px;
-			">
-				<div style="margin-bottom: 15px;">
-					<i class="fas fa-volume-up" style="font-size: 32px; color: #4CAF50;"></i>
-				</div>
-				<div style="font-weight: bold; margin-bottom: 10px;">
-					${isIOS ? '🎵 StartBGM' : 'Click to start BGM'}
-				</div>
-				${iosMessage}
-				${isIOS ? '<div style="font-size: 11px; margin-top: 8px; color: #ffa500;">*Audio playback is limited on iOS.</div>' : ''}
-			</div>
-		`;
-		
-		document.body.appendChild(audioButton);
-		
-		// クリックイベントを設定
-		const startBGMHandler = () => {
-			console.log('音声開始ボタンがクリックされました');
-			
-			// iOS用の特別な処理
-			if (isIOS) {
-				this.startBGMForIOS();
-			} else {
-				// BGMを開始
-				this.audioManager.playBGM();
-			}
-			
-			// ボタンを非表示にする
-			audioButton.style.display = 'none';
-			
-			// 成功メッセージを表示
-			const successMessage = document.createElement('div');
-			successMessage.innerHTML = `
-				<div style="
-					position: fixed;
-					top: 20px;
-					right: 20px;
-					background: rgba(76, 175, 80, 0.9);
-					color: white;
-					padding: 12px 18px;
-					border-radius: 8px;
-					z-index: 10001;
-					font-size: 14px;
-					box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-				">
-					<i class="fas fa-check"></i> Start BGM
-				</div>
-			`;
-			document.body.appendChild(successMessage);
-			
-			// 3秒後にメッセージを削除
-			setTimeout(() => {
-				if (successMessage.parentNode) {
-					successMessage.remove();
-				}
-			}, 3000);
-		};
-		
-		// iOSではタッチイベントを優先
-		if (isIOS) {
-			audioButton.addEventListener('touchstart', (e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				startBGMHandler();
-			}, { passive: false });
-		}
-		
-		audioButton.addEventListener('click', (e) => {
-			e.preventDefault();
-			e.stopPropagation();
-			startBGMHandler();
-		});
-		
-		// iOSではより長く表示する（15秒）
-		const autoHideTime = isIOS ? 15000 : 5000;
-		setTimeout(() => {
-			if (audioButton.parentNode && !this.audioManager.bgmReady) {
-				audioButton.style.display = 'none';
-				console.log('音声開始ボタンを自動非表示にしました');
-			}
-		}, autoHideTime);
-	}
 
-	// iOS用のBGM開始処理
-	startBGMForIOS() {
-		console.log('iOS: 特別なBGM開始処理を実行');
-		
-		// AudioContextを確実に再開
-		if (this.audioManager.audioContext && this.audioManager.audioContext.state === 'suspended') {
-			this.audioManager.audioContext.resume().then(() => {
-				console.log('iOS: AudioContext再開完了（UI経由）');
-				this.audioManager.playBGM();
-			}).catch(error => {
-				console.error('iOS: AudioContext再開エラー（UI経由）:', error);
-				// エラーが発生してもBGM再生を試行
-				this.audioManager.playBGM();
-			});
-		} else {
-			this.audioManager.playBGM();
-		}
-	}
-
-	// iOSデバイス用の音声ハンドラーを設定
-	setupIOSAudioHandlers() {
-		console.log('iOSデバイス用の音声ハンドラーを設定中...');
-		
-		// ページの可視性変更時の処理
-		document.addEventListener('visibilitychange', () => {
-			if (document.hidden) {
-				// ページが非表示になった時にBGMを一時停止
-				if (this.audioManager.bgm && !this.audioManager.bgm.paused) {
-					this.audioManager.bgm.pause();
-					console.log('iOS: ページ非表示でBGM一時停止');
-				}
-			} else {
-				// ページが表示された時にBGMを再開
-				if (this.audioManager.bgm && this.audioManager.bgmReady) {
-					this.audioManager.bgm.play().catch(error => {
-						console.log('iOS: ページ表示時のBGM再開エラー:', error);
-					});
-				}
-			}
-		});
-		
-		// タッチイベントでAudioContextを再開
-		const resumeAudioContext = () => {
-			if (this.audioManager.audioContext && this.audioManager.audioContext.state === 'suspended') {
-				this.audioManager.audioContext.resume().then(() => {
-					console.log('iOS: AudioContext再開完了');
-				});
-			}
-		};
-		
-		// 最初のタッチでAudioContextを再開
-		document.addEventListener('touchstart', resumeAudioContext, { once: true });
-		document.addEventListener('touchend', resumeAudioContext, { once: true });
-		
-		// ゲームキャンバスでのタッチでも再開
-		const canvas = document.getElementById('gameCanvas');
-		if (canvas) {
-			canvas.addEventListener('touchstart', resumeAudioContext, { once: true });
-			canvas.addEventListener('touchend', resumeAudioContext, { once: true });
-		}
-	}
 
 	processCurrentPlayers(players) {
 		console.log("processCurrentPlayers開始 - プレイヤー数:", players.length);

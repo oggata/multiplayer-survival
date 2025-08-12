@@ -62,12 +62,16 @@ class ItemManager {
 
 	collectItem(item) {
 		if (this.inventory.length >= 20) {
-			this.game.showMessage('バックパックがいっぱいです！');
+			if (this.game.messageManager) {
+				this.game.messageManager.showMessage('バックパックがいっぱいです！');
+			}
 			return;
 		}
 
 		const itemName = this.getItemName(item.type);
-		this.game.showItemEffectMessage(`${itemName}を拾いました！`, item.type);
+		if (this.game.messageManager) {
+			this.game.messageManager.showItemEffectMessage(`${itemName}を拾いました！`, item.type);
+		}
 
 		// インベントリに追加
 		this.inventory.push({
@@ -80,17 +84,23 @@ class ItemManager {
 
 		// UI更新
 		this.updateBackpackUI();
-		this.game.uiManager.updateInventoryDisplay();
-		this.game.uiManager.updateItemCount();
+		if (this.game.uiManager) {
+			this.game.uiManager.updateInventoryDisplay();
+			this.game.uiManager.updateItemCount();
+		}
 
 		// 音効果
-		this.game.audioManager.playSound('item');
+		if (this.game.audioManager) {
+			this.game.audioManager.play('item');
+		}
 	}
 
 	useItem(itemType) {
 		const itemIndex = this.inventory.findIndex(item => item.type === itemType);
 		if (itemIndex === -1) {
-			this.game.showMessage('そのアイテムは持っていません');
+			if (this.game.messageManager) {
+				this.game.messageManager.showMessage('そのアイテムは持っていません');
+			}
 			return;
 		}
 
@@ -105,10 +115,16 @@ class ItemManager {
 
 		// UI更新
 		this.updateBackpackUI();
-		this.game.uiManager.updateInventoryDisplay();
+		if (this.game.uiManager) {
+			this.game.uiManager.updateInventoryDisplay();
+		}
 
-		this.game.showItemEffectMessage(`${itemName}を使用しました！`, itemType);
-		this.game.audioManager.playSound('eat');
+		if (this.game.messageManager) {
+			this.game.messageManager.showItemEffectMessage(`${itemName}を使用しました！`, itemType);
+		}
+		if (this.game.audioManager) {
+			this.game.audioManager.play('eat');
+		}
 	}
 
 	applyItemEffects(itemType) {
@@ -155,15 +171,21 @@ class ItemManager {
 
 		// UI更新
 		this.updateBackpackUI();
-		this.game.uiManager.updateInventoryDisplay();
+		if (this.game.uiManager) {
+			this.game.uiManager.updateInventoryDisplay();
+		}
 
-		this.game.showMessage(`${itemName}を捨てました`);
+		if (this.game.messageManager) {
+			this.game.messageManager.showMessage(`${itemName}を捨てました`);
+		}
 	}
 
 	spawnItem(itemType, position) {
 		const item = new Item(itemType, position);
 		this.items.push(item);
-		this.game.scene.add(item.mesh);
+		if (this.game.scene) {
+			this.game.scene.add(item.mesh);
+		}
 	}
 
 	getItemColor(type) {
@@ -197,14 +219,20 @@ class ItemManager {
 	}
 
 	updateBackpackUI() {
-		this.game.uiManager.updateBackpackUI();
+		if (this.game.uiManager) {
+			this.game.uiManager.updateBackpackUI();
+		}
 	}
 
 	updateItemCount() {
-		this.game.uiManager.updateItemCount();
+		if (this.game.uiManager) {
+			this.game.uiManager.updateItemCount();
+		}
 	}
 
 	updateInventoryDisplay() {
-		this.game.uiManager.updateInventoryDisplay();
+		if (this.game.uiManager) {
+			this.game.uiManager.updateInventoryDisplay();
+		}
 	}
 } 
