@@ -52,8 +52,9 @@ class Game {
 			precision: "mediump" // 精度を中程度に設定してパフォーマンス向上
 		});
 		
-		this.renderer.setSize(window.innerWidth, window.innerHeight);
-		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // ピクセル比を制限
+		// レンダリング解像度を下げつつ、キャンバスはウィンドウサイズに合わせる設定
+		this.renderer.setSize(window.innerWidth, window.innerHeight); // キャンバスはウィンドウサイズに合わせる
+		this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.0)); // ピクセル比を1.0に制限して実質的な解像度を下げる
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFShadowMap; // シャドウマップの品質を最適化
 
@@ -257,7 +258,7 @@ class Game {
 			this.camera.aspect = window.innerWidth / window.innerHeight;
 			this.camera.updateProjectionMatrix();
 			
-			// レンダラーのサイズを更新
+			// レンダラーのサイズを更新（キャンバスはウィンドウサイズに合わせる）
 			this.renderer.setSize(window.innerWidth, window.innerHeight);
 		});
 
@@ -350,7 +351,7 @@ class Game {
 			this.camera.aspect = window.innerWidth / window.innerHeight;
 			this.camera.updateProjectionMatrix();
 			
-			// レンダラーのサイズを更新
+			// レンダラーのサイズを更新（キャンバスはウィンドウサイズに合わせる）
 			this.renderer.setSize(window.innerWidth, window.innerHeight);
 		});
 
@@ -404,8 +405,8 @@ class Game {
 		this.sunLight.shadow.camera.bottom = -100;
 		this.sunLight.shadow.camera.left = -100;
 		this.sunLight.shadow.camera.right = 100;
-		this.sunLight.shadow.mapSize.width = 2048;
-		this.sunLight.shadow.mapSize.height = 2048;
+		this.sunLight.shadow.mapSize.width = 1024; // シャドウマップ解像度を下げる
+		this.sunLight.shadow.mapSize.height = 1024; // シャドウマップ解像度を下げる
 		this.scene.add(this.sunLight);
 
 		// プレイヤー用のスポットライトを作成
@@ -416,8 +417,8 @@ class Game {
 		this.playerLight.decay = 1.5;
 
 		this.playerLight.castShadow = true;
-		this.playerLight.shadow.mapSize.width = 512;
-		this.playerLight.shadow.mapSize.height = 512;
+		this.playerLight.shadow.mapSize.width = 256; // プレイヤーライトのシャドウマップ解像度を下げる
+		this.playerLight.shadow.mapSize.height = 256; // プレイヤーライトのシャドウマップ解像度を下げる
 		this.playerLight.shadow.camera.near = 0.5;
 		this.playerLight.shadow.camera.far = 50;
 
