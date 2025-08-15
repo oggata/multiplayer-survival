@@ -126,6 +126,21 @@ class Bullet {
 			return model;
 		}
 
+		if(bulletType=="lightmachinegun") {
+			// ライトマシンガンの弾：小さくて高速な弾
+			const geometry = new THREE.SphereGeometry(0.08, 8, 8);
+			const material = new THREE.MeshPhongMaterial({
+				color: this.color,
+				emissive: this.color,
+				emissiveIntensity: 1.0,
+				transparent: true,
+				opacity: 0.9
+			});
+			const model = new THREE.Mesh(geometry, material);
+			model.castShadow = true;
+			return model;
+		}
+
 		if(bulletType=="magnum") {
 			// 弾丸のジオメトリとマテリアルを作成
 			const geometry=new THREE.SphereGeometry(0.16, 12, 12);

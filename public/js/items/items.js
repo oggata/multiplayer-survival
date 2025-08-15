@@ -107,6 +107,19 @@ const ITEMS_CONFIG = {
                 }
             }
         },
+        lightmachinegun: {
+            name: 'ライトマシンガン',
+            description: '全方向に弾を発射する武器',
+            color: 0xff6b35,
+            dropChance: 0.03,
+            effects: {
+                duration: {
+                    type: 'wepon',
+                    duration: 60,
+                    name: 'lightmachinegun'
+                }
+            }
+        },
         magnum: {
             name: 'マグナム',
             description: '強力な弾を発射する',

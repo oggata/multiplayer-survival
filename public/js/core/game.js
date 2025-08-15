@@ -234,6 +234,59 @@ class Game {
 		this.itemEffectManager = new ItemEffectManager(this);
 
 		// ゲーム開始時にランダムなアイテムを3つバックパックに入れる（ワープ薬を必ず1つ含める）
+		// ItemsConfigが利用可能になるまで待機
+		this.initializeInventory();
+			
+		// 電波塔の管理を追加
+		//this.radioTowerManager = new RadioTowerManager(this.scene);
+
+		// ページがアンロードされる時の処理
+		window.addEventListener('beforeunload', () => {
+			// BGMを停止
+			this.audioManager.stopBGM();
+			
+			// サーバーに切断を通知
+			if (this.socket) {
+				this.socket.disconnect();
+			}
+		});
+
+		// ウィンドウリサイズ時の処理を追加
+		window.addEventListener('resize', () => {
+			// カメラのアスペクト比を更新
+			this.camera.aspect = window.innerWidth / window.innerHeight;
+			this.camera.updateProjectionMatrix();
+			
+			// レンダラーのサイズを更新
+			this.renderer.setSize(window.innerWidth, window.innerHeight);
+		});
+
+		this.raycast = new Raycast(this);
+		this.weponManager = new WeponManager(this);
+
+		this.missionManager = new MissionManager(this);
+		
+
+		
+		this.animate();
+
+		this.cleanupQueue = {
+			bullets: [],
+			enemyBullets: [],
+			items: [],
+			popups: [],
+			indicators: []
+		};
+	}
+
+	// インベントリの初期化メソッド
+	initializeInventory() {
+		// ItemsConfigが利用可能になるまで待機
+		if (typeof window.ItemsConfig === 'undefined') {
+			setTimeout(() => this.initializeInventory(), 100);
+			return;
+		}
+
 		const lang = localStorage.getItem('language') || 'ja';
 		const items = ItemsConfig.getItemsConfig(lang) || {};
 		console.log('lang:', lang);
@@ -274,8 +327,6 @@ class Game {
 				}
 			}
 		}
-
-
 
 		this.updateBackpackUI();
 			
@@ -1387,14 +1438,19 @@ class Game {
 
 		// ゲームオーバー画面を表示
 		const gameOverElement = document.getElementById('gameOver');
-		gameOverElement.innerHTML = `
-            <div>Game Over!!</div>
-            <div>[ survival time ${survivalDays} day ${survivalHours} hour ${survivalMinutes} min ]</div>
-            <div class="share-buttons">
-                <button id="restartButton">Restart</button>
-                <button id="gameOverRankingButton" class="ranking-btn">ランキング</button>
-            </div>
-        `;
+		const survivalTimeElement = document.getElementById('survivalTime');
+		const killedEnemiesElement = document.getElementById('killedEnemies');
+		
+		// 生存時間を表示
+		survivalTimeElement.innerHTML = `
+			<i class="fas fa-clock"></i> 生存時間: ${survivalDays}日 ${survivalHours}時間 ${survivalMinutes}分
+		`;
+		
+		// 倒した敵数を表示
+		killedEnemiesElement.innerHTML = `
+			<i class="fas fa-skull"></i> 倒した敵: ${killedEnemies}体
+		`;
+		
 		gameOverElement.style.display = 'block';
 
 		// リスタートボタンのイベントリスナーを設定
@@ -3398,39 +3454,88 @@ class Game {
 	}
 
 	warpToRandomPlayer() {
-
-		//console.log(this.players.size);
+		console.log('=== ワープ処理開始 ===');
+		console.log('現在のプレイヤー位置:', this.playerModel ? this.playerModel.getPosition() : 'プレイヤーモデルなし');
+		console.log('他のプレイヤー数:', this.players.size);
 
 		if (this.players.size === 0) {
 			console.log('他のプレイヤーがいません');
+			// 他のプレイヤーがいない場合は安全なスポーン位置にワープ
+			const safePosition = this.findSafeRespawnPosition();
+			if (safePosition) {
+				console.log('安全なスポーン位置にワープ:', safePosition);
+				this.playerModel.setPosition(safePosition.x, safePosition.y, safePosition.z);
+				this.socket.emit('playerMove', {
+					position: this.playerModel.getPosition(),
+					rotation: { y: this.playerModel.getRotation().y },
+					isMoving: false,
+					isRunning: false
+				});
+				console.log('安全なスポーン位置にワープしました');
+			}
 			return;
 		}
 
+		// 他のプレイヤーの情報を詳細にログ出力
+		console.log('利用可能なプレイヤー:');
+		this.players.forEach((player, id) => {
+			const pos = player.getPosition();
+			console.log(`- プレイヤーID: ${id}, 位置: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
+		});
+
+		// シード値を使用した乱数生成器を作成（ワープ用）
+		const warpRng = new Math.seedrandom((this.seed || Date.now()).toString() + Date.now().toString());
+		
 		// ランダムに他のプレイヤーを選択
 		const playerArray = Array.from(this.players.values());
-		const randomPlayer = playerArray[Math.floor(Math.random() * playerArray.length)];
+		if (playerArray.length === 0) {
+			console.log('プレイヤー配列が空です');
+			return;
+		}
+		
+		const randomPlayer = playerArray[Math.floor(warpRng() * playerArray.length)];
+		if (!randomPlayer || !randomPlayer.getPosition) {
+			console.log('選択されたプレイヤーが無効です');
+			return;
+		}
 
 		// 選択したプレイヤーの位置を取得
 		const targetPosition = randomPlayer.getPosition();
+		if (!targetPosition || typeof targetPosition.x !== 'number' || typeof targetPosition.z !== 'number') {
+			console.log('プレイヤーの位置情報が無効です:', targetPosition);
+			return;
+		}
+		console.log('選択されたプレイヤー位置:', targetPosition);
 
-		// プレイヤーの周囲にランダムなオフセットを加える
-		const offset = new THREE.Vector3(
-			(Math.random() - 0.5) * 5, // -2.5から2.5の範囲でランダム
-			0,
-			(Math.random() - 0.5) * 5 // -2.5から2.5の範囲でランダム
-		);
+		// プレイヤーの周囲にランダムなオフセットを加える（より近い位置に）
+		const offsetX = (warpRng() - 0.5) * 6; // -3から3の範囲でランダム
+		const offsetZ = (warpRng() - 0.5) * 6; // -3から3の範囲でランダム
+		const offset = new THREE.Vector3(offsetX, 0, offsetZ);
+		console.log('オフセット:', offset);
 
 		// 新しい位置を計算
 		const newPosition = targetPosition.clone().add(offset);
+		console.log('オフセット適用後の位置:', newPosition);
 
 		// マップの境界内に収める
 		newPosition.x = Math.max(-450, Math.min(450, newPosition.x));
 		newPosition.z = Math.max(-450, Math.min(450, newPosition.z));
+		console.log('境界内に収めた位置:', newPosition);
+
+		// 地形の高さを取得
+		const terrainHeight = this.getHeightAt(newPosition.x, newPosition.z);
+		newPosition.y = terrainHeight + 1.0; // 地面から1.0ユニット上に配置
+		console.log('地形高さ:', terrainHeight, '最終ワープ位置:', newPosition);
 
 		// 建物との衝突チェック
 		if (!this.fieldMap.checkCollision(newPosition, 1)) {
+			console.log('衝突チェック: クリア');
 			// プレイヤーの位置を更新
 			this.playerModel.setPosition(newPosition.x, newPosition.y, newPosition.z);
+			console.log('プレイヤー位置を更新:', this.playerModel.getPosition());
+
+			// カメラの位置も更新
+			this.updateCameraPosition();
 
 			// サーバーに位置情報を送信
 			this.socket.emit('playerMove', {
@@ -3441,9 +3546,20 @@ class Game {
 				isMoving: false,
 				isRunning: false
 			});
+			
+			console.log('=== ワープ完了 ===');
 		} else {
-			// 衝突する場合は、もう一度試行
-			this.warpToRandomPlayer();
+			console.log('衝突が発生したため、ワープを再試行');
+			// 衝突する場合は、もう一度試行（無限ループを防ぐため最大5回まで）
+			if (!this.warpAttempts) this.warpAttempts = 0;
+			if (this.warpAttempts < 5) {
+				this.warpAttempts++;
+				console.log(`ワープ再試行 ${this.warpAttempts}/5`);
+				this.warpToRandomPlayer();
+			} else {
+				console.log('ワープ試行回数上限に達しました');
+				this.warpAttempts = 0;
+			}
 		}
 	}
 

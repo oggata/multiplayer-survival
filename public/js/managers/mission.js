@@ -185,9 +185,15 @@ class MissionManager {
             <span>: ${Math.floor(distance)}m</span> ${timeLeftText}
         `;
 
+        // farviewの時はインジケーターの位置を下に下げる
+        let verticalOffset = -150; // デフォルトのオフセット
+        if (this.game.cameraMode === 'far') {
+            verticalOffset = -50; // farviewの時は下に下げる
+        }
+
         // インジケーターの位置を更新
         keyItemIndicator.style.left = `${screenPosition.x}px`;
-        keyItemIndicator.style.top = `${screenPosition.y - 150}px`;
+        keyItemIndicator.style.top = `${screenPosition.y + verticalOffset}px`;
     }
 
     // ハッキングエフェクトの状態を更新するメソッド（新規追加）
@@ -238,7 +244,8 @@ class MissionManager {
         this.hackingEffect.id = 'hacking-gauge';
         this.hackingEffect.style.position = 'fixed';
         this.hackingEffect.style.top = '20px';
-        this.hackingEffect.style.right = '20px';
+        this.hackingEffect.style.left = '50%';
+        this.hackingEffect.style.transform = 'translateX(-50%)';
         this.hackingEffect.style.width = '300px';
         this.hackingEffect.style.height = '60px';
         this.hackingEffect.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';

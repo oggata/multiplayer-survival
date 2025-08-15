@@ -105,21 +105,21 @@ const TIME = {
 const ENEMY_CONFIG = {
     NORMAL: {
         model: 'humanoid',
-        visionRange: 30,
+        visionRange: 15,
         speed:  0.2,
         health: 10,
         weight: 0.6
     },
     FAST: {
         model: 'quadruped',
-        visionRange: 40,
+        visionRange: 19,
         speed: 0.35, // 移動速度を0.5から0.3に減少
         health: 20,
         weight: 0.25
     },
     SHOOTER: {
         model: 'hexapod',
-        visionRange: 40,
+        visionRange: 22,
         speed: 0.25,
         health: 40,
         weight: 0.15,
@@ -136,7 +136,7 @@ const ENEMY_CONFIG = {
     },
     GIANT: {
         model: 'giant',
-        visionRange: 40,
+        visionRange: 15,
         speed: 0.1,
         health: 70,
         weight: 0.1
@@ -157,7 +157,7 @@ const ENEMY_CONFIG = {
     },
     BOSS: {
         model: 'boss',
-        visionRange: 40,
+        visionRange: 15,
         speed: 0.2,
         health: 300,
         weight: 0.05

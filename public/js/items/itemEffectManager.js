@@ -106,85 +106,86 @@ class ItemEffectManager {
 		
 		// 即時効果の適用（instant形式とimmediate形式の両方に対応）
 		if (itemConfig.effects) {
-			const instantEffects = itemConfig.effects.instant || itemConfig.effects.immediate;
-			if (instantEffects) {
-				console.log('即時効果適用:', instantEffects);
+			// instant形式の効果を処理
+			if (itemConfig.effects.instant) {
+				const instantEffects = itemConfig.effects.instant;
+				console.log('instant形式の効果適用:', instantEffects);
 				
-				// instant形式（日本語設定）
-				if (instantEffects.type) {
-					if (instantEffects.type === 'health') {
-						this.game.playerStatus.addHealth(instantEffects.value);
-						effectMessage += isEnglish 
-							? `\n💚 Health recovered by ${instantEffects.value}!`
-							: `\n💚 体力が${instantEffects.value}回復しました！`;
-					} else if (instantEffects.type === 'hunger') {
-						this.game.playerStatus.addHunger(instantEffects.value);
-						effectMessage += isEnglish 
-							? `\n🍖 Hunger recovered by ${instantEffects.value}!`
-							: `\n🍖 空腹が${instantEffects.value}回復しました！`;
-					} else if (instantEffects.type === 'thirst') {
-						this.game.playerStatus.addThirst(instantEffects.value);
-						effectMessage += isEnglish 
-							? `\n💧 Thirst recovered by ${instantEffects.value}!`
-							: `\n💧 喉の渇きが${instantEffects.value}回復しました！`;
-					} else if (instantEffects.type === 'stamina') {
-						// スタミナ効果
-						this.game.playerStatus.addStamina(instantEffects.value);
-						effectMessage += isEnglish 
-							? `\n⚡ Stamina recovered by ${instantEffects.value}!`
-							: `\n⚡ スタミナが${instantEffects.value}回復しました！`;
-					} else if (instantEffects.type === 'experience') {
-						// 経験値効果
-						this.game.playerStatus.addExperience(instantEffects.value);
-						effectMessage += isEnglish 
-							? `\n⭐ Experience gained: ${instantEffects.value}!`
-							: `\n⭐ 経験値を${instantEffects.value}獲得しました！`;
-					} else if (instantEffects.type === 'warp') {
-						// ワープ効果
-						this.game.warpToRandomPlayer();
-						effectMessage += isEnglish 
-							? `\n✨ Warped to another player!`
-							: `\n✨ 他のプレイヤーの近くにワープしました！`;
-					}
+				if (instantEffects.type === 'health') {
+					this.game.playerStatus.addHealth(instantEffects.value);
+					effectMessage += isEnglish 
+						? `\n💚 Health recovered by ${instantEffects.value}!`
+						: `\n💚 体力が${instantEffects.value}回復しました！`;
+				} else if (instantEffects.type === 'hunger') {
+					this.game.playerStatus.addHunger(instantEffects.value);
+					effectMessage += isEnglish 
+						? `\n🍖 Hunger recovered by ${instantEffects.value}!`
+						: `\n🍖 空腹が${instantEffects.value}回復しました！`;
+				} else if (instantEffects.type === 'thirst') {
+					this.game.playerStatus.addThirst(instantEffects.value);
+					effectMessage += isEnglish 
+						? `\n💧 Thirst recovered by ${instantEffects.value}!`
+						: `\n💧 喉の渇きが${instantEffects.value}回復しました！`;
+				} else if (instantEffects.type === 'stamina') {
+					// スタミナ効果
+					this.game.playerStatus.addStamina(instantEffects.value);
+					effectMessage += isEnglish 
+						? `\n⚡ Stamina recovered by ${instantEffects.value}!`
+						: `\n⚡ スタミナが${instantEffects.value}回復しました！`;
+				} else if (instantEffects.type === 'experience') {
+					// 経験値効果
+					this.game.playerStatus.addExperience(instantEffects.value);
+					effectMessage += isEnglish 
+						? `\n⭐ Experience gained: ${instantEffects.value}!`
+						: `\n⭐ 経験値を${instantEffects.value}獲得しました！`;
+				} else if (instantEffects.type === 'warp') {
+					// ワープ効果
+					console.log('ワープ効果を発動します');
+					this.game.warpToRandomPlayer();
+					effectMessage += isEnglish 
+						? `\n✨ Warped to another player!`
+						: `\n✨ 他のプレイヤーの近くにワープしました！`;
 				}
-				// immediate形式（英語設定）
-				else {
-					if (instantEffects.health) {
-						this.game.playerStatus.addHealth(instantEffects.health);
-						effectMessage += isEnglish 
-							? `\n💚 Health recovered by ${instantEffects.health}!`
-							: `\n💚 体力が${instantEffects.health}回復しました！`;
-					}
-					if (instantEffects.hunger) {
-						this.game.playerStatus.addHunger(instantEffects.hunger);
-						effectMessage += isEnglish 
-							? `\n🍖 Hunger recovered by ${instantEffects.hunger}!`
-							: `\n🍖 空腹が${instantEffects.hunger}回復しました！`;
-					}
-					if (instantEffects.thirst) {
-						this.game.playerStatus.addThirst(instantEffects.thirst);
-						effectMessage += isEnglish 
-							? `\n💧 Thirst recovered by ${instantEffects.thirst}!`
-							: `\n💧 喉の渇きが${instantEffects.thirst}回復しました！`;
-					}
-					if (instantEffects.experience) {
-						this.game.playerStatus.addExperience(instantEffects.experience);
-						effectMessage += isEnglish 
-							? `\n⭐ Experience gained: ${instantEffects.experience}!`
-							: `\n⭐ 経験値を${instantEffects.experience}獲得しました！`;
-					}
-					if (instantEffects.hygiene !== undefined) {
-						this.game.playerStatus.hygiene = Math.max(0, Math.min(100, this.game.playerStatus.hygiene + instantEffects.hygiene));
-						effectMessage += isEnglish 
-							? `\n🧼 Hygiene ${instantEffects.hygiene > 0 ? '+' : ''}${instantEffects.hygiene}!`
-							: `\n🧼 衛生が${instantEffects.hygiene > 0 ? '+' : ''}${instantEffects.hygiene}変化しました！`;
-					}
-					if (instantEffects.stamina !== undefined) {
-						this.game.playerStatus.addStamina(instantEffects.stamina);
-						effectMessage += isEnglish 
-							? `\n⚡ Stamina recovered by ${instantEffects.stamina}!`
-							: `\n⚡ スタミナが${instantEffects.stamina}回復しました！`;
-					}
+			}
+			// immediate形式の効果を処理
+			else if (itemConfig.effects.immediate) {
+				const immediateEffects = itemConfig.effects.immediate;
+				console.log('immediate形式の効果適用:', immediateEffects);
+				if (immediateEffects.health) {
+					this.game.playerStatus.addHealth(immediateEffects.health);
+					effectMessage += isEnglish 
+						? `\n💚 Health recovered by ${immediateEffects.health}!`
+						: `\n💚 体力が${immediateEffects.health}回復しました！`;
+				}
+				if (immediateEffects.hunger) {
+					this.game.playerStatus.addHunger(immediateEffects.hunger);
+					effectMessage += isEnglish 
+						? `\n🍖 Hunger recovered by ${immediateEffects.hunger}!`
+						: `\n🍖 空腹が${immediateEffects.hunger}回復しました！`;
+				}
+				if (immediateEffects.thirst) {
+					this.game.playerStatus.addThirst(immediateEffects.thirst);
+					effectMessage += isEnglish 
+						? `\n💧 Thirst recovered by ${immediateEffects.thirst}!`
+						: `\n💧 喉の渇きが${immediateEffects.thirst}回復しました！`;
+				}
+				if (immediateEffects.experience) {
+					this.game.playerStatus.addExperience(immediateEffects.experience);
+					effectMessage += isEnglish 
+						? `\n⭐ Experience gained: ${immediateEffects.experience}!`
+						: `\n⭐ 経験値を${immediateEffects.experience}獲得しました！`;
+				}
+				if (immediateEffects.hygiene !== undefined) {
+					this.game.playerStatus.hygiene = Math.max(0, Math.min(100, this.game.playerStatus.hygiene + immediateEffects.hygiene));
+					effectMessage += isEnglish 
+						? `\n🧼 Hygiene ${immediateEffects.hygiene > 0 ? '+' : ''}${immediateEffects.hygiene}!`
+						: `\n🧼 衛生が${immediateEffects.hygiene > 0 ? '+' : ''}${immediateEffects.hygiene}変化しました！`;
+				}
+				if (immediateEffects.stamina !== undefined) {
+					this.game.playerStatus.addStamina(immediateEffects.stamina);
+					effectMessage += isEnglish 
+						? `\n⚡ Stamina recovered by ${immediateEffects.stamina}!`
+						: `\n⚡ スタミナが${immediateEffects.stamina}回復しました！`;
 				}
 			}
 		}

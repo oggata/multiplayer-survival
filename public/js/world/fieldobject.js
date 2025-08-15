@@ -3,8 +3,7 @@ class FieldObject {
         this.scene = scene;
         this.fieldmap = fieldmap;
         this.seed = seed || Math.random();
-        Math.seedrandom(this.seed.toString());
-        this.rng = Math.random;
+        this.rng = new Math.seedrandom(this.seed.toString());
         
         // GLTFLoaderのインスタンスを作成
         this.gltfLoader = new THREE.GLTFLoader();

@@ -90,15 +90,16 @@ class FieldMap {
             }
         };
 
-        // パーミュテーションテーブルの初期化
-        for(let i = 0; i < 256; i++) {
-            this.noise.p[i] = Math.floor(Math.random() * 256);
-        }
-
         this.scene = scene;
         this.game = game;
         this.seed = seed || Math.random();
         console.log("seed: " + this.seed);
+
+        // パーミュテーションテーブルの初期化（シード値を使用）
+        const tempRng = new Math.seedrandom(this.seed.toString());
+        for(let i = 0; i < 256; i++) {
+            this.noise.p[i] = Math.floor(tempRng() * 256);
+        }
 
         this.rng = new Math.seedrandom(this.seed.toString());
         // ノイズ関数のシードを設定

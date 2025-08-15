@@ -50,6 +50,7 @@ class WeponManager {
 			sniperrifle: GameConfig.WEAPON.SNIPERRIFLE,
 			rocketlauncher: GameConfig.WEAPON.ROCKETLAUNCHER,
 			machinegun: GameConfig.WEAPON.MACHINEGUN,
+			lightmachinegun: GameConfig.WEAPON.LIGHTMACHINEGUN,
 			bullet001: GameConfig.WEAPON.BULLET001
 		};
 
@@ -144,6 +145,25 @@ class WeponManager {
 				}
 				break;
 
+			case 'lightmachinegun':
+				// ライトマシンガン：全方向に弾を発射
+				const directions = [];
+				// 8方向の弾を発射（前後左右と斜め）
+				for (let i = 0; i < 8; i++) {
+					const angle = (i * Math.PI / 4); // 45度ずつ回転
+					const bulletDirection = new THREE.Vector3(Math.sin(angle), 0, Math.cos(angle));
+					// プレイヤーの向きを基準に回転
+					bulletDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerModel.getRotation().y);
+					directions.push(bulletDirection);
+				}
+				
+				// 各方向に弾を発射
+				for (const bulletDirection of directions) {
+					const bullet = this.createBullet(shootPosition, bulletDirection, this.socket.id, weaponId);
+					this.bullets.push(bullet);
+				}
+				break;
+
 			case 'magnum':
 				const bullet1 = this.createBullet(shootPosition, direction, this.socket.id, weaponId);
 				bullet1.nanoSwarm = true;
@@ -231,10 +251,15 @@ class WeponManager {
 							// 敵にダメージを与える
 							enemy.takeDamage(bullet.getDamage());
 							//enemy.takeDamage(100);
-							// 弾を削除
-							this.game.scene.remove(bullet.model);
-							bullet.dispose(); // disposeメソッドを呼び出してメモリを解放
-							this.bullets.splice(i, 1);
+							
+							// マグナムの弾は貫通する（削除しない）
+							if (bullet.bulletType !== 'magnum') {
+								// 弾を削除
+								this.game.scene.remove(bullet.model);
+								bullet.dispose(); // disposeメソッドを呼び出してメモリを解放
+								this.bullets.splice(i, 1);
+							}
+							
 							// 敵が死亡した場合の処理
 							if (enemy.health <= 0) {
 								console.log(`敵の体力が0になりました: ${enemyId}, disposedByVision: ${enemy.disposedByVision}`);
@@ -247,7 +272,11 @@ class WeponManager {
 									console.log(`視界外削除のため敵死亡処理をスキップ: ${enemyId}`);
 								}
 							}
-							break;
+							
+							// マグナムの弾は貫通するので、breakしない
+							if (bullet.bulletType !== 'magnum') {
+								break;
+							}
 						}
 					}
 				}

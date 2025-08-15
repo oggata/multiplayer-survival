@@ -3,6 +3,7 @@ class TerrainManager {
 		this.game = game;
 		this.seed = null;
 		this.noise = null;
+		this.rng = null;
 		this.initializeNoise();
 	}
 
@@ -10,8 +11,10 @@ class TerrainManager {
 		// シード値が設定されている場合は使用
 		if (this.seed) {
 			this.noise = new SimplexNoise(this.seed);
+			this.rng = new Math.seedrandom(this.seed.toString());
 		} else {
 			this.noise = new SimplexNoise();
+			this.rng = Math.random;
 		}
 	}
 
@@ -87,8 +90,8 @@ class TerrainManager {
 		let attempts = 0;
 		
 		while (attempts < maxAttempts) {
-			const x = (Math.random() - 0.5) * GameConfig.MAP.SIZE;
-			const z = (Math.random() - 0.5) * GameConfig.MAP.SIZE;
+			const x = (this.rng() - 0.5) * GameConfig.MAP.SIZE;
+			const z = (this.rng() - 0.5) * GameConfig.MAP.SIZE;
 			const y = this.getHeightAt(x, z);
 			
 			// 高さが適切な範囲内かチェック
@@ -142,14 +145,14 @@ class TerrainManager {
 		if (this.game.players.size === 0) return null;
 		
 		const playerArray = Array.from(this.game.players.values());
-		const randomPlayer = playerArray[Math.floor(Math.random() * playerArray.length)];
+		const randomPlayer = playerArray[Math.floor(this.rng() * playerArray.length)];
 		
 		if (randomPlayer && randomPlayer.position) {
 			// プレイヤーの周辺のランダムな位置を返す
 			const offset = new THREE.Vector3(
-				(Math.random() - 0.5) * 20,
+				(this.rng() - 0.5) * 20,
 				0,
-				(Math.random() - 0.5) * 20
+				(this.rng() - 0.5) * 20
 			);
 			const position = randomPlayer.position.clone().add(offset);
 			position.y = this.getHeightAt(position.x, position.z);

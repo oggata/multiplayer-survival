@@ -663,6 +663,13 @@ const GameConfig = {
 			speed: 35,
 			lifetime: 1.3,
 			color: 0x85d098
+		},
+		LIGHTMACHINEGUN: {
+			reload: 0.05,
+			damage: 3,
+			speed: 40,
+			lifetime: 1.0,
+			color: 0xff6b35
 		}
 	},
 

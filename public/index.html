@@ -169,23 +169,83 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: red;
-            padding: 20px;
-            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 20, 20, 0.95));
+            color: #fff;
+            padding: 40px;
+            border-radius: 20px;
             text-align: center;
-            font-size: 24px;
+            font-size: 28px;
             z-index: 200;
+            border: 3px solid #ff4444;
+            box-shadow: 0 0 30px rgba(255, 68, 68, 0.5), inset 0 0 20px rgba(255, 68, 68, 0.1);
+            min-width: 400px;
+            backdrop-filter: blur(10px);
         }
-        #restartButton {
-            margin-top: 20px;
-            padding: 10px 20px;
-            background: #ff0000;
+        
+        #gameOver .game-over-title {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ff4444;
+            text-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+            margin-bottom: 20px;
+            animation: gameOverPulse 2s infinite;
+        }
+        
+        #gameOver .survival-stats {
+            font-size: 18px;
+            color: #ccc;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        #gameOver .button-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        #restartButton, #gameOverRankingButton {
+            margin-top: 10px;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #ff4444, #cc0000);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 68, 68, 0.3);
+            min-width: 140px;
+            min-height: 50px;
+        }
+        
+        #restartButton:hover, #gameOverRankingButton:hover {
+            background: linear-gradient(135deg, #ff6666, #ff0000);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 68, 68, 0.5);
+        }
+        
+        #restartButton:active, #gameOverRankingButton:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(255, 68, 68, 0.3);
+        }
+        
+        @keyframes gameOverPulse {
+            0%, 100% { 
+                transform: scale(1);
+                text-shadow: 0 0 20px rgba(255, 68, 68, 0.8);
+            }
+            50% { 
+                transform: scale(1.05);
+                text-shadow: 0 0 30px rgba(255, 68, 68, 1);
+            }
         }
         @media (max-width: 768px) {
             /* #mobileControls { display: block; } を削除 */
@@ -748,9 +808,19 @@
 
 
     <div id="gameOver">
-        <div>GameOver</div>
-        <button id="restartButton">Restart</button>
-        <button id="gameOverRankingButton" class="ranking-btn">ランキング</button>
+        <div class="game-over-title">GAME OVER</div>
+        <div class="survival-stats">
+            <div id="survivalTime">生存時間: 計算中...</div>
+            <div id="killedEnemies">倒した敵: 0体</div>
+        </div>
+        <div class="button-container">
+            <button id="restartButton">
+                <i class="fas fa-redo"></i> Restart
+            </button>
+            <button id="gameOverRankingButton" class="ranking-btn">
+                <i class="fas fa-trophy"></i> ランキング
+            </button>
+        </div>
     </div>
 
     <!-- マップモーダル -->
