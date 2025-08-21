@@ -391,10 +391,10 @@ class PlayerStatus {
         // ゲージを更新
         this.updateGauges();
         
-        // レベルアップメッセージを表示
-        if (this.game && this.game.messageManager) {
-            this.game.messageManager.showMessage(`🎉 レベルアップ！ Lv.${this.level} になりました！`);
-        }
+        // レベルアップメッセージを表示しない
+        // if (this.game && this.game.messageManager) {
+        //     this.game.messageManager.showMessage(`🎉 レベルアップ！ Lv.${this.level} になりました！`);
+        // }
         
         console.log(`レベルアップ！ Lv.${this.level} になりました！`);
         console.log(`体力: ${this.health}/${this.maxHealth}, スタミナ: ${this.stamina}/${this.maxStamina}`);

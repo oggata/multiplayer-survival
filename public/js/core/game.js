@@ -182,9 +182,16 @@ class Game {
 		this.backpackButton = document.getElementById('backpackButton');
 		this.backpackCloseButton = document.getElementById('backpackClose');
 
-		// バックパックボタンのイベントリスナー
-		this.backpackButton.addEventListener('click', () => this.toggleBackpack());
-		this.backpackCloseButton.addEventListener('click', () => this.toggleBackpack());
+		// バックパックボタンのイベントリスナー（devmode以外では非表示）
+		if (this.devMode) {
+			this.backpackButton.addEventListener('click', () => this.toggleBackpack());
+			this.backpackCloseButton.addEventListener('click', () => this.toggleBackpack());
+		} else {
+			// devmode以外ではバックパックボタンを非表示
+			if (this.backpackButton) {
+				this.backpackButton.style.display = 'none';
+			}
+		}
 
 		// ステータス表示の更新
 		this.updateStatusDisplay();
@@ -569,8 +576,8 @@ class Game {
 		window.addEventListener('keydown', (e) => {
 			this.keys[e.key.toLowerCase()] = true;
 
-			// バックパックを開く/閉じる（Bキー）
-			if (e.key.toLowerCase() === 'b') {
+			// バックパックを開く/閉じる（Bキー）- devmode以外では無効
+			if (e.key.toLowerCase() === 'b' && this.devMode) {
 				this.toggleBackpack();
 			}
 		});
@@ -598,7 +605,8 @@ class Game {
 		const joystickKnob = document.getElementById('joystickKnob');
 		const shootButton = document.getElementById('shootButton');
 		const messageButton = document.getElementById('messageButton');
-		const backpackButton = document.getElementById('backpackButton');
+		// バックパックボタンはdevmode以外では使用しない
+		// const backpackButton = document.getElementById('backpackButton');
 
 		if (!leftJoystickElement) {
 			console.error('左ジョイスティック要素が見つかりません');

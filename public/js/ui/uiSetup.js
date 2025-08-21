@@ -124,32 +124,32 @@ class UISetup {
             // ボタンを非表示にする
             audioButton.style.display = 'none';
             
-            // 成功メッセージを表示
-            const successMessage = document.createElement('div');
-            successMessage.innerHTML = `
-                <div style="
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: rgba(76, 175, 80, 0.9);
-                    color: white;
-                    padding: 12px 18px;
-                    border-radius: 8px;
-                    z-index: 10001;
-                    font-size: 14px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-                ">
-                    <i class="fas fa-check"></i> Start BGM
-                </div>
-            `;
-            document.body.appendChild(successMessage);
-            
-            // 3秒後にメッセージを削除
-            setTimeout(() => {
-                if (successMessage.parentNode) {
-                    successMessage.remove();
-                }
-            }, 3000);
+            // 成功メッセージを表示しない
+            // const successMessage = document.createElement('div');
+            // successMessage.innerHTML = `
+            //     <div style="
+            //         position: fixed;
+            //         top: 20px;
+            //         right: 20px;
+            //         background: rgba(76, 175, 80, 0.9);
+            //         color: white;
+            //         padding: 12px 18px;
+            //         border-radius: 8px;
+            //         z-index: 10001;
+            //         font-size: 14px;
+            //         box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            //     ">
+            //         <i class="fas fa-check"></i> Start BGM
+            //     </div>
+            // `;
+            // document.body.appendChild(successMessage);
+            // 
+            // // 3秒後にメッセージを削除
+            // setTimeout(() => {
+            //     if (successMessage.parentNode) {
+            //         successMessage.remove();
+            //     }
+            // }, 3000);
         };
         
         // iOSではタッチイベントを優先

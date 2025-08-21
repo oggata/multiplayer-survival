@@ -1,6 +1,7 @@
 class RankingManager {
 	constructor(game) {
 		this.game = game;
+		this.openedFromSettings = false; // 設定画面から開いたかどうかのフラグ
 		this.setupRankingButton();
 	}
 
@@ -15,6 +16,8 @@ class RankingManager {
 		// ゲームオーバー画面のランキングボタン
 		if (gameOverRankingButton) {
 			gameOverRankingButton.addEventListener('click', () => {
+				// ゲームオーバー画面から開いたことを記録
+				this.openedFromSettings = false;
 				this.showRankingModal();
 			});
 		}
@@ -22,18 +25,29 @@ class RankingManager {
 		// 設定画面のランキングボタン
 		if (settingsRankingButton) {
 			settingsRankingButton.addEventListener('click', () => {
+				// 設定画面から開いたことを記録
+				this.openedFromSettings = true;
+				// 設定画面を非表示にしてからランキング画面を表示
+				const settingsModal = document.getElementById('settingsModal');
+				if (settingsModal) {
+					settingsModal.style.display = 'none';
+				}
 				this.showRankingModal();
 			});
 		}
 
 		closeRankingModal.addEventListener('click', () => {
 			rankingModal.style.display = 'none';
+			// 設定画面から開いた場合は設定画面に戻る
+			this.showSettingsModalIfNeeded();
 		});
 
 		// モーダル外をクリックしても閉じる
 		rankingModal.addEventListener('click', (e) => {
 			if (e.target === rankingModal) {
 				rankingModal.style.display = 'none';
+				// 設定画面から開いた場合は設定画面に戻る
+				this.showSettingsModalIfNeeded();
 			}
 		});
 	}
@@ -149,6 +163,14 @@ class RankingManager {
 			return `${survivalMinutes}分`;
 		} else {
 			return `0分`;
+		}
+	}
+
+	// 設定画面から開いた場合は設定画面に戻る
+	showSettingsModalIfNeeded() {
+		if (this.openedFromSettings && this.game.settingsManager) {
+			this.game.settingsManager.showSettingsModal();
+			this.openedFromSettings = false; // フラグをリセット
 		}
 	}
 } 

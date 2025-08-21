@@ -53,9 +53,16 @@ class UIManager {
 		// リスタートボタンのイベントリスナー
 		this.restartButtonElement.addEventListener('click', () => this.game.restartGame());
 		
-		// バックパックボタンのイベントリスナー
-		this.backpackButton.addEventListener('click', () => this.game.toggleBackpack());
-		this.backpackCloseButton.addEventListener('click', () => this.game.toggleBackpack());
+		// バックパックボタンのイベントリスナー（devmode以外では無効）
+		if (this.game.devMode) {
+			this.backpackButton.addEventListener('click', () => this.game.toggleBackpack());
+			this.backpackCloseButton.addEventListener('click', () => this.game.toggleBackpack());
+		} else {
+			// devmode以外ではバックパックボタンを非表示
+			if (this.backpackButton) {
+				this.backpackButton.style.display = 'none';
+			}
+		}
 	}
 
 	updateCoordinatesDisplay() {
